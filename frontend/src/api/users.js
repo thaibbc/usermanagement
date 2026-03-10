@@ -1,6 +1,6 @@
 // API helper functions for communicating with the backend user endpoints
 
-const BASE_URL = '/api/users'; // assuming proxy configured or same host
+const BASE_URL = 'https://usermanagement-vle7.onrender.com/api/users'; // assuming proxy configured or same host
 
 export async function fetchUsers(filters = {}) {
     // filters is an object where keys match query parameters (e.g. { accountType:'student', name:'Alice' })
@@ -57,7 +57,7 @@ export async function getUser(id) {
 
 // fetch recent action logs
 export async function fetchHistory() {
-    const res = await fetch('/api/history');
+    const res = await fetch('https://usermanagement-vle7.onrender.com/api/users');
     if (!res.ok) throw new Error('Failed to fetch history');
     return res.json();
 }
