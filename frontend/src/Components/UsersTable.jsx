@@ -1,0 +1,160 @@
+import { Table, Space, Tag, Tooltip, Button } from 'antd';
+import {
+    UserOutlined,
+    MailOutlined,
+    PhoneOutlined,
+    CalendarOutlined,
+    SearchOutlined,
+    EditOutlined,
+    DeleteOutlined
+} from '@ant-design/icons';
+
+export default function UsersTable({ users, currentPage, setCurrentPage, onEdit, onDelete }) {
+    // helper to format ISO date string into dd/mm/yyyy hh:mm
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        const pad = (n) => n.toString().padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const columns = [
+        {
+            title: '#',
+            key: 'index',
+            width: 50,
+            render: (_, __, index) => (currentPage - 1) * 10 + index + 1,
+        },
+        {
+            title: 'Mã',
+            dataIndex: 'code',
+            key: 'code',
+            width: 100,
+            render: (code) => (
+                <Space size={4}>
+                    <UserOutlined style={{ fontSize: 13, color: 'rgb(0, 0, 0)' }} />
+                    <span style={{ fontSize: 13, fontWeight: 'bold' }}>{code}</span>
+                </Space>
+            ),
+        },
+        {
+            title: 'Họ và tên',
+            dataIndex: 'name',
+            key: 'name',
+            width: 150,
+            render: (name, record) => (
+                <span style={{ fontSize: 13, fontWeight: 500 }}>
+                    {name || record.email?.split('@')[0] || '—'}
+                </span>
+            ),
+        },
+        {
+            title: 'Loại TK',
+            dataIndex: 'accountType',
+            key: 'accountType',
+            width: 100,
+            render: (type) => type ? <Tag color="cyan" style={{ fontSize: 13 }}>{type}</Tag> : null,
+        },
+        {
+            title: 'Cấp',
+            dataIndex: 'level',
+            key: 'level',
+            width: 80,
+            render: (level) => level ? <Tag color="cyan" style={{ fontSize: 13 }}>{level}</Tag> : null,
+        },
+        {
+            title: 'Tỉnh/TP',
+            dataIndex: 'city',
+            key: 'city',
+            width: 100,
+            render: (city) => <span style={{ fontSize: 13 }}>{city}</span>,
+        },
+        {
+            title: 'Quận/Huyện',
+            dataIndex: 'district',
+            key: 'district',
+            width: 100,
+            render: (district) => <span style={{ fontSize: 13 }}>{district}</span>,
+        },
+        {
+            title: 'Trường',
+            dataIndex: 'school',
+            key: 'school',
+            width: 100,
+            render: (school) => <span style={{ fontSize: 13 }}>{school || ''}</span>,
+        },
+        {
+            title: 'Email',
+            dataIndex: 'email',
+            key: 'email',
+            width: 150,
+            render: (email) => (
+                <Space size={4}>
+                    <MailOutlined style={{ fontSize: 12, color: '#3B82F6' }} />
+                    <span style={{ fontSize: 13, color: '#3B82F6' }}>{email}</span>
+                </Space>
+            ),
+        },
+        {
+            title: 'SĐT',
+            dataIndex: 'phone',
+            key: 'phone',
+            width: 100,
+            render: (phone) => phone ? (
+                <Space size={4}>
+                    <PhoneOutlined style={{ fontSize: 12 }} />
+                    <span style={{ fontSize: 13 }}>{phone}</span>
+                </Space>
+            ) : null,
+        },
+        {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            width: 130,
+            render: (date) => (
+                <Space size={4}>
+                    <CalendarOutlined style={{ fontSize: 13, color: '#060606' }} />
+                    <span style={{ fontSize: 13, color: '#070707' }}>{formatDate(date)}</span>
+                </Space>
+            ),
+        },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            width: 120,
+            align: 'center',
+            render: (_, record) => (
+                <Space size={4}>
+                    <Tooltip title="Edit">
+                        <Button type="dashed" shape="circle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+                    </Tooltip>
+                    <Tooltip title="search">
+                        <Button type="dashed" shape="circle" icon={<SearchOutlined />} style={{ color: '#8B5CF6' }} />
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                        <Button type="dashed" shape="circle" icon={<DeleteOutlined />} onClick={() => onDelete(record)} danger />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
+
+    return (
+        <Table
+            bordered
+            columns={columns}
+            dataSource={users}
+            rowKey="code"
+            pagination={{
+                current: currentPage,
+                onChange: setCurrentPage,
+                pageSize: 10,
+                showSizeChanger: false,
+                showTotal: (total, range) => `${range[0]}-${range[1]} / ${total}`,
+            }}
+            size="small"
+            scroll={{ x: 'max-content' }}
+        />
+    );
+}
