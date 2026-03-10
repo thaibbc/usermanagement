@@ -1,63 +1,94 @@
-// API helper functions for communicating with the backend user endpoints
+// API helper functions for communicating with the backend
 
-const BASE_URL = 'https://usermanagement-vle7.onrender.com/api/users'; // assuming proxy configured or same host
+const API = "https://usermanagement-vle7.onrender.com";
+const USERS_URL = `${API}/api/users`;
+const HISTORY_URL = `${API}/api/history`;
 
+// ====================== USERS ======================
+
+// Fetch users with optional filters
 export async function fetchUsers(filters = {}) {
-    // filters is an object where keys match query parameters (e.g. { accountType:'student', name:'Alice' })
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') {
-            params.append(k, v);
+
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            params.append(key, value);
         }
     });
-    const url = `${BASE_URL}${params.toString() ? '?' + params.toString() : ''}`;
+
+    const url = `${USERS_URL}${params.toString() ? `?${params}` : ''}`;
+
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch users');
+    if (!res.ok) throw new Error("Failed to fetch users");
+
     return res.json();
 }
 
+// Create new user
 export async function createUser(user) {
-    // user object should include at least { name, email } plus any other fields
-    // derive school from email if not provided
     const payload = { ...user };
+
+    // derive school from email
     if (!payload.school && payload.email) {
-        payload.school = payload.email.split('@')[1] || '';
+        payload.school = payload.email.split("@")[1] || "";
     }
-    const res = await fetch(BASE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+    const res = await fetch(USERS_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Failed to create user');
+
+    if (!res.ok) throw new Error("Failed to create user");
+
     return res.json();
 }
 
+// Update user
 export async function updateUser(id, updates) {
-    // id should be Mongo _id (backend ignores code field for lookup)
-    const res = await fetch(`${BASE_URL}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(`${USERS_URL}/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(updates)
     });
-    if (!res.ok) throw new Error('Failed to update user');
+
+    if (!res.ok) throw new Error("Failed to update user");
+
     return res.json();
 }
 
+// Delete user
 export async function deleteUser(id) {
-    const res = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete user');
+    const res = await fetch(`${USERS_URL}/${id}`, {
+        method: "DELETE"
+    });
+
+    if (!res.ok) throw new Error("Failed to delete user");
+
     return res.json();
 }
 
+// Get single user
 export async function getUser(id) {
-    const res = await fetch(`${BASE_URL}/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch user');
+    const res = await fetch(`${USERS_URL}/${id}`);
+
+    if (!res.ok) throw new Error("Failed to fetch user");
+
     return res.json();
 }
 
-// fetch recent action logs
+
+// ====================== HISTORY ======================
+
+// Fetch recent action logs
 export async function fetchHistory() {
-    const res = await fetch('https://usermanagement-vle7.onrender.com/api/users');
-    if (!res.ok) throw new Error('Failed to fetch history');
+    const res = await fetch(HISTORY_URL);
+
+    if (!res.ok) throw new Error("Failed to fetch history");
+
     return res.json();
 }
