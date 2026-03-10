@@ -7,11 +7,11 @@ import {
     Card,
     Tooltip
 } from 'antd';
-import FilterPanel from '../components/FilterPanel';
-import UsersTable from '../components/UsersTable';
-import HistoryTable from '../components/HistoryTable';
-import UserModal from '../components/UserModal';
-import DeleteModal from '../components/DeleteModal';
+import FilterPanel from '../Components/FilterPanel';
+import UsersTable from '../Components/UsersTable';
+import HistoryTable from '../Components/HistoryTable';
+import UserModal from '../Components/UserModal';
+import DeleteModal from '../Components/DeleteModal';
 
 // api helpers
 import { fetchUsers, deleteUser, createUser, updateUser, fetchHistory } from '../api/users';
