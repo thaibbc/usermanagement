@@ -121,11 +121,13 @@ export function AdminDashboard() {
 
     // Filter states
     const [filters, setFilters] = useState(INITIAL_FILTERS);
+    const [noResultsMessage, setNoResultsMessage] = useState(false);
 
-    // wrapped so we can also reset the page when filters change
+    // wrapped so we can also reset the page when filters change, and clear any ‘no results’ flag
     const handleSetFilters = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1);
+        setNoResultsMessage(false);
     };
 
     const handlePasswordClick = (user) => {
@@ -203,6 +205,9 @@ export function AdminDashboard() {
             }
             if (list.length === 0) {
                 message.info('Không tìm thấy dữ liệu.');
+                setNoResultsMessage(true);
+            } else {
+                setNoResultsMessage(false);
             }
         } catch (err) {
             console.error('search error', err);
@@ -344,6 +349,16 @@ export function AdminDashboard() {
 
                     {/* when user clicks search we call our wrapper so we can show a message if no results */}
                     <FilterPanel filters={filters} setFilters={handleSetFilters} onSearch={handleSearch} />
+
+                    {/* show alert only after a search returned no results */}
+                    {noResultsMessage && (
+                        <div style={{ marginBottom: 16 }}>
+                            <Alert
+                                type="info"
+                                message="Không tìm thấy dữ liệu"
+                            />
+                        </div>
+                    )}
 
                     {/* Table */}
                     <UsersTable
