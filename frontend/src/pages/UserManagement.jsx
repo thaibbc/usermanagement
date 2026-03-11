@@ -8,7 +8,8 @@ import {
     Card,
     Tooltip,
     Alert,
-    Input
+    Input,
+    Form
 } from 'antd';
 import FilterPanel from '../Components/FilterPanel';
 import UsersTable from '../Components/UsersTable';
@@ -151,7 +152,10 @@ export function AdminDashboard() {
             setNewPassword('');
         } catch (err) {
             console.error('password change failed', err);
-            Alert.error('Đổi mật khẩu thất bại');
+            Modal.error({
+                title: 'Lỗi',
+                content: err.message || 'Đổi mật khẩu thất bại',
+            });
         }
     };
 
@@ -488,22 +492,33 @@ export function AdminDashboard() {
                         <div><strong>Mã:</strong> {passwordUser.code}</div>
                     </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Input.Password
-                        placeholder="Mật khẩu mới"
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                        style={{ flex: 1 }}
-                    />
-                    <Button
-                        onClick={() => {
-                            const random = Math.random().toString(36).slice(-8);
-                            setNewPassword(random);
-                        }}
+                <Form
+                    layout="inline"
+                    onFinish={handlePasswordConfirm}
+                    style={{ width: '100%' }}
+                >
+                    <Form.Item
+                        style={{ flex: 1, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới' }]}
                     >
-                        Pass ngẫu nhiên
-                    </Button>
-                </div>
+                        <Input.Password
+                            placeholder="Mật khẩu mới"
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 0 }}>
+                        <Button
+                            onClick={() => {
+                                const random = Math.random().toString(36).slice(-8);
+                                setNewPassword(random);
+                            }}
+                        >
+                            Pass ngẫu nhiên
+                        </Button>
+                    </Form.Item>
+                </Form>
             </Modal>
         </div>
     );

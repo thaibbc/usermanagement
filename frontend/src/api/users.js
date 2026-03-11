@@ -88,7 +88,16 @@ export async function changePassword(id, newPassword) {
         },
         body: JSON.stringify({ password: newPassword })
     });
-    if (!res.ok) throw new Error("Failed to change password");
+    if (!res.ok) {
+        let msg = `Failed to change password (${res.status})`;
+        try {
+            const data = await res.json();
+            if (data && data.message) msg = data.message;
+        } catch {
+            /* ignore parse errors */
+        }
+        throw new Error(msg);
+    }
     return res.json();
 }
 
