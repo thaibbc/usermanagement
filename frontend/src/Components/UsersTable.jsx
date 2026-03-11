@@ -253,6 +253,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             }}
             size="small"
             scroll={{ x: 'max-content' }}
+            locale={{ emptyText: 'Không tìm thấy dữ liệu' }}
         />
     );
 }

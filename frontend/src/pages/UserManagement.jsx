@@ -184,6 +184,31 @@ export function AdminDashboard() {
         }
     }
 
+    // custom handler invoked by search button so we can display a notice when nothing matches
+    const handleSearch = async () => {
+        try {
+            const res = await refetchUsers();
+            // check result payload shape
+            let fetched;
+            if (res && res.data !== undefined) {
+                fetched = res.data;
+            } else {
+                fetched = res;
+            }
+            let list = [];
+            if (Array.isArray(fetched)) {
+                list = fetched;
+            } else if (fetched && typeof fetched === 'object') {
+                list = fetched.users || [];
+            }
+            if (list.length === 0) {
+                message.info('Không tìm thấy dữ liệu.');
+            }
+        } catch (err) {
+            console.error('search error', err);
+        }
+    };
+
 
     const [historyPage, setHistoryPage] = useState(1);
 
@@ -317,7 +342,8 @@ export function AdminDashboard() {
                         </div>
                     )}
 
-                    <FilterPanel filters={filters} setFilters={handleSetFilters} onSearch={refetchUsers} />
+                    {/* when user clicks search we call our wrapper so we can show a message if no results */}
+                    <FilterPanel filters={filters} setFilters={handleSetFilters} onSearch={handleSearch} />
 
                     {/* Table */}
                     <UsersTable
