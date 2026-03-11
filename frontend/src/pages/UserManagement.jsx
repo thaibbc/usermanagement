@@ -242,6 +242,8 @@ export function AdminDashboard() {
                 await deleteMutation.mutateAsync(selectedUser._id || selectedUser.id);
                 setDeleteModalOpen(false);
                 setSelectedUser(null);
+                refetchUsers();
+                message.success('Người dùng đã được xóa.');
             } catch (err) {
                 console.error('delete failed', err);
                 // if user was already removed on the server, just refresh and close modal
@@ -252,10 +254,7 @@ export function AdminDashboard() {
                     setSelectedUser(null);
                     return;
                 }
-                Modal.error({
-                    title: 'Xóa không thành công',
-                    content: err.message || 'Không thể xóa người dùng',
-                });
+                message.error(err.message || 'Không thể xóa người dùng');
             }
         }
     };
