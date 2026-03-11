@@ -3,10 +3,16 @@ const nodemailer = require('nodemailer');
 // simple transporter using environment variables; fall back to console log
 let transporter;
 
+// helper to show what transport we’ve selected
+function logTransport(type, details = '') {
+    console.log(`mailer: using ${type} transport${details ? ' (' + details + ')' : ''}`);
+}
+
 // if an API provider key is supplied we prefer the REST API over raw SMTP
 if (process.env.SENDGRID_API_KEY) {
     const sgMail = require('@sendgrid/mail');
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    logTransport('SendGrid API');
     transporter = {
         sendMail: async (opts) => {
             const msg = {
@@ -66,6 +72,7 @@ if (process.env.SENDGRID_API_KEY) {
         }
     });
 } else {
+    logTransport('console placeholder');
     transporter = {
         sendMail: async (options) => {
             console.log('mailer placeholder (no SMTP configured) - would send email with options:', options);
@@ -74,4 +81,4 @@ if (process.env.SENDGRID_API_KEY) {
     };
 }
 
-module.exports = { transporter };
+module.exports = { transporter, logTransport };
