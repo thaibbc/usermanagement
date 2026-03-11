@@ -253,9 +253,15 @@ export function AdminDashboard() {
             alert('Vui lòng nhập email');
             return;
         }
-        if (users && users.some && users.some(u => u.email === newUser.email)) {
-            alert('Email đã tồn tại trong danh sách');
-            return;
+        // ensure users is really an array before calling .some
+        if (Array.isArray(users)) {
+            if (users.some(u => u.email === newUser.email)) {
+                alert('Email đã tồn tại trong danh sách');
+                return;
+            }
+        } else if (users) {
+            // unexpected shape, log for debugging
+            console.warn('unexpected users value when adding', users);
         }
         try {
             await createMutation.mutateAsync(newUser);
@@ -322,7 +328,7 @@ export function AdminDashboard() {
 
                     {/* Table */}
                     <UsersTable
-                        users={users}
+                        users={Array.isArray(users) ? users : []}
                         total={totalUsers}
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
