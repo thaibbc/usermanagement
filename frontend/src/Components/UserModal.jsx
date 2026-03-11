@@ -58,7 +58,7 @@ export default function UserModal({
                 onValuesChange={(changed, all) => setUser(all)}
                 onFinish={handleFinish}
             >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,  }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, }}>
                     <Form.Item
                         name="name"
                         label={null}
@@ -95,6 +95,7 @@ export default function UserModal({
                         label={null}
                         rules={[
                             {
+                                required: true,
                                 pattern: /^\d{9,11}$/,
                                 message: 'SĐT phải gồm 9–11 chữ số'
                             }
@@ -127,6 +128,7 @@ export default function UserModal({
                             placeholder="Cấp"
                             allowClear
                             value={user.level}
+                            rules={[{ required: true, message: 'Cấp là bắt buộc' }]}
                             options={[
                                 { label: 'Cấp 1', value: 'cap1' },
                                 { label: 'Cấp 2', value: 'cap2' },
@@ -143,6 +145,7 @@ export default function UserModal({
                             placeholder="Tỉnh / Thành phố"
                             allowClear
                             value={user.city}
+                            rules={[{ required: true, message: 'Tỉnh / Thành phố là bắt buộc' }]}
                             options={[
                                 { label: 'Hà Nội', value: 'hn' },
                                 { label: 'Đà Nẵng', value: 'dn' },
@@ -158,6 +161,7 @@ export default function UserModal({
                             allowClear
                             disabled={!user.city}
                             value={user.district}
+                            rules={[{ required: !!user.city, message: 'Quận / Huyện là bắt buộc' }]}
                             options={
                                 user.city === 'hn'
                                     ? [
@@ -232,6 +236,8 @@ export default function UserModal({
                         label={null}
                         rules={[
                             {
+                                required: true,
+                                message: 'Tên trường là bắt buộc',
                                 validator: (_, value) => {
                                     if (!value) return Promise.resolve();
                                     const len = value.replace(/\s+/g, '').length;
