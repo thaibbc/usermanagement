@@ -10,7 +10,7 @@ import {
     DeleteOutlined
 } from '@ant-design/icons';
 
-export default function UsersTable({ users, total = 0, currentPage, setCurrentPage, onEdit, onDelete, onChangePassword }) {
+export default function UsersTable({ users, total = 0, currentPage, setCurrentPage, onEdit, onDelete, onChangePassword, loading = false }) {
     // helper to format ISO date string into dd/mm/yyyy hh:mm
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -240,6 +240,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
     return (
         <Table
             bordered
+            loading={loading}
             columns={columns}
             dataSource={users}
             rowKey="code"

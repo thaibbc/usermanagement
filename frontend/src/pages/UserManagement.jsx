@@ -10,7 +10,8 @@ import {
     Alert,
     Input,
     Form,
-    message
+    message,
+    Spin
 } from 'antd';
 import FilterPanel from '../Components/FilterPanel';
 import UsersTable from '../Components/UsersTable';
@@ -167,7 +168,9 @@ export function AdminDashboard() {
     const {
         data = { users: [], total: 0 },
         refetch: refetchUsers,
-        isError: usersError
+        isError: usersError,
+        isFetching: usersFetching,
+        isLoading: usersLoading
     } = useQuery({
         queryKey: ['users', filters, currentPage],
         queryFn: () => fetchUsers(filters, currentPage, PAGE_SIZE),
@@ -219,7 +222,9 @@ export function AdminDashboard() {
 
     const {
         data: historyData = { logs: [], total: 0 },
-        isError: historyError
+        isError: historyError,
+        isFetching: historyFetching,
+        isLoading: historyLoading
     } = useQuery({
         queryKey: ['history', historyPage],
         queryFn: () => fetchHistory(historyPage, PAGE_SIZE),
@@ -360,19 +365,22 @@ export function AdminDashboard() {
                         </div>
                     )}
 
-                    {/* Table */}
-                    <UsersTable
-                        users={Array.isArray(users) ? users : []}
-                        total={totalUsers}
-                        currentPage={currentPage}
-                        setCurrentPage={setCurrentPage}
-                        onEdit={(record) => {
-                            setEditingUser(record);
-                            setEditModalOpen(true);
-                        }}
-                        onDelete={handleDeleteClick}
-                        onChangePassword={handlePasswordClick}
-                    />
+                    {/* Table with spinner overlay */}
+                    <Spin spinning={usersFetching || usersLoading} tip="Đang tải dữ liệu...">
+                        <UsersTable
+                            users={Array.isArray(users) ? users : []}
+                            total={totalUsers}
+                            currentPage={currentPage}
+                            setCurrentPage={setCurrentPage}
+                            onEdit={(record) => {
+                                setEditingUser(record);
+                                setEditModalOpen(true);
+                            }}
+                            onDelete={handleDeleteClick}
+                            onChangePassword={handlePasswordClick}
+                            loading={usersFetching || usersLoading}
+                        />
+                    </Spin>
                 </div>
             ),
         },
@@ -395,12 +403,15 @@ export function AdminDashboard() {
                         </div>
                     )}
                     <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Lịch sử thao tác</h2>
-                    <HistoryTable
-                        logs={historyLogs}
-                        total={historyTotal}
-                        currentPage={historyPage}
-                        setCurrentPage={setHistoryPage}
-                    />
+                    <Spin spinning={historyFetching || historyLoading} tip="Đang tải lịch sử...">
+                        <HistoryTable
+                            logs={historyLogs}
+                            total={historyTotal}
+                            currentPage={historyPage}
+                            setCurrentPage={setHistoryPage}
+                            loading={historyFetching || historyLoading}
+                        />
+                    </Spin>
                 </div>
             ),
         },
