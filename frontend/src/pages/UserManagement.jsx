@@ -9,7 +9,8 @@ import {
     Tooltip,
     Alert,
     Input,
-    Form
+    Form,
+    message
 } from 'antd';
 import FilterPanel from '../Components/FilterPanel';
 import UsersTable from '../Components/UsersTable';
@@ -29,7 +30,6 @@ import {
 // react-query (now @tanstack/react-query) with persistence
 import {
     QueryClient,
-    QueryClientProvider,
     useQuery,
     useMutation,
     useQueryClient
@@ -39,7 +39,7 @@ import {
 } from '@tanstack/react-query-persist-client';
 
 // create a client with offline‑friendly defaults
-const queryClient = new QueryClient({
+const baseQueryClient = new QueryClient({
     defaultOptions: {
         queries: {
             retry: false,
@@ -129,37 +129,36 @@ export function AdminDashboard() {
     };
 
     const handlePasswordClick = (user) => {
-        console.log('opening password dialog for', user);
         // open dialog pre-filled for the selected account
         setPasswordUser(user);
         setNewPassword('');
         setPasswordModalOpen(true);
     };
 
+    const passwordMutation = useMutation({
+        mutationFn: ({ id, password }) => changePassword(id, password),
+        onSuccess: () => {
+            client.invalidateQueries('history');
+        }
+    });
+
     const handlePasswordConfirm = async () => {
         if (!passwordUser) return;
         try {
-            await changePassword(passwordUser._id, newPassword);
+            await passwordMutation.mutateAsync({ id: passwordUser._id, password: newPassword });
             setPasswordModalOpen(false);
-            Modal.success({
-                title: 'Thành công',
-                content: `Mật khẩu mới đã được gửi tới ${passwordUser.email || ''}`,
-            });
-            // refresh history log
-            queryClient.invalidateQueries('history');
+            message.success('Mật khẩu đã được cập nhật thành công.');
             // clear selection so modal resets next time
             setPasswordUser(null);
             setNewPassword('');
         } catch (err) {
             console.error('password change failed', err);
-            Modal.error({
-                title: 'Lỗi',
-                content: err.message || 'Đổi mật khẩu thất bại',
-            });
+            message.error(err.message || 'Đổi mật khẩu thất bại');
         }
     };
 
-    const queryClient = useQueryClient();
+    // useQueryClient hook must run before any handlers reference it
+    const client = useQueryClient();
 
     const PAGE_SIZE = 10;
 
@@ -169,10 +168,7 @@ export function AdminDashboard() {
         isError: usersError
     } = useQuery({
         queryKey: ['users', filters, currentPage],
-        queryFn: () => {
-            console.log('fetching users with', filters, currentPage);
-            return fetchUsers(filters, currentPage, PAGE_SIZE);
-        },
+        queryFn: () => fetchUsers(filters, currentPage, PAGE_SIZE),
         keepPreviousData: true,
         onError: (err) => console.error('users query error', err)
     });
@@ -206,28 +202,32 @@ export function AdminDashboard() {
         mutationFn: createUser,
         onSuccess: (created) => {
             // add the new user to cache for current filters/page to avoid blank state
-            queryClient.setQueryData(['users', filters, currentPage], (old) => {
+            client.setQueryData(['users', filters, currentPage], (old) => {
                 if (!old) return { users: [created], total: 1 };
                 if (Array.isArray(old)) {
                     return [created, ...old];
                 }
                 return { users: [created, ...(old.users || [])], total: (old.total || 0) + 1 };
             });
-            queryClient.invalidateQueries('history');
+            // ensure the list query is refetched in case filters/page changed
+            client.invalidateQueries(['users']);
+            client.invalidateQueries('history');
         }
     });
     const updateMutation = useMutation({
         mutationFn: ({ id, updates }) => updateUser(id, updates),
         onSuccess: () => {
-            queryClient.invalidateQueries(['users']);
-            queryClient.invalidateQueries('history');
+            client.invalidateQueries(['users']);
+            client.invalidateQueries('history');
         }
     });
     const deleteMutation = useMutation({
         mutationFn: deleteUser,
         onSuccess: () => {
-            queryClient.invalidateQueries(['users']);
-            queryClient.invalidateQueries('history');
+            // ensure the list is up to date
+            client.invalidateQueries(['users']);
+            client.invalidateQueries('history');
+            refetchUsers();
         }
     });
 
@@ -244,31 +244,26 @@ export function AdminDashboard() {
                 setSelectedUser(null);
             } catch (err) {
                 console.error('delete failed', err);
+                // if user was already removed on the server, just refresh and close modal
+                if (err.message && err.message.toLowerCase().includes('not found')) {
+                    client.invalidateQueries(['users']);
+                    refetchUsers();
+                    setDeleteModalOpen(false);
+                    setSelectedUser(null);
+                    return;
+                }
+                Modal.error({
+                    title: 'Xóa không thành công',
+                    content: err.message || 'Không thể xóa người dùng',
+                });
             }
         }
     };
 
-    const handleAddConfirm = async () => {
-        if (!newUser.name) {
-            alert('Vui lòng nhập họ và tên');
-            return;
-        }
-        if (!newUser.email) {
-            alert('Vui lòng nhập email');
-            return;
-        }
-        // ensure users is really an array before calling .some
-        if (Array.isArray(users)) {
-            if (users.some(u => u.email === newUser.email)) {
-                alert('Email đã tồn tại trong danh sách');
-                return;
-            }
-        } else if (users) {
-            // unexpected shape, log for debugging
-            console.warn('unexpected users value when adding', users);
-        }
+    const handleAddConfirm = async (data) => {
+        // data has been validated by the form
         try {
-            await createMutation.mutateAsync(newUser);
+            await createMutation.mutateAsync(data);
             setAddModalOpen(false);
             setNewUser({
                 name: '',
@@ -282,31 +277,26 @@ export function AdminDashboard() {
                 status: 'active',
                 password: ''
             });
-            // reset filters/page to ensure result appears
             setCurrentPage(1);
-            // show success message
-            Modal.success({
-                title: 'Thành công',
-                content: 'Tài khoản đã được tạo và thông tin đăng nhập đã được gửi qua email.',
-            });
+            // refresh list so the new row appears (mutation onSuccess also invalidates)
+            refetchUsers();
+            message.success('Tài khoản đã được tạo thành công.');
         } catch (err) {
             console.error('create failed', err);
-            alert(err.message || 'Failed to create user');
+            message.error(err.message || 'Không thể tạo người dùng');
         }
     };
 
-    const handleEditConfirm = async () => {
-        if (!editingUser.name) {
-            alert('Vui lòng nhập họ và tên');
-            return;
-        }
+    const handleEditConfirm = async (data) => {
         try {
             const id = editingUser._id || editingUser.id;
-            await updateMutation.mutateAsync({ id, updates: editingUser });
+            await updateMutation.mutateAsync({ id, updates: data });
             setEditModalOpen(false);
             setEditingUser(null);
+            message.success('Thông tin người dùng đã được cập nhật.');
         } catch (err) {
             console.error('update failed', err);
+            message.error(err.message || 'Cập nhật thất bại');
         }
     };
 
@@ -460,7 +450,8 @@ export function AdminDashboard() {
                 setUser={setNewUser}
                 onOk={handleAddConfirm}
                 onCancel={() => setAddModalOpen(false)}
-                okDisabled={!newUser.name}
+                okDisabled={createMutation.isLoading}
+                submitting={createMutation.isLoading}
                 mask={false}
             />
 
@@ -472,7 +463,8 @@ export function AdminDashboard() {
                 setUser={setEditingUser}
                 onOk={handleEditConfirm}
                 onCancel={() => { setEditModalOpen(false); setEditingUser(null); }}
-                okDisabled={!editingUser?.name}
+                okDisabled={updateMutation.isLoading}
+                submitting={updateMutation.isLoading}
                 mask={false}
             />
 
@@ -482,7 +474,7 @@ export function AdminDashboard() {
                 open={passwordModalOpen}
                 onOk={handlePasswordConfirm}
                 onCancel={() => setPasswordModalOpen(false)}
-                okButtonProps={{ disabled: !newPassword }}
+                okButtonProps={{ disabled: !newPassword || passwordMutation.isLoading, loading: passwordMutation.isLoading }}
                 mask={false}
             >
                 {/* show a bit of account info */}
@@ -527,7 +519,7 @@ export function AdminDashboard() {
 export default function WrappedAdminDashboard() {
     return (
         <PersistQueryClientProvider
-            client={queryClient}
+            client={baseQueryClient}
             persistOptions={{
                 persister: localStoragePersistor,
                 maxAge: 1000 * 60 * 60 * 24,

@@ -107,7 +107,16 @@ export async function deleteUser(id) {
         method: "DELETE"
     });
 
-    if (!res.ok) throw new Error("Failed to delete user");
+    if (!res.ok) {
+        let msg = `Failed to delete user (${res.status})`;
+        try {
+            const data = await res.json();
+            if (data && data.message) msg = data.message;
+        } catch {
+            /* ignore parse errors */
+        }
+        throw new Error(msg);
+    }
 
     return res.json();
 }

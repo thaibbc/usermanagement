@@ -1,4 +1,4 @@
-import { Input, Button } from 'antd';
+import { Input, Button, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
 // filter panel uses plain inputs now; suggestions removed
@@ -58,45 +58,131 @@ export default function FilterPanel({ filters, setFilters, onSearch }) {
                 <div style={containerStyle} className="filter-container">
                     <div style={fieldStyle} className="filter-field">
                         <label style={{ ...labelStyle, minWidth: '50px' }}>Loại tài khoản:</label>
-                        <Input
+                        <Select
                             placeholder="Loại tài khoản"
                             value={filters.accountType}
-                            onChange={(e) => setFilters({ ...filters, accountType: e.target.value })}
-                            style={inputStyle}
-                            size="medium"
+                            allowClear
+                            optionLabelProp="label"
+                            style={{ ...inputStyle, minWidth: '120px' }}
+                            options={[
+                                { label: 'Học sinh', value: 'student' },
+                                { label: 'Giáo viên', value: 'teacher' },
+                                { label: 'Phụ huynh', value: 'parent' },
+                            ]}
+                            onChange={(val) => setFilters({ ...filters, accountType: val })}
+                            size="middle"
                         />
                     </div>
 
                     <div style={fieldStyle} className="filter-field">
                         <label style={{ ...labelStyle, minWidth: '30px' }}>Cấp:</label>
-                        <Input
+                        <Select
                             placeholder="Cấp"
                             value={filters.level}
-                            onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-                            style={inputStyle}
-                            size="medium"
+                            allowClear
+                            style={{ ...inputStyle, minWidth: '120px' }}
+                            options={[
+                                { label: 'Cấp 1', value: 'cap1' },
+                                { label: 'Cấp 2', value: 'cap2' },
+                                { label: 'Cấp 3', value: 'cap3' },
+                            ]}
+                            onChange={(val) => setFilters({ ...filters, level: val })}
+                            size="middle"
                         />
                     </div>
 
                     <div style={fieldStyle} className="filter-field">
                         <label style={{ ...labelStyle, minWidth: '70px' }}>Tỉnh/Thành phố:</label>
-                        <Input
+                        <Select
                             placeholder="Tỉnh/Thành phố"
                             value={filters.city}
-                            onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                            style={inputStyle}
-                            size="medium"
+                            allowClear
+                            style={{ ...inputStyle, minWidth: '120px' }}
+                            options={[
+                                { label: 'Hà Nội', value: 'hn' },
+                                { label: 'Đà Nẵng', value: 'dn' },
+                                { label: 'Hồ Chí Minh', value: 'hcm' },
+                            ]}
+                            onChange={(val) => setFilters({ ...filters, city: val, district: undefined })}
+                            size="middle"
                         />
                     </div>
 
                     <div style={fieldStyle} className="filter-field">
                         <label style={{ ...labelStyle, minWidth: '80px' }}>Xã/Phường:</label>
-                        <Input
+                        <Select
                             placeholder="Xã/Phường"
                             value={filters.district}
-                            onChange={(e) => setFilters({ ...filters, district: e.target.value })}
-                            style={inputStyle}
-                            size="medium"
+                            allowClear
+                            disabled={!filters.city}
+                            style={{ ...inputStyle, minWidth: '120px' }}
+                            options={
+                                filters.city === 'hn'
+                                    ? [
+                                          { label: 'Ba Đình', value: 'ba-dinh' },
+                                          { label: 'Hoàn Kiếm', value: 'hoan-kiem' },
+                                          { label: 'Tây Hồ', value: 'tay-ho' },
+                                          { label: 'Cầu Giấy', value: 'cau-giay' },
+                                          { label: 'Thanh Xuân', value: 'thanh-xuan' },
+                                          { label: 'Hoàng Mai', value: 'hoang-mai' },
+                                          { label: 'Hai Bà Trưng', value: 'hai-ba-trung' },
+                                          { label: 'Đống Đa', value: 'dong-da' },
+                                          { label: 'Long Biên', value: 'long-bien' },
+                                          { label: 'Nam Từ Liêm', value: 'nam-tu-liem' },
+                                          { label: 'Bắc Từ Liêm', value: 'bac-tu-liem' },
+                                          { label: 'Thanh Trì', value: 'thanh-tri' },
+                                          { label: 'Sóc Sơn', value: 'soc-son' },
+                                          { label: 'Đan Phượng', value: 'dan-phuong' },
+                                          { label: 'Thanh Oai', value: 'thanh-oai' },
+                                          { label: 'Thường Tín', value: 'thuong-tin' },
+                                          { label: 'Chương Mỹ', value: 'chuong-my' },
+                                          { label: 'Hoài Đức', value: 'hoai-duc' },
+                                          { label: 'Phúc Thọ', value: 'phuc-tho' },
+                                          { label: 'Đông Anh', value: 'dong-anh' },
+                                          { label: 'Mê Linh', value: 'me-linh' },
+                                      ]
+                                    : filters.city === 'dn'
+                                    ? [
+                                          { label: 'Hải Châu', value: 'hai-chau' },
+                                          { label: 'Thanh Khê', value: 'thanh-khe' },
+                                          { label: 'Sơn Trà', value: 'son-tra' },
+                                          { label: 'Ngũ Hành Sơn', value: 'ngu-hanh-son' },
+                                          { label: 'Cẩm Lệ', value: 'cam-le' },
+                                          { label: 'Liên Chiểu', value: 'lien-chieu' },
+                                          { label: 'Hoà Vang', value: 'hoa-vang' },
+                                          { label: 'Hoàng Sa', value: 'hoang-sa' },
+                                      ]
+                                    : filters.city === 'hcm'
+                                    ? [
+                                          { label: 'Quận 1', value: 'q1' },
+                                          { label: 'Quận 2', value: 'q2' },
+                                          { label: 'Quận 3', value: 'q3' },
+                                          { label: 'Quận 4', value: 'q4' },
+                                          { label: 'Quận 5', value: 'q5' },
+                                          { label: 'Quận 6', value: 'q6' },
+                                          { label: 'Quận 7', value: 'q7' },
+                                          { label: 'Quận 8', value: 'q8' },
+                                          { label: 'Quận 9', value: 'q9' },
+                                          { label: 'Quận 10', value: 'q10' },
+                                          { label: 'Quận 11', value: 'q11' },
+                                          { label: 'Quận 12', value: 'q12' },
+                                          { label: 'Thủ Đức', value: 'thu-duc' },
+                                          { label: 'Bình Thạnh', value: 'binh-thanh' },
+                                          { label: 'Tân Bình', value: 'tan-binh' },
+                                          { label: 'Tân Phú', value: 'tan-phu' },
+                                          { label: 'Gò Vấp', value: 'go-vap' },
+                                          { label: 'Phú Nhuận', value: 'phu-nhuan' },
+                                          { label: 'Bình Tân', value: 'binh-tan' },
+                                          { label: 'Bình Chánh', value: 'binh-chanh' },
+                                          { label: 'Củ Chi', value: 'cu-chi' },
+                                          { label: 'Hóc Môn', value: 'hoc-mon' },
+                                          { label: 'Nhà Bè', value: 'nha-be' },
+                                          { label: 'Cần Giờ', value: 'can-gio' },
+                                      ]
+                                    : []
+                            }
+                            onChange={(val) => setFilters({ ...filters, district: val })}
+                            size="middle"
                         />
                     </div>
 

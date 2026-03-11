@@ -32,6 +32,74 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
         cap3: 'Cấp 3',
     };
 
+    const CITY_LABELS = {
+        hn: 'Hà Nội',
+        dn: 'Đà Nẵng',
+        hcm: 'Hồ Chí Minh',
+    };
+
+    const DISTRICT_LABELS = {
+        hn: {
+            'ba-dinh': 'Ba Đình',
+            'hoan-kiem': 'Hoàn Kiếm',
+            'tay-ho': 'Tây Hồ',
+            'cau-giay': 'Cầu Giấy',
+            'thanh-xuan': 'Thanh Xuân',
+            'hoang-mai': 'Hoàng Mai',
+            'hai-ba-trung': 'Hai Bà Trưng',
+            'dong-da': 'Đống Đa',
+            'long-bien': 'Long Biên',
+            'nam-tu-liem': 'Nam Từ Liêm',
+            'bac-tu-liem': 'Bắc Từ Liêm',
+            'thanh-tri': 'Thanh Trì',
+            'soc-son': 'Sóc Sơn',
+            'dan-phuong': 'Đan Phượng',
+            'thanh-oai': 'Thanh Oai',
+            'thuong-tin': 'Thường Tín',
+            'chuong-my': 'Chương Mỹ',
+            'hoai-duc': 'Hoài Đức',
+            'phuc-tho': 'Phúc Thọ',
+            'dong-anh': 'Đông Anh',
+            'me-linh': 'Mê Linh',
+        },
+        dn: {
+            'hai-chau': 'Hải Châu',
+            'thanh-khe': 'Thanh Khê',
+            'son-tra': 'Sơn Trà',
+            'ngu-hanh-son': 'Ngũ Hành Sơn',
+            'cam-le': 'Cẩm Lệ',
+            'lien-chieu': 'Liên Chiểu',
+            'hoa-vang': 'Hoà Vang',
+            'hoang-sa': 'Hoàng Sa',
+        },
+        hcm: {
+            'q1': 'Quận 1',
+            'q2': 'Quận 2',
+            'q3': 'Quận 3',
+            'q4': 'Quận 4',
+            'q5': 'Quận 5',
+            'q6': 'Quận 6',
+            'q7': 'Quận 7',
+            'q8': 'Quận 8',
+            'q9': 'Quận 9',
+            'q10': 'Quận 10',
+            'q11': 'Quận 11',
+            'q12': 'Quận 12',
+            'thu-duc': 'Thủ Đức',
+            'binh-thanh': 'Bình Thạnh',
+            'tan-binh': 'Tân Bình',
+            'tan-phu': 'Tân Phú',
+            'go-vap': 'Gò Vấp',
+            'phu-nhuan': 'Phú Nhuận',
+            'binh-tan': 'Bình Tân',
+            'binh-chanh': 'Bình Chánh',
+            'cu-chi': 'Củ Chi',
+            'hoc-mon': 'Hóc Môn',
+            'nha-be': 'Nhà Bè',
+            'can-gio': 'Cần Giờ',
+        }
+    };
+
     const columns = [
         {
             title: '#',
@@ -87,14 +155,23 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             dataIndex: 'city',
             key: 'city',
             width: 100,
-            render: (city) => <span style={{ fontSize: 13 }}>{city}</span>,
+            render: (city) => {
+                const label = CITY_LABELS[city] || city || '';
+                return <span style={{ fontSize: 13 }}>{label}</span>;
+            },
         },
         {
             title: 'Quận/Huyện',
             dataIndex: 'district',
             key: 'district',
             width: 100,
-            render: (district) => <span style={{ fontSize: 13 }}>{district}</span>,
+            render: (district, record) => {
+                const city = record.city;
+                const label = city && DISTRICT_LABELS[city] && DISTRICT_LABELS[city][district]
+                    ? DISTRICT_LABELS[city][district]
+                    : district || '';
+                return <span style={{ fontSize: 13 }}>{label}</span>;
+            },
         },
         {
             title: 'Trường',

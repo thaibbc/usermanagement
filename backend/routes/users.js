@@ -82,21 +82,8 @@ router.post('/', async (req, res) => {
         const newUser = await user.save();
         // log creation
         await ActionLog.create({ userId: newUser._id, userCode: newUser.code, action: 'create', details: `Created user ${newUser.name}` });
-        // send notification email with credentials
-        // transporter.sendMail returns a promise; if we have no SMTP
-        // configuration the `mailer` util above just logs the message
-        try {
-            const { transporter } = require('../utils/mailer');
-            const info = await transporter.sendMail({
-                from: process.env.SMTP_FROM || 'noreply@example.com',
-                to: newUser.email,
-                subject: 'Thông tin đăng nhập hệ thống',
-                text: `Tài khoản: ${newUser.email}\nMật khẩu: ${password}`,
-            });
-            console.log('welcome email sent', info);
-        } catch (mailErr) {
-            console.error('failed to send welcome email', mailErr);
-        }
+        // email notification removed per request; only log creation
+        // (was sending credentials to the new user's address)
         res.status(201).json(newUser);
     } catch (err) {
         // duplicate-key detection
@@ -132,18 +119,7 @@ router.put('/:id/password', async (req, res) => {
         // log action
         await ActionLog.create({ userId: updated._id, userCode: updated.code, action: 'password', details: `Changed password for ${updated.name}` });
         // send notification email containing the new password
-        try {
-            const { transporter } = require('../utils/mailer');
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || 'noreply@example.com',
-                to: updated.email,
-                subject: 'Mật khẩu đã được thay đổi',
-                text: `Mật khẩu mới: ${password}`,
-            });
-            console.log('password change email sent to', updated.email);
-        } catch (mailErr) {
-            console.error('failed to send password-change email', mailErr);
-        }
+        // email notification removed per request; only log password update
         res.json({ message: 'Password updated' });
     } catch (err) {
         res.status(400).json({ message: err.message });
