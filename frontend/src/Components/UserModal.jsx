@@ -24,7 +24,7 @@ export default function UserModal({
             cancelText="Hủy"
             okText={title.includes('Thêm') ? 'Thêm' : 'Lưu'}
         >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontWeight: 'bold'  }}>
                 <Input
                     placeholder="Họ và tên"
                     value={user.name || ''}
@@ -47,7 +47,6 @@ export default function UserModal({
                     options={[
                         { value: 'student', label: 'Học sinh' },
                         { value: 'teacher', label: 'Giáo viên' },
-                        { value: 'shipper', label: 'Shipper' },
                     ]}
                 />
                 <Select
