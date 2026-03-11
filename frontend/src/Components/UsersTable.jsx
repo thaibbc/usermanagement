@@ -5,17 +5,31 @@ import {
     PhoneOutlined,
     CalendarOutlined,
     SearchOutlined,
+    KeyOutlined,
     EditOutlined,
     DeleteOutlined
 } from '@ant-design/icons';
 
-export default function UsersTable({ users, currentPage, setCurrentPage, onEdit, onDelete }) {
+export default function UsersTable({ users, total = 0, currentPage, setCurrentPage, onEdit, onDelete, onChangePassword }) {
     // helper to format ISO date string into dd/mm/yyyy hh:mm
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
         const pad = (n) => n.toString().padStart(2, '0');
         return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+
+    // maps for converting stored values into user-friendly labels
+    const ACCOUNT_TYPE_LABELS = {
+        student: 'Học sinh',
+        teacher: 'Giáo viên',
+        shipper: 'Shipper',
+    };
+    const LEVEL_LABELS = {
+        cap1: 'Cấp 1',
+        cap2: 'Cấp 2',
+        cap3: 'Cấp 3',
     };
 
     const columns = [
@@ -53,14 +67,20 @@ export default function UsersTable({ users, currentPage, setCurrentPage, onEdit,
             dataIndex: 'accountType',
             key: 'accountType',
             width: 100,
-            render: (type) => type ? <Tag color="cyan" style={{ fontSize: 13 }}>{type}</Tag> : null,
+            render: (type) => {
+                const label = type ? ACCOUNT_TYPE_LABELS[type] || type : '';
+                return label ? <Tag color="cyan" style={{ fontSize: 13 }}>{label}</Tag> : null;
+            },
         },
         {
             title: 'Cấp',
             dataIndex: 'level',
             key: 'level',
             width: 80,
-            render: (level) => level ? <Tag color="cyan" style={{ fontSize: 13 }}>{level}</Tag> : null,
+            render: (level) => {
+                const label = level ? LEVEL_LABELS[level] || level : '';
+                return label ? <Tag color="cyan" style={{ fontSize: 13 }}>{label}</Tag> : null;
+            },
         },
         {
             title: 'Tỉnh/TP',
@@ -129,8 +149,8 @@ export default function UsersTable({ users, currentPage, setCurrentPage, onEdit,
                     <Tooltip title="Edit">
                         <Button type="dashed" shape="circle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
                     </Tooltip>
-                    <Tooltip title="search">
-                        <Button type="dashed" shape="circle" icon={<SearchOutlined />} style={{ color: '#8B5CF6' }} />
+                    <Tooltip title="Cấp lại mật khẩu">
+                        <Button type="dashed" shape="circle" icon={<KeyOutlined />} style={{ color: '#8B5CF6' }} onClick={() => onChangePassword && onChangePassword(record)} />
                     </Tooltip>
                     <Tooltip title="Delete">
                         <Button type="dashed" shape="circle" icon={<DeleteOutlined />} onClick={() => onDelete(record)} danger />
@@ -150,8 +170,9 @@ export default function UsersTable({ users, currentPage, setCurrentPage, onEdit,
                 current: currentPage,
                 onChange: setCurrentPage,
                 pageSize: 10,
+                total,
                 showSizeChanger: false,
-                showTotal: (total, range) => `${range[0]}-${range[1]} / ${total}`,
+                showTotal: (tot, range) => `${range[0]}-${range[1]} / ${tot}`,
             }}
             size="small"
             scroll={{ x: 'max-content' }}

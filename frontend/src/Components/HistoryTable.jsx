@@ -1,6 +1,6 @@
 import { Table } from 'antd';
 
-export default function HistoryTable({ logs }) {
+export default function HistoryTable({ logs, total = 0, currentPage, setCurrentPage }) {
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
@@ -26,7 +26,14 @@ export default function HistoryTable({ logs }) {
             columns={columns}
             dataSource={logs}
             rowKey="_id"
-            pagination={{ pageSize: 10, showSizeChanger: false }}
+            pagination={{
+                current: currentPage,
+                onChange: setCurrentPage,
+                pageSize: 10,
+                total,
+                showSizeChanger: false,
+                showTotal: (tot, range) => `${range[0]}-${range[1]} / ${tot}`
+            }}
             size="small"
         />
     );

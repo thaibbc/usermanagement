@@ -1,13 +1,19 @@
 // API helper functions for communicating with the backend
 
-const API = "https://usermanagement-vle7.onrender.com";
+// choose local backend when running in development
+const API =
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+        ? 'http://localhost:5000'
+        : 'https://usermanagement-vle7.onrender.com';
+
 const USERS_URL = `${API}/api/users`;
 const HISTORY_URL = `${API}/api/history`;
 
 // ====================== USERS ======================
 
-// Fetch users with optional filters
-export async function fetchUsers(filters = {}) {
+// Fetch users with optional filters and pagination
+// returns an object { users: [...], total: number }
+export async function fetchUsers(filters = {}, page = 1, limit = 10) {
     const params = new URLSearchParams();
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -16,7 +22,10 @@ export async function fetchUsers(filters = {}) {
         }
     });
 
-    const url = `${USERS_URL}${params.toString() ? `?${params}` : ''}`;
+    params.append('page', page);
+    params.append('limit', limit);
+
+    const url = `${USERS_URL}?${params}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error("Failed to fetch users");
@@ -41,7 +50,16 @@ export async function createUser(user) {
         body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error("Failed to create user");
+    if (!res.ok) {
+        let msg = `Failed to create user: ${res.status}`;
+        try {
+            const data = await res.json();
+            if (data && data.message) msg = data.message;
+        } catch {
+            // ignore JSON parsing errors
+        }
+        throw new Error(msg);
+    }
 
     return res.json();
 }
@@ -58,6 +76,19 @@ export async function updateUser(id, updates) {
 
     if (!res.ok) throw new Error("Failed to update user");
 
+    return res.json();
+}
+
+// change user password
+export async function changePassword(id, newPassword) {
+    const res = await fetch(`${USERS_URL}/${id}/password`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password: newPassword })
+    });
+    if (!res.ok) throw new Error("Failed to change password");
     return res.json();
 }
 
@@ -84,9 +115,11 @@ export async function getUser(id) {
 
 // ====================== HISTORY ======================
 
-// Fetch recent action logs
-export async function fetchHistory() {
-    const res = await fetch(HISTORY_URL);
+// Fetch recent action logs with optional pagination
+// returns { logs: [...], total: number }
+export async function fetchHistory(page = 1, limit = 10) {
+    const params = new URLSearchParams({ page, limit });
+    const res = await fetch(`${HISTORY_URL}?${params}`);
 
     if (!res.ok) throw new Error("Failed to fetch history");
 

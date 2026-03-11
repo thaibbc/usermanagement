@@ -1,4 +1,7 @@
-import { Modal, Input, Select } from 'antd';
+import { Modal, Input, Button } from 'antd';
+
+// no autocomplete needed any more; plain inputs suffice
+
 
 // reusable modal used for both add & edit
 export default function UserModal({
@@ -24,7 +27,7 @@ export default function UserModal({
             cancelText="Hủy"
             okText={title.includes('Thêm') ? 'Thêm' : 'Lưu'}
         >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontWeight: 'bold'  }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontWeight: 'bold' }}>
                 <Input
                     placeholder="Họ và tên"
                     value={user.name || ''}
@@ -40,24 +43,15 @@ export default function UserModal({
                     value={user.phone || ''}
                     onChange={e => updateField('phone', e.target.value)}
                 />
-                <Select
+                <Input
                     placeholder="Loại tài khoản"
-                    value={user.accountType || undefined}
-                    onChange={v => updateField('accountType', v)}
-                    options={[
-                        { value: 'student', label: 'Học sinh' },
-                        { value: 'teacher', label: 'Giáo viên' },
-                    ]}
+                    value={user.accountType || ''}
+                    onChange={e => updateField('accountType', e.target.value)}
                 />
-                <Select
+                <Input
                     placeholder="Cấp"
-                    value={user.level || undefined}
-                    onChange={v => updateField('level', v)}
-                    options={[
-                        { value: 'cap1', label: 'Cấp 1' },
-                        { value: 'cap2', label: 'Cấp 2' },
-                        { value: 'cap3', label: 'Cấp 3' },
-                    ]}
+                    value={user.level || ''}
+                    onChange={e => updateField('level', e.target.value)}
                 />
                 <Input
                     placeholder="Tỉnh / Thành phố"
@@ -74,6 +68,24 @@ export default function UserModal({
                     value={user.school || ''}
                     onChange={e => updateField('school', e.target.value)}
                 />
+                {/* password field shown only when adding */}
+                {title && title.includes('Thêm') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Input.Password
+                            placeholder="Mật khẩu"
+                            value={user.password || ''}
+                            onChange={e => updateField('password', e.target.value)}
+                        />
+                        <Button
+                            onClick={() => {
+                                const random = Math.random().toString(36).slice(-8);
+                                updateField('password', random);
+                            }}
+                        >
+                            Pass ngẫu nhiên
+                        </Button>
+                    </div>
+                )}
             </div>
         </Modal>
     );
