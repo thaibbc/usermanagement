@@ -24,7 +24,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
     const ACCOUNT_TYPE_LABELS = {
         student: 'Học sinh',
         teacher: 'Giáo viên',
-        shipper: 'Shipper',
+        parent: 'Phụ huynh',   // added so table shows localized label instead of raw "parent"
     };
     const LEVEL_LABELS = {
         cap1: 'Cấp 1',
