@@ -123,6 +123,8 @@ export function AdminDashboard() {
     // Filter states
     const [filters, setFilters] = useState(INITIAL_FILTERS);
     const [noResultsMessage, setNoResultsMessage] = useState(false);
+    // helper to track if we've explicitly requested fresh data (search or mutation)
+    const [tableLoading, setTableLoading] = useState(false);
 
     // wrapped so we can also reset the page when filters change, and clear any ‘no results’ flag
     const handleSetFilters = (newFilters) => {
@@ -140,9 +142,11 @@ export function AdminDashboard() {
 
     const passwordMutation = useMutation({
         mutationFn: ({ id, password }) => changePassword(id, password),
+        onMutate: () => setTableLoading(true),
         onSuccess: () => {
             client.invalidateQueries('history');
-        }
+        },
+        onSettled: () => setTableLoading(false)
     });
 
     const handlePasswordConfirm = async () => {
@@ -191,6 +195,7 @@ export function AdminDashboard() {
 
     // custom handler invoked by search button so we can display a notice when nothing matches
     const handleSearch = async () => {
+        setTableLoading(true);
         try {
             const res = await refetchUsers();
             // check result payload shape
@@ -214,6 +219,9 @@ export function AdminDashboard() {
             }
         } catch (err) {
             console.error('search error', err);
+            message.error('Không thể tải dữ liệu người dùng');
+        } finally {
+            setTableLoading(false);
         }
     };
 
@@ -229,12 +237,14 @@ export function AdminDashboard() {
         queryKey: ['history', historyPage],
         queryFn: () => fetchHistory(historyPage, PAGE_SIZE),
         // polling removed; we will invalidate manually when actions occur
+        onError: (err) => console.error('history query error', err)
     });
     const historyLogs = historyData.logs || [];
     const historyTotal = historyData.total || 0;
 
     const createMutation = useMutation({
         mutationFn: createUser,
+        onMutate: () => setTableLoading(true),
         onSuccess: (created) => {
             // add the new user to cache for current filters/page to avoid blank state
             client.setQueryData(['users', filters, currentPage], (old) => {
@@ -247,24 +257,36 @@ export function AdminDashboard() {
             // ensure the list query is refetched in case filters/page changed
             client.invalidateQueries(['users']);
             client.invalidateQueries('history');
-        }
+        },
+        onSettled: () => setTableLoading(false)
     });
     const updateMutation = useMutation({
         mutationFn: ({ id, updates }) => updateUser(id, updates),
+        onMutate: () => setTableLoading(true),
         onSuccess: () => {
             client.invalidateQueries(['users']);
             client.invalidateQueries('history');
-        }
+        },
+        onSettled: () => setTableLoading(false)
     });
     const deleteMutation = useMutation({
         mutationFn: deleteUser,
+        onMutate: () => setTableLoading(true),
         onSuccess: () => {
             // ensure the list is up to date
             client.invalidateQueries(['users']);
             client.invalidateQueries('history');
             refetchUsers();
-        }
+        },
+        onSettled: () => setTableLoading(false)
     });
+
+    // combined flag used for table/spinner loading during any mutation
+    const isMutating =
+        createMutation.isLoading ||
+        updateMutation.isLoading ||
+        deleteMutation.isLoading ||
+        passwordMutation.isLoading;
 
     const handleDeleteClick = (user) => {
         setSelectedUser(user);
@@ -366,7 +388,7 @@ export function AdminDashboard() {
                     )}
 
                     {/* Table with spinner overlay */}
-                    <Spin spinning={usersFetching || usersLoading} tip="Đang tải dữ liệu...">
+                    <Spin spinning={usersFetching || usersLoading || isMutating || tableLoading} description="Đang tải dữ liệu...">
                         <UsersTable
                             users={Array.isArray(users) ? users : []}
                             total={totalUsers}
@@ -378,7 +400,7 @@ export function AdminDashboard() {
                             }}
                             onDelete={handleDeleteClick}
                             onChangePassword={handlePasswordClick}
-                            loading={usersFetching || usersLoading}
+                            loading={usersFetching || usersLoading || isMutating || tableLoading}
                         />
                     </Spin>
                 </div>
@@ -403,13 +425,13 @@ export function AdminDashboard() {
                         </div>
                     )}
                     <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Lịch sử thao tác</h2>
-                    <Spin spinning={historyFetching || historyLoading} tip="Đang tải lịch sử...">
+                    <Spin spinning={historyFetching || historyLoading || isMutating || tableLoading} description="Đang tải lịch sử...">
                         <HistoryTable
                             logs={historyLogs}
                             total={historyTotal}
                             currentPage={historyPage}
                             setCurrentPage={setHistoryPage}
-                            loading={historyFetching || historyLoading}
+                            loading={historyFetching || historyLoading || isMutating || tableLoading}
                         />
                     </Spin>
                 </div>
