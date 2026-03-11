@@ -19,10 +19,16 @@ if (process.env.SENDGRID_API_KEY) {
         },
     };
 } else if (process.env.SMTP_HOST) {
-    // note: Render's network may block outbound SMTP on 587/25; try 465 secure first
-    const port = parseInt(process.env.SMTP_PORT, 10) || 465;
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    transporter = nodemailer.createTransport({
+    // note: Render's network may block outbound SMTP on 587/25; prefer 465 or API keys
+    // also force IPv4 to avoid unreachable IPv6 addresses that can hang
+    let port = parseInt(process.env.SMTP_PORT, 10) || 465;
+    let secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
+    if (process.env.RENDER && port === 587) {
+        console.warn('Render generally blocks port 587. Consider setting SMTP_PORT=465 or using an API key (SENDGRID_API_KEY).');
+    }
+
+    const baseOptions = {
         host: process.env.SMTP_HOST,
         port,
         secure,
@@ -33,11 +39,28 @@ if (process.env.SENDGRID_API_KEY) {
         tls: {
             rejectUnauthorized: false,
         },
-    });
+        // prefer IPv4; Render’s egress can misroute IPv6
+        connectionTimeout: 10000,
+        family: 4,
+    };
 
-    transporter.verify((err, success) => {
+    transporter = nodemailer.createTransport(baseOptions);
+
+    // if verification fails and we're not already on 465, try secure port 465 before giving up
+    transporter.verify(async (err) => {
         if (err) {
-            console.error('SMTP transporter verification failed:', err);
+            console.error('SMTP transporter verification failed (port ' + port + '):', err);
+            if (port !== 465) {
+                console.log('retrying verification on port 465/secure');
+                const fallback = nodemailer.createTransport({ ...baseOptions, port: 465, secure: true });
+                try {
+                    await fallback.verify();
+                    transporter = fallback;
+                    console.log('fallback transporter on port 465 is ready');
+                } catch (fallbackErr) {
+                    console.error('fallback on port 465 also failed:', fallbackErr);
+                }
+            }
         } else {
             console.log('SMTP transporter is ready to send messages');
         }
