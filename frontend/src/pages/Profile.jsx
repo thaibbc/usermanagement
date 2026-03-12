@@ -409,7 +409,7 @@ export function Profile() {
 
                 {/* Content */}
                 <div style={{ flex: 1, padding: 40, position: 'relative', zIndex: 0, paddingTop: 90 }}>
-                    {loadingProfile && <Spin tip="Đang tải..." />}
+                    {/* {loadingProfile && <Spin tip="Đang tải..." />} */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 30 }}>
                         {/* Left - Profile Form */}
                         <div style={{
