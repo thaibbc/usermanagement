@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Input, Form, Select, DatePicker, Badge, Modal, message, Dropdown, Spin } from 'antd';
 import { getUser, updateUser, changePassword } from '../api/users';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 import {
     HomeOutlined,
     BookOutlined,
@@ -19,8 +20,11 @@ import {
     LogoutOutlined,
     EditOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router';
 import dayjs from 'dayjs';
+
+// layout components
+import Sidebar from '../Components/Sidebar';
+import Header from '../Components/Header';
 
 // use a public placeholder banner image instead of figma asset
 const profileBanner = 'https://via.placeholder.com/1200x300.png?text=Profile+Banner';
@@ -28,11 +32,10 @@ const profileBanner = 'https://via.placeholder.com/1200x300.png?text=Profile+Ban
 const { Option } = Select;
 
 export function Profile() {
-    const navigate = useNavigate();
     const [form] = Form.useForm();
     const [passwordForm] = Form.useForm();
-    const [collapsed, setCollapsed] = useState(false);
     const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     // password visibility no longer needed
     // const [showNewPassword, setShowNewPassword] = useState(false);
     // const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -66,8 +69,54 @@ export function Profile() {
         };
     }, [stored]);
     const [userData, setUserData] = useState(initialUser);
-    const [loadingProfile, setLoadingProfile] = useState(false);
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        message.success('Đã đăng xuất!');
+        navigate('/login');
+    };
+
+    // sidebar navigation items
+    const sidebarItems = [
+        {
+            icon: <HomeOutlined style={{ fontSize: 18 }} />,
+            label: 'Sách số',
+            path: '/dashboard'
+        },
+        {
+            icon: <BookOutlined style={{ fontSize: 18 }} />,
+            label: 'Lớp học',
+            path: '#'
+        },
+        {
+            icon: <UserOutlined style={{ fontSize: 18 }} />,
+            label: 'Câu hỏi',
+            path: '#'
+        },
+        {
+            icon: <FileTextOutlined style={{ fontSize: 18 }} />,
+            label: 'Bài tập',
+            path: '#'
+        },
+        {
+            icon: <TeamOutlined style={{ fontSize: 18 }} />,
+            label: 'Phòng thi',
+            path: '#'
+        },
+        {
+            icon: <CustomerServiceOutlined style={{ fontSize: 18 }} />,
+            label: 'Hỗ trợ',
+            path: '#'
+        },
+        {
+            icon: <SettingOutlined style={{ fontSize: 18 }} />,
+            label: 'Cài đặt',
+            path: '#'
+        }
+    ];
 
     const handleUpdate = async (values) => {
         console.log('Update values:', values);
@@ -107,7 +156,6 @@ export function Profile() {
             const id = loginUser && (loginUser.id || loginUser._id);
             if (id && id !== fetchedIdRef.current) {
                 fetchedIdRef.current = id;
-                setLoadingProfile(true);
                 try {
                     console.log('fetching full profile for', id);
                     const full = await getUser(id);
@@ -116,8 +164,6 @@ export function Profile() {
                     localStorage.setItem('user', JSON.stringify(full));
                 } catch (err) {
                     console.error('failed to load profile', err);
-                } finally {
-                    setLoadingProfile(false);
                 }
             }
         }
@@ -189,223 +235,43 @@ export function Profile() {
         }
     };
 
-    const handleLogout = () => {
-        // clear authentication data
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        message.success('Đã đăng xuất!');
-        navigate('/');
-    };
-
-    // Dropdown menu items
-    const menuItems = [
+    // header dropdown items
+    const headerMenu = [
         {
-            key: 'header',
-            label: (
-                <div style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#333',
-                    padding: '8px 12px',
-                    textTransform: 'uppercase',
-                    borderBottom: '1px solid #E8E8E8',
-                    marginBottom: 4
-                }}>
-                    TÀI KHOẢN HỌC SINH
-                </div>
-            ),
-            disabled: true
-        },
-        {
-            key: 'account',
+            key: 'profile',
             icon: <UserOutlined style={{ fontSize: 16 }} />,
-            label: 'Tài khoản',
-            onClick: () => {
-                console.log('Navigate to account');
-            }
+            label: 'Profile',
+            onClick: () => navigate('/profile')
         },
         {
             key: 'logout',
             icon: <LogoutOutlined style={{ fontSize: 16 }} />,
-            label: 'Thoát',
+            label: 'Logout',
             onClick: handleLogout
         }
     ];
 
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F5F5F5' }}>
             {/* Sidebar */}
+            <Sidebar
+                collapsed={isSidebarCollapsed}
+                setCollapsed={setIsSidebarCollapsed}
+                menuItems={sidebarItems}
+            />
+
+            {/* Main Content Area (shift right so header/content not hidden) */}
             <div style={{
-                width: 60 /* collapsed ? 60 : 240 */,
-                backgroundColor: '#00BCD4',
-                color: 'white',
-                transition: 'width 0.3s',
-                position: 'relative',
-                minHeight: '100vh',
-                zIndex: 2 /* keep above header */
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                marginLeft: isSidebarCollapsed ? 80 : 250,
+                transition: 'margin-left 0.3s ease'
             }}>
-                {/* Toggle Button */}
-                <div style={{
-                    padding: 16,
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    cursor: 'pointer'
-                }}
-                // onClick={() => setCollapsed(!collapsed)}
-                >
-                    <MenuOutlined style={{ fontSize: 20 }} />
-                </div>
-
-                {/* Menu Items */}
-                <div style={{ padding: '16px 0' }}>
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                    }}
-                        onClick={() => navigate('/profile')}
-                    >
-                        <HomeOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Sách số</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <BookOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Thư viện</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <UserOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Người dùng</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <FileTextOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Bài viết</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <BellOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Thông báo</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <TeamOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Nhóm</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <CustomerServiceOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Hỗ trợ</span>} */}
-                    </div>
-
-                    <div style={{
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                    }}>
-                        <SettingOutlined style={{ fontSize: 18 }} />
-                        {/* {!collapsed && <span>Cài đặt</span>} */}
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {/* Header */}
-                <div style={{
-                    backgroundColor: '#00BCD4',
-                    height: 80,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0 24px',
-                    color: 'white',
-                    position: 'absolute',
-                    top: 0,
-                    left: 60 /* collapsed ? 60 : 240 */,
-                    right: 0,
-                    zIndex: 10
-                }}>
-                    {/* Left - Logo/Title */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <HomeOutlined style={{ fontSize: 18 }} />
-                        <span style={{ fontSize: 15, fontWeight: 500 }}>Sách số</span>
-                    </div>
+                <Header title="Profile" menuItems={headerMenu} userName={loginUser?.fullName || 'Guest'} />
 
-                    {/* Right - Notifications and User */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        {/* Notification Badge */}
-                        <Badge style={{ backgroundColor: '#FF4D4F' }}>
-                            <BellOutlined style={{ fontSize: 20, color: 'white' }} />
-                        </Badge>
-
-                        {/* User Avatar and Name */}
-                        <Dropdown
-                            menu={{ items: menuItems }}
-                            placement="bottomRight"
-                            trigger={['click']}
-                            getPopupContainer={() => document.body} // avoid clipping by header overflow
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                                <div style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: '50%',
-                                    backgroundColor: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 20,
-                                    border: '2px solid white'
-                                }}>
-                                    <UserOutlined />
-                                </div>
-                                <span style={{ fontSize: 14, fontWeight: 500 }}>{userData.fullName || userData.name || 'Người dùng'}</span>
-                            </div>
-                        </Dropdown>
-                    </div>
-                </div>
 
                 {/* Content */}
                 <div style={{ flex: 1, padding: 40, position: 'relative', zIndex: 0, paddingTop: 90 }}>
@@ -639,7 +505,7 @@ export function Profile() {
                                         height: 120,
                                         borderRadius: '50%',
                                         backgroundColor: 'white',
-                                        border: '4px solid white',
+                                        border: '1px solid black',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',

@@ -24,7 +24,7 @@ export function Login() {
             if (user.accountType === 'admin') {
                 navigate('/users');
             } else {
-                navigate('/profile');
+                navigate('/dashboard');
             }
         } catch (err) {
             console.error('frontend login error', err);
