@@ -194,7 +194,7 @@ export function Profile() {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         message.success('Đã đăng xuất!');
-        navigate('/login');
+        navigate('/');
     };
 
     // Dropdown menu items
