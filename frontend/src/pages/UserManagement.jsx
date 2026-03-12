@@ -77,8 +77,11 @@ export function AdminDashboard() {
     useEffect(() => {
         const stored = typeof window !== 'undefined' && localStorage.getItem('user');
         const user = stored ? JSON.parse(stored) : null;
-        if (!user || user.accountType !== 'admin') {
-            navigate('/');
+        if (!user) {
+            navigate('/login');
+        } else if (user.accountType !== 'admin') {
+            // non-admin users don't see the admin dashboard; send them to their profile
+            navigate('/profile');
         }
     }, [navigate]);
     // determine tab based on current route

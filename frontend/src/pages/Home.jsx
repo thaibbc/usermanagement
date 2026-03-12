@@ -1,5 +1,6 @@
 import { Button, Space } from 'antd';
 import { useNavigate } from 'react-router';
+import { HomeOutlined, BookOutlined } from '@ant-design/icons';
 
 export function Home() {
     const navigate = useNavigate();
@@ -34,7 +35,7 @@ export function Home() {
                             fontWeight: 'bold',
                             color: 'white'
                         }}>
-                            📚
+                            <BookOutlined style={{ fontSize: 18, color: 'white' }} />
                         </div>
                         <span style={{
                             fontSize: 20,
@@ -50,13 +51,25 @@ export function Home() {
 
                     {/* Navigation */}
                     <Space size={32}>
-                        <a key="home" href="/" style={{
-                            color: '#1890FF',
-                            textDecoration: 'none',
-                            fontSize: 15,
-                            fontWeight: 500
-                        }}>
-                            Trang chủ
+                        <a
+                            key="home"
+                            onClick={() => {
+                                const logged = !!(typeof window !== 'undefined' && localStorage.getItem('authToken'));
+                                if (logged) navigate('/profile');
+                                else navigate('/');
+                            }}
+                            style={{
+                                color: '#1890FF',
+                                textDecoration: 'none',
+                                fontSize: 15,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                            }}
+                        >
+                            <HomeOutlined /> Trang chủ
                         </a>
                         <a key="phuongnam" href="#" style={{
                             color: '#1890FF',

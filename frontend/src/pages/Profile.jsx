@@ -6,6 +6,7 @@ import {
     HomeOutlined,
     BookOutlined,
     UserOutlined,
+    LockOutlined,
     SettingOutlined,
     BellOutlined,
     FileTextOutlined,
@@ -15,7 +16,8 @@ import {
     EyeOutlined,
     EyeInvisibleOutlined,
     CameraOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    EditOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router';
 import dayjs from 'dayjs';
@@ -263,7 +265,8 @@ export function Profile() {
                         gap: 12,
                         backgroundColor: 'rgba(255, 255, 255, 0.1)'
                     }}
-                        onClick={() => navigate('/')}>
+                        onClick={() => navigate('/profile')}
+                    >
                         <HomeOutlined style={{ fontSize: 18 }} />
                         {!collapsed && <span>Sách số</span>}
                     </div>
@@ -396,7 +399,7 @@ export function Profile() {
                                     fontSize: 20,
                                     border: '2px solid white'
                                 }}>
-                                    👤
+                                    <UserOutlined />
                                 </div>
                                 <span style={{ fontSize: 14, fontWeight: 500 }}>{userData.fullName || userData.name || 'Người dùng'}</span>
                             </div>
@@ -585,7 +588,7 @@ export function Profile() {
                                             borderRadius: 4
                                         }}
                                     >
-                                        ✓ Cập nhật
+                                        <EditOutlined /> Cập nhật
                                     </Button>
                                     <Button
                                         onClick={handleChangePassword}
@@ -601,7 +604,7 @@ export function Profile() {
                                             borderRadius: 4
                                         }}
                                     >
-                                        🔒 Đổi mật khẩu
+                                        <LockOutlined /> Đổi mật khẩu
                                     </Button>
                                 </div>
                             </Form>
@@ -646,7 +649,7 @@ export function Profile() {
                                         {avatarUrl ? (
                                             <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            '👤'
+                                            <UserOutlined style={{ fontSize: 80, color: '#ccc' }} />
                                         )}
                                     </div>
 
