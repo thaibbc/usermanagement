@@ -376,7 +376,7 @@ export function Profile() {
                     {/* Right - Notifications and User */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         {/* Notification Badge */}
-                        <Badge count="99+" style={{ backgroundColor: '#FF4D4F' }}>
+                        <Badge style={{ backgroundColor: '#FF4D4F' }}>
                             <BellOutlined style={{ fontSize: 20, color: 'white' }} />
                         </Badge>
 
