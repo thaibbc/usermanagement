@@ -10,8 +10,48 @@ const port = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-management', {
     useNewUrlParser: true,
     useUnifiedTopology: true
-}).then(() => {
+}).then(async () => {
     console.log('Connected to MongoDB');
+    // optional admin seeding; set SEED_ADMIN=true to enable
+    if (process.env.SEED_ADMIN === 'true') {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const User = require('./models/User');
+            const Account = require('./models/Account');
+            // read default admin info from data file (not hardcoded)
+            let adminData = {};
+            try {
+                const raw = fs.readFileSync(path.join(__dirname, 'data', 'admin.json'));
+                adminData = JSON.parse(raw);
+            } catch (e) {
+                console.warn('Could not read admin.json, using built-in defaults');
+                adminData = { name: 'Testbank', email: 'testitdn@gmail.com', password: 'sachso', accountType: 'admin' };
+            }
+            // only create the admin user/account if it doesn't already exist
+            const existing = await User.findOne({ email: adminData.email });
+            if (!existing) {
+                const newUser = await User.create({
+                    name: adminData.name,
+                    email: adminData.email,
+                    accountType: adminData.accountType || 'admin'
+                });
+                await Account.create({ userId: newUser._id, email: adminData.email, password: adminData.password });
+                console.log(`Created default admin user & account (${adminData.email} / ${adminData.password})`);
+            } else {
+                const acct = await Account.findOne({ email: adminData.email });
+                if (!acct) {
+                    await Account.create({ userId: existing._id, email: adminData.email, password: adminData.password });
+                    console.log('Created missing account for existing admin user');
+                }
+            }
+            // intentionally no dumping of accounts here
+        } catch (err) {
+            console.error('Error creating default user:', err);
+        }
+    } else {
+        console.log('Admin seeding skipped (set SEED_ADMIN=true to enable)');
+    }
 }).catch(err => {
     console.error('MongoDB connection error:', err);
 });

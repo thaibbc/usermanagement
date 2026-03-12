@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Button,
@@ -30,55 +30,11 @@ import {
 
 // react-query (now @tanstack/react-query) with persistence
 import {
-    QueryClient,
     useQuery,
     useMutation,
     useQueryClient
 } from '@tanstack/react-query';
-import {
-    PersistQueryClientProvider
-} from '@tanstack/react-query-persist-client';
 
-// create a client with offline‑friendly defaults
-const baseQueryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: false,
-            refetchOnWindowFocus: false,
-            refetchOnReconnect: false,
-            staleTime: 1000 * 60 * 60, // keep data fresh for 1h
-            cacheTime: 1000 * 60 * 60 * 24, // keep in cache for a day
-        }
-    }
-});
-
-// persist cache to localStorage so it survives reloads/offline
-const LOCAL_STORAGE_KEY = 'react_query_cache';
-const localStoragePersistor = {
-    persistClient: async (client) => {
-        try {
-            window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(client));
-        } catch {
-            // ignore storage write errors (quota, private mode)
-        }
-    },
-    restoreClient: async () => {
-        try {
-            const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-            return stored ? JSON.parse(stored) : undefined;
-        } catch {
-            // parsing or access error; treat as empty cache
-            return undefined;
-        }
-    },
-    removeClient: async () => {
-        try {
-            window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-        } catch {
-            // ignore removal errors
-        }
-    }
-};
 // persistence will be handled by the provider below
 
 
@@ -117,6 +73,14 @@ export function AdminDashboard() {
     const [newPassword, setNewPassword] = useState('');
     const location = useLocation();
     const navigate = useNavigate();
+    // ensure only admins can access this page
+    useEffect(() => {
+        const stored = typeof window !== 'undefined' && localStorage.getItem('user');
+        const user = stored ? JSON.parse(stored) : null;
+        if (!user || user.accountType !== 'admin') {
+            navigate('/');
+        }
+    }, [navigate]);
     // determine tab based on current route
     const activeTab = location.pathname === '/history' ? 'history' : 'manage';
 
@@ -589,17 +553,6 @@ export function AdminDashboard() {
     );
 }
 
-export default function WrappedAdminDashboard() {
-    return (
-        <PersistQueryClientProvider
-            client={baseQueryClient}
-            persistOptions={{
-                persister: localStoragePersistor,
-                maxAge: 1000 * 60 * 60 * 24,
-            }}
-        >
-            <AdminDashboard />
-        </PersistQueryClientProvider>
-    );
-}
+// App-level provider now wraps the entire app; just export the dashboard component
+export default AdminDashboard;
 

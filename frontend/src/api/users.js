@@ -9,7 +9,33 @@ const API =
 const USERS_URL = `${API}/api/users`;
 const HISTORY_URL = `${API}/api/history`;
 
+function authHeaders() {
+    const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // ====================== USERS ======================
+
+// authentication helper
+export async function login(credentials) {
+    const res = await fetch(`${USERS_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+    });
+    if (!res.ok) {
+        let msg = 'Login failed';
+        let data = null;
+        try {
+            data = await res.json();
+            if (data && data.message) msg = data.message;
+        } catch { /* ignore parsing error */ }
+        // log for debugging
+        console.error('login() error', res.status, data);
+        throw new Error(msg);
+    }
+    return res.json(); // { token, user }
+}
 
 // Fetch users with optional filters and pagination
 // returns an object { users: [...], total: number }
@@ -27,7 +53,7 @@ export async function fetchUsers(filters = {}, page = 1, limit = 10) {
 
     const url = `${USERS_URL}?${params}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) throw new Error("Failed to fetch users");
 
     return res.json();
@@ -45,7 +71,8 @@ export async function createUser(user) {
     const res = await fetch(USERS_URL, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...authHeaders()
         },
         body: JSON.stringify(payload)
     });
@@ -69,7 +96,8 @@ export async function updateUser(id, updates) {
     const res = await fetch(`${USERS_URL}/${id}`, {
         method: "PUT",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...authHeaders()
         },
         body: JSON.stringify(updates)
     });
@@ -84,7 +112,8 @@ export async function changePassword(id, newPassword) {
     const res = await fetch(`${USERS_URL}/${id}/password`, {
         method: "PUT",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...authHeaders()
         },
         body: JSON.stringify({ password: newPassword })
     });
@@ -104,7 +133,8 @@ export async function changePassword(id, newPassword) {
 // Delete user
 export async function deleteUser(id) {
     const res = await fetch(`${USERS_URL}/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: authHeaders()
     });
 
     if (!res.ok) {
@@ -123,11 +153,24 @@ export async function deleteUser(id) {
 
 // Get single user
 export async function getUser(id) {
-    const res = await fetch(`${USERS_URL}/${id}`);
+    console.log('api/users.getUser', { id });
+    const res = await fetch(`${USERS_URL}/${id}`, { headers: authHeaders() });
+    console.log('api/users.getUser response status', res.status);
+    if (!res.ok) {
+        let msg = `Failed to fetch user (${res.status})`;
+        try {
+            const data = await res.json();
+            console.log('api/users.getUser error body', data);
+            if (data && data.message) msg = data.message;
+        } catch (err) {
+            console.warn('could not parse error body', err);
+        }
+        throw new Error(msg);
+    }
 
-    if (!res.ok) throw new Error("Failed to fetch user");
-
-    return res.json();
+    const body = await res.json();
+    console.log('api/users.getUser success', body);
+    return body;
 }
 
 
@@ -137,7 +180,7 @@ export async function getUser(id) {
 // returns { logs: [...], total: number }
 export async function fetchHistory(page = 1, limit = 10) {
     const params = new URLSearchParams({ page, limit });
-    const res = await fetch(`${HISTORY_URL}?${params}`);
+    const res = await fetch(`${HISTORY_URL}?${params}`, { headers: authHeaders() });
 
     if (!res.ok) throw new Error("Failed to fetch history");
 

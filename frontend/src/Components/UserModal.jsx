@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Input, Button, Form, Select } from 'antd';
+import { Modal, Input, Button, Form, Select, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
 // no autocomplete needed any more; plain inputs suffice
 
@@ -20,7 +21,31 @@ export default function UserModal({
     // keep form values in sync with prop
     React.useEffect(() => {
         if (visible) {
-            form.setFieldsValue(user || {});
+            // normalize dateOfBirth to a valid dayjs object or remove it entirely
+            const values = { ...(user || {}) };
+            if (values.dateOfBirth) {
+                let dob = values.dateOfBirth;
+                if (dayjs.isDayjs(dob)) {
+                    // use as-is
+                } else if (typeof dob === 'string') {
+                    dob = dayjs(dob, 'DD/MM/YYYY');
+                    if (!dob.isValid()) {
+                        dob = dayjs(dob); // try ISO or other formats
+                    }
+                } else if (dob instanceof Date) {
+                    dob = dayjs(dob);
+                } else {
+                    dob = dayjs(dob);
+                }
+                if (dob && dob.isValid()) {
+                    values.dateOfBirth = dob;
+                } else {
+                    delete values.dateOfBirth;
+                }
+            } else {
+                delete values.dateOfBirth;
+            }
+            form.setFieldsValue(values);
         } else {
             form.resetFields();
         }
@@ -108,16 +133,28 @@ export default function UserModal({
                         />
                     </Form.Item>
 
+                    <Form.Item
+                        name="dateOfBirth"
+                        label={null}
+                        rules={[{ required: false }]}
+                    >
+                        <DatePicker
+                            placeholder="Ngày sinh"
+                            format="DD/MM/YYYY"
+                            style={{ width: '100%' }}
+                            onChange={(date, dateString) => updateField('dateOfBirth', dateString)}
+                        />
+                    </Form.Item>
+
                     <Form.Item name="accountType" label={null} rules={[{ required: true, message: 'Loại tài khoản là bắt buộc' }]}>
                         <Select
                             placeholder="Loại tài khoản"
                             allowClear
                             optionLabelProp="label"
                             value={user.accountType}
-                            options={[
-                                { label: 'Học sinh', value: 'student' },
-                                { label: 'Giáo viên', value: 'teacher' },
-                                { label: 'Phụ huynh', value: 'parent' },
+                            options={[{ label: 'Admin', value: 'admin' }, { label: 'Học sinh', value: 'student' },
+                            { label: 'Giáo viên', value: 'teacher' },
+                            { label: 'Phụ huynh', value: 'parent' },
                             ]}
                             onChange={val => updateField('accountType', val)}
                         />
