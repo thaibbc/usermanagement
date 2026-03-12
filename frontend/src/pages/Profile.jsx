@@ -236,7 +236,7 @@ export function Profile() {
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F5F5F5' }}>
             {/* Sidebar */}
             <div style={{
-                width: collapsed ? 60 : 240,
+                width: 60 /* collapsed ? 60 : 240 */,
                 backgroundColor: '#00BCD4',
                 color: 'white',
                 transition: 'width 0.3s',
@@ -250,7 +250,7 @@ export function Profile() {
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                     cursor: 'pointer'
                 }}
-                    onClick={() => setCollapsed(!collapsed)}
+                // onClick={() => setCollapsed(!collapsed)}
                 >
                     <MenuOutlined style={{ fontSize: 20 }} />
                 </div>
@@ -268,7 +268,7 @@ export function Profile() {
                         onClick={() => navigate('/profile')}
                     >
                         <HomeOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Sách số</span>}
+                        {/* {!collapsed && <span>Sách số</span>} */}
                     </div>
 
                     <div style={{
@@ -279,7 +279,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <BookOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Thư viện</span>}
+                        {/* {!collapsed && <span>Thư viện</span>} */}
                     </div>
 
                     <div style={{
@@ -290,7 +290,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <UserOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Người dùng</span>}
+                        {/* {!collapsed && <span>Người dùng</span>} */}
                     </div>
 
                     <div style={{
@@ -301,7 +301,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <FileTextOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Bài viết</span>}
+                        {/* {!collapsed && <span>Bài viết</span>} */}
                     </div>
 
                     <div style={{
@@ -312,7 +312,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <BellOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Thông báo</span>}
+                        {/* {!collapsed && <span>Thông báo</span>} */}
                     </div>
 
                     <div style={{
@@ -323,7 +323,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <TeamOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Nhóm</span>}
+                        {/* {!collapsed && <span>Nhóm</span>} */}
                     </div>
 
                     <div style={{
@@ -334,7 +334,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <CustomerServiceOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Hỗ trợ</span>}
+                        {/* {!collapsed && <span>Hỗ trợ</span>} */}
                     </div>
 
                     <div style={{
@@ -345,7 +345,7 @@ export function Profile() {
                         gap: 12
                     }}>
                         <SettingOutlined style={{ fontSize: 18 }} />
-                        {!collapsed && <span>Cài đặt</span>}
+                        {/* {!collapsed && <span>Cài đặt</span>} */}
                     </div>
                 </div>
             </div>
@@ -363,7 +363,7 @@ export function Profile() {
                     color: 'white',
                     position: 'absolute',
                     top: 0,
-                    left: collapsed ? 60 : 240,
+                    left: 60 /* collapsed ? 60 : 240 */,
                     right: 0,
                     zIndex: 10
                 }}>
