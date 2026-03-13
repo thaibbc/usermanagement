@@ -72,52 +72,6 @@ export function Profile() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        message.success('Đã đăng xuất!');
-        navigate('/login');
-    };
-
-    // sidebar navigation items
-    const sidebarItems = [
-        {
-            icon: <HomeOutlined style={{ fontSize: 18 }} />,
-            label: 'Sách số',
-            path: '/dashboard'
-        },
-        {
-            icon: <BookOutlined style={{ fontSize: 18 }} />,
-            label: 'Lớp học',
-            path: '#'
-        },
-        {
-            icon: <UserOutlined style={{ fontSize: 18 }} />,
-            label: 'Câu hỏi',
-            path: '#'
-        },
-        {
-            icon: <FileTextOutlined style={{ fontSize: 18 }} />,
-            label: 'Bài tập',
-            path: '#'
-        },
-        {
-            icon: <TeamOutlined style={{ fontSize: 18 }} />,
-            label: 'Phòng thi',
-            path: '#'
-        },
-        {
-            icon: <CustomerServiceOutlined style={{ fontSize: 18 }} />,
-            label: 'Hỗ trợ',
-            path: '#'
-        },
-        {
-            icon: <SettingOutlined style={{ fontSize: 18 }} />,
-            label: 'Cài đặt',
-            path: '#'
-        }
-    ];
-
     const handleUpdate = async (values) => {
         console.log('Update values:', values);
         if (!loginUser || !loginUser.id && !loginUser._id) {
@@ -235,30 +189,13 @@ export function Profile() {
         }
     };
 
-    // header dropdown items
-    const headerMenu = [
-        {
-            key: 'profile',
-            icon: <UserOutlined style={{ fontSize: 16 }} />,
-            label: 'Profile',
-            onClick: () => navigate('/profile')
-        },
-        {
-            key: 'logout',
-            icon: <LogoutOutlined style={{ fontSize: 16 }} />,
-            label: 'Logout',
-            onClick: handleLogout
-        }
-    ];
-
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F5F5F5' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(to top, #22D3EE, #ebf4f6)' }}>
             {/* Sidebar */}
             <Sidebar
                 collapsed={isSidebarCollapsed}
                 setCollapsed={setIsSidebarCollapsed}
-                menuItems={sidebarItems}
             />
 
             {/* Main Content Area (shift right so header/content not hidden) */}
@@ -270,11 +207,11 @@ export function Profile() {
                 transition: 'margin-left 0.3s ease'
             }}>
                 {/* Header */}
-                <Header title="Profile" menuItems={headerMenu} userName={loginUser?.fullName || 'Guest'} />
+                <Header title="Profile" />
 
 
                 {/* Content */}
-                <div style={{ flex: 1, padding: 40, position: 'relative', zIndex: 0, paddingTop: 90 }}>
+                <div style={{ flex: 1, padding: 40, position: 'relative', zIndex: 0, paddingTop: 30 }}>
                     {/* {loadingProfile && <Spin tip="Đang tải..." />} */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 30 }}>
                         {/* Left - Profile Form */}

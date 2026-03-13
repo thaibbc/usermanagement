@@ -35,6 +35,9 @@ import {
     useQueryClient
 } from '@tanstack/react-query';
 
+import Sidebar from '../Components/Sidebar';
+import Header from '../Components/Header';
+
 // persistence will be handled by the provider below
 
 
@@ -406,72 +409,92 @@ export function AdminDashboard() {
         },
     ];
 
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
     return (
-        <div style={{ position: 'relative', minHeight: '100vh' }}>
-            {/* colored background extends down half the viewport */}
-            <div
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '19vh',
-                    background: 'linear-gradient(to right, #22D3EE, #06B6D4)',
-                    zIndex: 0
-                }}
-            >
-                <div style={{ padding: '16px 52px' }}>
-                    <Space size={12}>
-                        <HomeOutlined style={{ fontSize: 20, color: 'white' }} />
-                        <h1
-                            style={{ fontSize: 20, fontWeight: 600, margin: 0, color: 'white' }}
-                        >
-                            Administration
-                        </h1>
-                    </Space>
-                </div>
-            </div>
-            <div
-                style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: '81vh',
-                    background: 'linear-gradient(to top, #22D3EE, #ebf4f6)',
-                    zIndex: 0
-                }}
+        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
+            {/* sidebar component */}
+            <Sidebar
+                collapsed={isSidebarCollapsed}
+                setCollapsed={setIsSidebarCollapsed}
             />
 
-            <div style={{ position: 'relative', zIndex: 1, padding: '74px 22px' }}>
-                <Card
-                    variant="outlined"
-                    style={{ boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}
-                    styles={{ body: { padding: 0 } }}
-                >
-                    <Tabs
-                        activeKey={activeTab}
-                        onChange={(key) => navigate(key === 'history' ? '/history' : '/')}
-                        items={tabItems}
-                        tabBarExtraContent={
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                style={{
-                                    backgroundColor: '#06B6D4',
-                                    borderColor: '#06B6D4',
-                                    marginRight: 16
-                                }}
-                                onClick={() => setAddModalOpen(true)}
-                            >
-                                Thêm người dùng
-                            </Button>
-                        }
+            {/* main area (shifted right to accommodate fixed sidebar) */}
+            <div style={{
+                flex: 1,
+                marginLeft: isSidebarCollapsed ? 80 : 250,
+                transition: 'margin-left 0.3s ease'
+            }}>
+                <Header title="Administration" />
+
+                {/* Content Area */}
+                <div style={{ position: 'relative', minHeight: 'calc(100vh - 64px)' }}>
+                    {/* colored background extends down half the viewport */}
+                    <div
                         style={{
-                            padding: '16px 24px 0',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '19vh',
+                            background: 'linear-gradient(to right, #22D3EE, #06B6D4)',
+                            zIndex: 0
+                        }}
+                    >
+                        <div style={{ padding: '16px 52px' }}>
+                            <Space size={12}>
+                                <HomeOutlined style={{ fontSize: 20, color: 'white' }} />
+                                <h1
+                                    style={{ fontSize: 20, fontWeight: 600, margin: 0, color: 'white' }}
+                                >
+                                    Administration
+                                </h1>
+                            </Space>
+                        </div>
+                    </div>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: '81vh',
+                            background: 'linear-gradient(to top, #22D3EE, #ebf4f6)',
+                            zIndex: 0
                         }}
                     />
-                </Card>
+
+                    <div style={{ position: 'relative', zIndex: 1, padding: '74px 22px' }}>
+                        <Card
+                            variant="outlined"
+                            style={{ boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}
+                            styles={{ body: { padding: 0 } }}
+                        >
+                            <Tabs
+                                activeKey={activeTab}
+                                onChange={(key) => navigate(key === 'history' ? '/history' : '/')}
+                                items={tabItems}
+                                tabBarExtraContent={
+                                    <Button
+                                        type="primary"
+                                        icon={<PlusOutlined />}
+                                        style={{
+                                            backgroundColor: '#06B6D4',
+                                            borderColor: '#06B6D4',
+                                            marginRight: 16
+                                        }}
+                                        onClick={() => setAddModalOpen(true)}
+                                    >
+                                        Thêm người dùng
+                                    </Button>
+                                }
+                                style={{
+                                    padding: '16px 24px 0',
+                                }}
+                            />
+                        </Card>
+                    </div>
+                </div>
             </div>
 
             {/* Delete Confirmation Modal */}

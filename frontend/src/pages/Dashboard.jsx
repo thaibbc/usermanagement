@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     ArrowDownOutlined,
     HomeOutlined,
@@ -8,85 +8,15 @@ import {
     FileTextOutlined,
     TeamOutlined,
     CustomerServiceOutlined,
-    SettingOutlined
+    SettingOutlined,
+    SwitcherOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
 
 export function Dashboard() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        navigate('/');
-    };
-
-    // sidebar menu items for navigation
-    const sidebarItems = [
-        {
-            icon: <HomeOutlined style={{ fontSize: 18 }} />,
-            label: 'Trang chủ',
-            path: '/dashboard'
-        },
-        {
-            icon: <BookOutlined style={{ fontSize: 18 }} />,
-            label: 'Lớp học',
-            path: '#'
-        },
-        {
-            icon: <UserOutlined style={{ fontSize: 18 }} />,
-            label: 'Câu hỏi',
-            path: '#'
-        },
-        {
-            icon: <FileTextOutlined style={{ fontSize: 18 }} />,
-            label: 'Bài tập',
-            path: '#'
-        },
-        {
-            icon: <TeamOutlined style={{ fontSize: 18 }} />,
-            label: 'Phòng thi',
-            path: '#'
-        },
-        {
-            icon: <CustomerServiceOutlined style={{ fontSize: 18 }} />,
-            label: 'Hỗ trợ',
-            path: '#'
-        },
-        {
-            icon: <SettingOutlined style={{ fontSize: 18 }} />,
-            label: 'Cài đặt',
-            path: '#'
-        }
-    ];
-
-    // header dropdown menu (account actions)
-    const headerMenu = [
-        {
-            key: 'profile',
-            icon: <UserOutlined style={{ fontSize: 16 }} />,
-            label: 'Profile',
-            onClick: () => navigate('/profile')
-        },
-        {
-            key: 'logout',
-            icon: <LogoutOutlined style={{ fontSize: 16 }} />,
-            label: 'Logout',
-            onClick: handleLogout
-        }
-    ];
-
-    // redirect if not logged in
-    useEffect(() => {
-        const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
-        if (!token) {
-            navigate('/login');
-        }
-    }, [navigate]);
 
 
     // Stats data
@@ -152,7 +82,6 @@ export function Dashboard() {
             <Sidebar
                 collapsed={isSidebarCollapsed}
                 setCollapsed={setIsSidebarCollapsed}
-                menuItems={sidebarItems}
             />
 
             {/* main area (shifted right to accommodate fixed sidebar) */}
@@ -161,7 +90,7 @@ export function Dashboard() {
                 marginLeft: isSidebarCollapsed ? 80 : 250,
                 transition: 'margin-left 0.3s ease'
             }}>
-                <Header title="Dashboard" menuItems={headerMenu} />
+                <Header title="Dashboard" />
 
 
                 {/* Content Area */}

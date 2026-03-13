@@ -1,22 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MenuOutlined } from "@ant-design/icons";
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+    HomeOutlined,
+    BookOutlined,
+    UserOutlined,
+    FileTextOutlined,
+    TeamOutlined,
+    CustomerServiceOutlined,
+    SettingOutlined,
+    SwitcherOutlined
+} from '@ant-design/icons';
 
 function Sidebar({
     collapsed,
     setCollapsed,
-    menuItems = [],
 }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const [user, setUser] = useState(null);
 
     // internal collapse state used when parent doesn't control it
     const [internalCollapsed, setInternalCollapsed] = useState(false);
     const isSidebarCollapsed = collapsed !== undefined ? collapsed : internalCollapsed;
     const setIsSidebarCollapsed = setCollapsed || setInternalCollapsed;
 
+    // Load user from localStorage
+    useEffect(() => {
+        const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
+        const storedUser = typeof window !== 'undefined' && localStorage.getItem('user');
+        if (!token) {
+            navigate('/login');
+        } else if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    }, [navigate]);
+
+    // sidebar menu items for navigation - only show admin items if user is admin
+    const sidebarItems = [
+        {
+            icon: <HomeOutlined style={{ fontSize: 18 }} />,
+            label: 'Trang chủ',
+            path: '/dashboard'
+        },
+        ...(user && user.accountType === 'admin' ? [{
+            icon: <SwitcherOutlined style={{ fontSize: 18 }} />,
+            label: 'Quản Lý người dùng',
+            path: '/users'
+        }] : []),
+        {
+            icon: <BookOutlined style={{ fontSize: 18 }} />,
+            label: 'Lớp học',
+            path: '#'
+        },
+        {
+            icon: <UserOutlined style={{ fontSize: 18 }} />,
+            label: 'Câu hỏi',
+            path: '#'
+        },
+        {
+            icon: <FileTextOutlined style={{ fontSize: 18 }} />,
+            label: 'Bài tập',
+            path: '#'
+        },
+        {
+            icon: <TeamOutlined style={{ fontSize: 18 }} />,
+            label: 'Phòng thi',
+            path: '#'
+        },
+        {
+            icon: <CustomerServiceOutlined style={{ fontSize: 18 }} />,
+            label: 'Hỗ trợ',
+            path: '#'
+        },
+        {
+            icon: <SettingOutlined style={{ fontSize: 18 }} />,
+            label: 'Cài đặt',
+            path: '#'
+        }
+    ];
+
     // ensure we always have an array when rendering
-    const items = menuItems || [];
+    const items = sidebarItems;
 
     return (
         <div style={{
@@ -54,7 +119,7 @@ function Sidebar({
                             📚
                         </div>
                         <span style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
-                            Testbank Admin
+                            Sách Số
                         </span>
                     </div>
                 )}
