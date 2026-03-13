@@ -28,7 +28,7 @@ export function Login() {
             message.success('Đăng nhập thành công!');
 
             if (user.accountType === 'admin') {
-                navigate('/users');
+                navigate('/dashboard');
             } else {
                 navigate('/dashboard');
             }
