@@ -336,6 +336,7 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Giới tính</span>}
                                         name="gender"
+                                        rules={[{ required: true, message: 'Vui lòng chọn giới tính' }]}
                                     >
                                         <Select
                                             size="large"
@@ -349,6 +350,19 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Ngày sinh</span>}
                                         name="dateOfBirth"
+                                        rules={[
+                                            { required: true, message: 'Vui lòng chọn ngày sinh' },
+                                            () => ({
+                                                validator(_, value) {
+                                                    if (!value) return Promise.resolve();
+                                                    const today = dayjs();
+                                                    if (value.isAfter(today, 'day')) {
+                                                        return Promise.reject(new Error('Ngày sinh không thể ở tương lai'));
+                                                    }
+                                                    return Promise.resolve();
+                                                }
+                                            })
+                                        ]}
                                     >
                                         <DatePicker
                                             size="large"
@@ -366,6 +380,21 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Trường học</span>}
                                         name="school"
+                                        rules={[
+                                            { required: true, message: 'Vui lòng nhập trường học' },
+                                            {
+                                                validator: (_, value) => {
+                                                    if (!value) return Promise.resolve();
+                                                    const len = value.replace(/\s+/g, '').length;
+                                                    if (len < 6) {
+                                                        return Promise.reject('Tên trường không đúng');
+                                                    }
+                                                    return /^[^0-9]+$/.test(value)
+                                                        ? Promise.resolve()
+                                                        : Promise.reject('Tên trường không được chứa số');
+                                                }
+                                            }
+                                        ]}
                                     >
                                         <Input
                                             size="large"
@@ -379,6 +408,7 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Cấp dạy</span>}
                                         name="grade"
+                                        rules={[{ required: true, message: 'Vui lòng chọn cấp dạy' }]}
                                     >
                                         <Select
                                             size="large"
