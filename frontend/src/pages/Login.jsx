@@ -3,6 +3,7 @@ import { EyeOutlined, EyeInvisibleOutlined, CloseOutlined } from '@ant-design/ic
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/users';
 import React from 'react';
+import useIsMobile from '../hooks/useIsMobile';
 
 const loginImage =
     'https://tackexinh.com/wp-content/uploads/2021/04/hinh-anh-lang-que-viet-nam-06.jpg';
@@ -10,6 +11,7 @@ const loginImage =
 export function Login() {
     const [loading, setLoading] = React.useState(false);
     const navigate = useNavigate();
+    const isMobile = useIsMobile(1350);
 
     const handleLogin = async (values) => {
         const normalized = {
@@ -61,12 +63,12 @@ export function Login() {
                     onClick={(e) => e.stopPropagation()}
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: '500px 500px',
+                        gridTemplateColumns: isMobile ? '600px' : '600px 600px',
                         backgroundColor: 'white',
                         borderRadius: 8,
                         overflow: 'hidden',
                         boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-                        maxWidth: 1000,
+                        maxWidth: isMobile ? 700 : 1000,
                         width: '100%',
                     }}
                 >
@@ -75,8 +77,31 @@ export function Login() {
                         style={{
                             padding: '48px',
                             backgroundColor: 'white',
+                            position: 'relative',
                         }}
                     >
+                        {isMobile && (
+                            <Button
+                                type="text"
+                                icon={<CloseOutlined />}
+                                onClick={() => navigate('/')}
+                                style={{
+                                    position: 'absolute',
+                                    top: 16,
+                                    right: 16,
+                                    color: '#666',
+                                    fontSize: 20,
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    border: '2px solid #d9d9d9',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            />
+                        )}
+
                         <h1
                             style={{
                                 fontSize: 32,
@@ -173,47 +198,49 @@ export function Login() {
                     </div>
 
                     {/* Right Side - Illustration */}
-                    <div
-                        style={{
-                            background: 'linear-gradient(135deg,#1890FF 0%,#0050B3 100%)',
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 40,
-                        }}
-                    >
-                        <Button
-                            type="text"
-                            icon={<CloseOutlined />}
-                            onClick={() => navigate('/')}
+                    {!isMobile && (
+                        <div
                             style={{
-                                position: 'absolute',
-                                top: 16,
-                                right: 16,
-                                color: 'white',
-                                fontSize: 20,
-                                width: 40,
-                                height: 40,
-                                borderRadius: '50%',
-                                border: '2px solid white',
+                                background: 'linear-gradient(135deg,#1890FF 0%,#0050B3 100%)',
+                                position: 'relative',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                padding: 40,
                             }}
-                        />
+                        >
+                            <Button
+                                type="text"
+                                icon={<CloseOutlined />}
+                                onClick={() => navigate('/')}
+                                style={{
+                                    position: 'absolute',
+                                    top: 16,
+                                    right: 16,
+                                    color: 'white',
+                                    fontSize: 20,
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    border: '2px solid white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            />
 
-                        <img
-                            src={loginImage}
-                            alt="Login Illustration"
-                            style={{
-                                width: '120%',
-                                height: '120%',
-                                maxWidth: 1000,
-                                objectFit: 'cover',
-                            }}
-                        />
-                    </div>
+                            <img
+                                src={loginImage}
+                                alt="Login Illustration"
+                                style={{
+                                    width: '120%',
+                                    height: '120%',
+                                    maxWidth: 1000,
+                                    objectFit: 'cover',
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </Spin>
         </div>

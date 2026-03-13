@@ -14,9 +14,11 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
+import useIsMobile from '../hooks/useIsMobile';
 
 export function Dashboard() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const isMobile = useIsMobile(1350);
 
 
     // Stats data
@@ -78,19 +80,21 @@ export function Dashboard() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
-            {/* sidebar component */}
-            <Sidebar
-                collapsed={isSidebarCollapsed}
-                setCollapsed={setIsSidebarCollapsed}
-            />
+            {/* sidebar component (hidden on mobile, drawer used instead) */}
+            {!isMobile && (
+                <Sidebar
+                    collapsed={isSidebarCollapsed}
+                    setCollapsed={setIsSidebarCollapsed}
+                />
+            )}
 
             {/* main area (shifted right to accommodate fixed sidebar) */}
             <div style={{
                 flex: 1,
-                marginLeft: isSidebarCollapsed ? 80 : 250,
+                marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                 transition: 'margin-left 0.3s ease'
             }}>
-                <Header title="Dashboard" />
+                <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
 
                 {/* Content Area */}

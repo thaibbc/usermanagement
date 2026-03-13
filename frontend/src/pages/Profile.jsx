@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Input, Form, Select, DatePicker, Badge, Modal, message, Dropdown, Spin } from 'antd';
 import { getUser, updateUser, changePassword } from '../api/users';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
 import {
     HomeOutlined,
     BookOutlined,
@@ -25,6 +24,7 @@ import dayjs from 'dayjs';
 // layout components
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
+import useIsMobile from '../hooks/useIsMobile';
 
 // use a public placeholder banner image instead of figma asset
 const profileBanner = 'https://via.placeholder.com/1200x300.png?text=Profile+Banner';
@@ -36,6 +36,7 @@ export function Profile() {
     const [passwordForm] = Form.useForm();
     const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const isMobile = useIsMobile(1350);
     // password visibility no longer needed
     // const [showNewPassword, setShowNewPassword] = useState(false);
     // const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -70,7 +71,6 @@ export function Profile() {
     }, [stored]);
     const [userData, setUserData] = useState(initialUser);
     const queryClient = useQueryClient();
-    const navigate = useNavigate();
 
     const handleUpdate = async (values) => {
         console.log('Update values:', values);
@@ -192,28 +192,30 @@ export function Profile() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(to top, #22D3EE, #ebf4f6)' }}>
-            {/* Sidebar */}
-            <Sidebar
-                collapsed={isSidebarCollapsed}
-                setCollapsed={setIsSidebarCollapsed}
-            />
+            {/* Sidebar (hidden on mobile – header drawer replaces it) */}
+            {!isMobile && (
+                <Sidebar
+                    collapsed={isSidebarCollapsed}
+                    setCollapsed={setIsSidebarCollapsed}
+                />
+            )}
 
             {/* Main Content Area (shift right so header/content not hidden) */}
             <div style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                marginLeft: isSidebarCollapsed ? 80 : 250,
+                marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                 transition: 'margin-left 0.3s ease'
             }}>
                 {/* Header */}
-                <Header title="Profile" />
+                <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
 
                 {/* Content */}
                 <div style={{ flex: 1, padding: 40, position: 'relative', zIndex: 0, paddingTop: 30 }}>
                     {/* {loadingProfile && <Spin tip="Đang tải..." />} */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 30 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 350px', gap: 30 }}>
                         {/* Left - Profile Form */}
                         <div style={{
                             backgroundColor: 'white',
@@ -259,7 +261,7 @@ export function Profile() {
                                     grade: userData.grade
                                 }}
                             >
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Email (dùng để đăng nhập)</span>}
                                         name="email"
@@ -278,6 +280,10 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Số điện thoại</span>}
                                         name="phone"
+                                        rules={[
+                                            { required: true, message: 'SĐT là bắt buộc' },
+                                            { pattern: /^\d{9,11}$/, message: 'SĐT phải gồm 9–11 chữ số' }
+                                        ]}
                                     >
                                         <Input
                                             size="large"
@@ -289,10 +295,15 @@ export function Profile() {
                                     </Form.Item>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Họ và tên đệm</span>}
                                         name="fullName"
+                                        rules={[
+                                            { required: true, message: 'Họ và tên không được để trống' },
+                                            { min: 3, message: 'Họ và tên phải có ít nhất 3 kí tự' },
+                                            { pattern: /^[^0-9]+$/, message: 'Họ và tên không được chứa số' }
+                                        ]}
                                     >
                                         <Input
                                             size="large"
@@ -306,6 +317,10 @@ export function Profile() {
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Tên</span>}
                                         name="firstName"
+                                        rules={[
+                                            { required: true, message: 'Tên không được để trống' },
+                                            { pattern: /^[^0-9]+$/, message: 'Tên không được chứa số' }
+                                        ]}
                                     >
                                         <Input
                                             size="large"
@@ -317,7 +332,7 @@ export function Profile() {
                                     </Form.Item>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Giới tính</span>}
                                         name="gender"
@@ -347,7 +362,7 @@ export function Profile() {
                                     </Form.Item>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
                                     <Form.Item
                                         label={<span style={{ fontSize: 13, color: '#666' }}>Trường học</span>}
                                         name="school"

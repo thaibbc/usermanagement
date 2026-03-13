@@ -37,6 +37,7 @@ import {
 
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
+import useIsMobile from '../hooks/useIsMobile';
 
 // persistence will be handled by the provider below
 
@@ -410,24 +411,27 @@ export function AdminDashboard() {
     ];
 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const isMobile = useIsMobile(1350);
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
-            {/* sidebar component */}
-            <Sidebar
-                collapsed={isSidebarCollapsed}
-                setCollapsed={setIsSidebarCollapsed}
-            />
+            {/* sidebar component (hidden on mobile, drawer used instead) */}
+            {!isMobile && (
+                <Sidebar
+                    collapsed={isSidebarCollapsed}
+                    setCollapsed={setIsSidebarCollapsed}
+                />
+            )}
 
             {/* main area (shifted right to accommodate fixed sidebar) */}
             <div style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                marginLeft: isSidebarCollapsed ? 80 : 100,
+                marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                 transition: 'margin-left 0.3s ease'
             }}>
-                <Header title="Administration" />
+                <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
                 {/* Content Area */}
                 <div style={{ position: 'relative', minHeight: 'calc(100vh - 64px)' }}>
@@ -443,8 +447,8 @@ export function AdminDashboard() {
                             zIndex: 0
                         }}
                     >
-                        <div style={{ padding: '16px 52px' }}>
-                            <Space size={12}>
+                        <div style={{ padding: isMobile ? '16px 24px' : '16px 52px' }}>
+                            <Space size={isMobile ? 8 : 12}>
                                 <HomeOutlined style={{ fontSize: 20, color: 'white' }} />
                                 <h1
                                     style={{ fontSize: 20, fontWeight: 600, margin: 0, color: 'white' }}

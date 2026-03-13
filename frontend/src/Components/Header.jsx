@@ -1,11 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { Dropdown } from "antd";
-import { BellOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { Dropdown, Drawer, Space } from "antd";
+import {
+    BellOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
+    HomeOutlined, BookOutlined, SwitcherOutlined, UserOutlined as PersonOutlined,
+    FileTextOutlined, TeamOutlined, CustomerServiceOutlined, SettingOutlined
+} from "@ant-design/icons";
 import { useNavigate } from 'react-router-dom';
 
-function Header({ title = "Dashboard" }) {
+import useIsMobile from '../hooks/useIsMobile';
+
+function Header({ onMenuClick }) {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
+    const isMobile = useIsMobile(1350);
+    const [drawerVisible, setDrawerVisible] = useState(false);
+
+    // build same sidebar items for drawer menu
+    const sidebarItems = [
+        { icon: <HomeOutlined style={{ fontSize: 18 }} />, label: 'Trang chủ', path: '/dashboard' },
+        ...(user && user.accountType === 'admin' ? [{ icon: <SwitcherOutlined style={{ fontSize: 18 }} />, label: 'Quản Lý người dùng', path: '/users' }] : []),
+        { icon: <BookOutlined style={{ fontSize: 18 }} />, label: 'Lớp học', path: '#' },
+        { icon: <PersonOutlined style={{ fontSize: 18 }} />, label: 'Câu hỏi', path: '#' },
+        { icon: <FileTextOutlined style={{ fontSize: 18 }} />, label: 'Bài tập', path: '#' },
+        { icon: <TeamOutlined style={{ fontSize: 18 }} />, label: 'Phòng thi', path: '#' },
+        { icon: <CustomerServiceOutlined style={{ fontSize: 18 }} />, label: 'Hỗ trợ', path: '#' },
+        { icon: <SettingOutlined style={{ fontSize: 18 }} />, label: 'Cài đặt', path: '#' }
+    ];
 
     // Load user from localStorage
     useEffect(() => {
@@ -38,12 +58,31 @@ function Header({ title = "Dashboard" }) {
 
     const userName = user ? (user.name || user.email || "User") : "Testbank Admin";
 
+    const handleMenuClick = () => {
+        if (isMobile) {
+            setDrawerVisible(true);
+        } else if (onMenuClick) {
+            onMenuClick();
+        }
+    };
+
+    const handleDrawerClose = () => {
+        setDrawerVisible(false);
+    };
+
+    const handleDrawerItemClick = (path) => {
+        if (path && path !== '#') {
+            navigate(path);
+        }
+        setDrawerVisible(false);
+    };
+
     return (
         <div style={{
             backgroundColor: '#1E293B',
-            padding: '16px 32px',
+            padding: isMobile ? '12px 16px' : '16px 32px',
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: isMobile ? 'space-between' : 'flex-end',
             alignItems: 'center',
             borderBottom: '1px solid #E8E8E8',
 
@@ -51,7 +90,12 @@ function Header({ title = "Dashboard" }) {
             top: 0,
             zIndex: 999
         }}>
-
+            {isMobile && (
+                <MenuOutlined
+                    onClick={handleMenuClick}
+                    style={{ fontSize: 20, color: 'white', cursor: 'pointer' }}
+                />
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                 {/* Notification Bell */}
@@ -89,6 +133,36 @@ function Header({ title = "Dashboard" }) {
                     </div>
                 </Dropdown>
             </div>
+
+            {/* mobile drawer containing sidebar links */}
+            <Drawer
+                placement="left"
+                closable={false}
+                onClose={handleDrawerClose}
+                open={drawerVisible}
+                bodyStyle={{ padding: 0 }}
+                width={250}
+            >
+                <div style={{ backgroundColor: '#1E293B', height: '100%', color: 'white' }}>
+                    {sidebarItems.map((it, idx) => (
+                        <div
+                            key={idx}
+                            onClick={() => handleDrawerItemClick(it.path)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                padding: '12px 16px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid rgba(255,255,255,0.1)'
+                            }}
+                        >
+                            {it.icon}
+                            <span style={{ fontSize: 14, fontWeight: 500 }}>{it.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </Drawer>
         </div>
     );
 }

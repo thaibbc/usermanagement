@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Input, Button, Form, Select, DatePicker } from 'antd';
 import dayjs from 'dayjs';
+import useIsMobile from '../hooks/useIsMobile';
 
 // no autocomplete needed any more; plain inputs suffice
 
@@ -17,6 +18,7 @@ export default function UserModal({
     submitting = false, // disables ok button and shows loading
 }) {
     const [form] = Form.useForm();
+    const isMobile = useIsMobile(1350);
 
     // keep form values in sync with prop
     React.useEffect(() => {
@@ -83,7 +85,7 @@ export default function UserModal({
                 onValuesChange={(changed, all) => setUser(all)}
                 onFinish={handleFinish}
             >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, }}>
                     <Form.Item
                         name="name"
                         label={null}

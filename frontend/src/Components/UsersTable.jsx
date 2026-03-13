@@ -9,8 +9,10 @@ import {
     EditOutlined,
     DeleteOutlined
 } from '@ant-design/icons';
+import useIsMobile from '../hooks/useIsMobile';
 
 export default function UsersTable({ users, total = 0, currentPage, setCurrentPage, onEdit, onDelete, onChangePassword, loading = false }) {
+    const isMobile = useIsMobile(1350);
     // helper to format ISO date string into dd/mm/yyyy hh:mm
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -104,14 +106,14 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
         {
             title: '#',
             key: 'index',
-            width: 50,
+            width: isMobile ? 40 : 50,
             render: (_, __, index) => (currentPage - 1) * 10 + index + 1,
         },
         {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
-            width: 100,
+            width: isMobile ? 80 : 100,
             render: (code) => (
                 <Space size={4}>
                     <UserOutlined style={{ fontSize: 13, color: 'rgb(0, 0, 0)' }} />
@@ -123,7 +125,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             title: 'Họ và tên',
             dataIndex: 'name',
             key: 'name',
-            width: 150,
+            width: isMobile ? 120 : 150,
             render: (name, record) => (
                 <span style={{ fontSize: 13, fontWeight: 500 }}>
                     {name || record.email?.split('@')[0] || '—'}
@@ -134,7 +136,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             title: 'Loại TK',
             dataIndex: 'accountType',
             key: 'accountType',
-            width: 100,
+            width: isMobile ? 80 : 100,
             render: (type) => {
                 const label = type ? ACCOUNT_TYPE_LABELS[type] || type : '';
                 return label ? <Tag color="cyan" style={{ fontSize: 13 }}>{label}</Tag> : null;
@@ -144,13 +146,14 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             title: 'Cấp',
             dataIndex: 'level',
             key: 'level',
-            width: 80,
+            width: isMobile ? 60 : 80,
             render: (level) => {
                 const label = level ? LEVEL_LABELS[level] || level : '';
                 return label ? <Tag color="cyan" style={{ fontSize: 13 }}>{label}</Tag> : null;
             },
         },
-        {
+        // Ẩn cột Tỉnh/TP trên mobile để tiết kiệm không gian
+        ...(isMobile ? [] : [{
             title: 'Tỉnh/TP',
             dataIndex: 'city',
             key: 'city',
@@ -159,8 +162,9 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
                 const label = CITY_LABELS[city] || city || '';
                 return <span style={{ fontSize: 13 }}>{label}</span>;
             },
-        },
-        {
+        }]),
+        // Ẩn cột Quận/Huyện trên mobile
+        ...(isMobile ? [] : [{
             title: 'Quận/Huyện',
             dataIndex: 'district',
             key: 'district',
@@ -172,19 +176,20 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
                     : district || '';
                 return <span style={{ fontSize: 13 }}>{label}</span>;
             },
-        },
-        {
+        }]),
+        // Ẩn cột Trường trên mobile
+        ...(isMobile ? [] : [{
             title: 'Trường',
             dataIndex: 'school',
             key: 'school',
             width: 100,
             render: (school) => <span style={{ fontSize: 13 }}>{school || ''}</span>,
-        },
+        }]),
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
-            width: 150,
+            width: isMobile ? 120 : 150,
             render: (email) => (
                 <Space size={4}>
                     <MailOutlined style={{ fontSize: 12, color: '#3B82F6' }} />
@@ -196,7 +201,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
             title: 'SĐT',
             dataIndex: 'phone',
             key: 'phone',
-            width: 100,
+            width: isMobile ? 80 : 100,
             render: (phone) => phone ? (
                 <Space size={4}>
                     <PhoneOutlined style={{ fontSize: 12 }} />
@@ -204,7 +209,8 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
                 </Space>
             ) : null,
         },
-        {
+        // Ẩn cột Ngày tạo trên mobile
+        ...(isMobile ? [] : [{
             title: 'Ngày tạo',
             dataIndex: 'createdAt',
             key: 'createdAt',
@@ -215,22 +221,22 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
                     <span style={{ fontSize: 13, color: '#070707' }}>{formatDate(date)}</span>
                 </Space>
             ),
-        },
+        }]),
         {
             title: 'Thao tác',
             key: 'action',
-            width: 120,
+            width: isMobile ? 100 : 120,
             align: 'center',
             render: (_, record) => (
-                <Space size={4}>
+                <Space size={isMobile ? 2 : 4}>
                     <Tooltip title="Edit">
-                        <Button type="dashed" shape="circle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+                        <Button type="dashed" shape="circle" icon={<EditOutlined />} size={isMobile ? "small" : "middle"} onClick={() => onEdit(record)} />
                     </Tooltip>
                     <Tooltip title="Cấp lại mật khẩu">
-                        <Button type="dashed" shape="circle" icon={<KeyOutlined />} style={{ color: '#8B5CF6' }} onClick={() => onChangePassword && onChangePassword(record)} />
+                        <Button type="dashed" shape="circle" icon={<KeyOutlined />} style={{ color: '#8B5CF6' }} size={isMobile ? "small" : "middle"} onClick={() => onChangePassword && onChangePassword(record)} />
                     </Tooltip>
                     <Tooltip title="Delete">
-                        <Button type="dashed" shape="circle" icon={<DeleteOutlined />} onClick={() => onDelete(record)} danger />
+                        <Button type="dashed" shape="circle" icon={<DeleteOutlined />} size={isMobile ? "small" : "middle"} onClick={() => onDelete(record)} danger />
                     </Tooltip>
                 </Space>
             ),
@@ -252,7 +258,7 @@ export default function UsersTable({ users, total = 0, currentPage, setCurrentPa
                 showSizeChanger: false,
                 showTotal: (tot, range) => `${range[0]}-${range[1]} / ${tot}`,
             }}
-            size="small"
+            size={isMobile ? "small" : "small"}
             scroll={{ x: 'max-content' }}
             locale={{ emptyText: 'Không tìm thấy dữ liệu' }}
         />

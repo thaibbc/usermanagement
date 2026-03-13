@@ -1,9 +1,11 @@
 import { Button, Space } from 'antd';
 import { useNavigate } from 'react-router';
 import { HomeOutlined, BookOutlined } from '@ant-design/icons';
+import useIsMobile from '../hooks/useIsMobile';
 
 export function Home() {
     const navigate = useNavigate();
+    const isMobile = useIsMobile(1350);
     const heroImage = 'https://images.unsplash.com/photo-1588912914017-923900a34710?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbmdsaXNoJTIwdGV4dGJvb2slMjBlZHVjYXRpb258ZW58MXx8fHwxNzczMjgxMzQwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
 
     return (
@@ -113,10 +115,10 @@ export function Home() {
             <div style={{
                 maxWidth: 1400,
                 margin: '0 auto',
-                padding: '80px 48px',
+                padding: isMobile ? '40px 24px' : '80px 48px',
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 80,
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? 40 : 80,
                 alignItems: 'center'
             }}>
                 {/* Left - Image */}

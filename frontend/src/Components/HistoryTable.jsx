@@ -36,6 +36,7 @@ export default function HistoryTable({ logs, total = 0, currentPage, setCurrentP
                 showTotal: (tot, range) => `${range[0]}-${range[1]} / ${tot}`
             }}
             size="small"
+            scroll={{ x: 'max-content' }}
         />
     );
 }
