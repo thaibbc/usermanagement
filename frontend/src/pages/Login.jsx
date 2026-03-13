@@ -62,6 +62,7 @@ export function Login() {
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
+                        position: 'relative',
                         display: 'grid',
                         gridTemplateColumns: isMobile ? '600px' : '600px 600px',
                         backgroundColor: 'white',
@@ -72,6 +73,27 @@ export function Login() {
                         width: '100%',
                     }}
                 >
+                    <Button
+                        type="text"
+                        icon={<CloseOutlined />}
+                        onClick={() => navigate('/')}
+                        style={{
+                            position: 'absolute',
+                            top: 16,
+                            right: 16,
+                            color: '#666',
+                            fontSize: 20,
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            border: '2px solid #d9d9d9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 2,
+                        }}
+                    />
+
                     {/* Left Side - Login Form */}
                     <div
                         style={{
@@ -80,27 +102,6 @@ export function Login() {
                             position: 'relative',
                         }}
                     >
-                        {isMobile && (
-                            <Button
-                                type="text"
-                                icon={<CloseOutlined />}
-                                onClick={() => navigate('/')}
-                                style={{
-                                    position: 'absolute',
-                                    top: 16,
-                                    right: 16,
-                                    color: '#666',
-                                    fontSize: 20,
-                                    width: 40,
-                                    height: 40,
-                                    borderRadius: '50%',
-                                    border: '2px solid #d9d9d9',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                            />
-                        )}
 
                         <h1
                             style={{
@@ -209,25 +210,6 @@ export function Login() {
                                 padding: 40,
                             }}
                         >
-                            <Button
-                                type="text"
-                                icon={<CloseOutlined />}
-                                onClick={() => navigate('/')}
-                                style={{
-                                    position: 'absolute',
-                                    top: 16,
-                                    right: 16,
-                                    color: 'white',
-                                    fontSize: 20,
-                                    width: 40,
-                                    height: 40,
-                                    borderRadius: '50%',
-                                    border: '2px solid white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                            />
 
                             <img
                                 src={loginImage}
