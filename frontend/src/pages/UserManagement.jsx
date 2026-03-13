@@ -422,7 +422,9 @@ export function AdminDashboard() {
             {/* main area (shifted right to accommodate fixed sidebar) */}
             <div style={{
                 flex: 1,
-                marginLeft: isSidebarCollapsed ? 80 : 250,
+                display: 'flex',
+                flexDirection: 'column',
+                marginLeft: isSidebarCollapsed ? 80 : 100,
                 transition: 'margin-left 0.3s ease'
             }}>
                 <Header title="Administration" />

@@ -36,7 +36,7 @@ function Header({ title = "Dashboard" }) {
         }
     ];
 
-    const userName = user ? user.name : "Testbank Admin";
+    const userName = user ? (user.name || user.email || "User") : "Testbank Admin";
 
     return (
         <div style={{

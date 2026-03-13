@@ -112,6 +112,7 @@ export default function UserModal({
                             placeholder="Email"
                             value={user.email || ''}
                             onChange={e => updateField('email', e.target.value)}
+                            disabled={!title || !title.includes('Thêm')}
                         />
                     </Form.Item>
 

@@ -180,8 +180,9 @@ router.post('/login', async (req, res) => {
             return res.status(500).json({ message: 'Internal error' });
         }
         // generate token
-        const payload = { id: user._id, email: account.email, accountType: user.accountType };
-        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+        // include name so frontend can display it
+        const payload = { id: user._id, email: account.email, accountType: user.accountType, name: user.name };
+        const token = jwt.sign({ id: user._id, email: account.email, accountType: user.accountType }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
         console.log('LOGIN success for', email);
         res.json({ token, user: payload });
     } catch (err) {
