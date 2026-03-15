@@ -11,7 +11,10 @@ import {
     Input,
     Form,
     message,
-    Spin
+    Spin,
+    Layout,
+    Row,
+    Col
 } from 'antd';
 import FilterPanel from '../Components/FilterPanel';
 import UsersTable from '../Components/UsersTable';
@@ -414,7 +417,7 @@ export function AdminDashboard() {
     const isMobile = useIsMobile(1350);
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
+        <Layout style={{ minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
             {/* sidebar component (hidden on mobile, drawer used instead) */}
             {!isMobile && (
                 <Sidebar
@@ -424,7 +427,7 @@ export function AdminDashboard() {
             )}
 
             {/* main area (shifted right to accommodate fixed sidebar) */}
-            <div style={{
+            <Layout style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
@@ -434,7 +437,7 @@ export function AdminDashboard() {
                 <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
                 {/* Content Area */}
-                <div style={{ position: 'relative', minHeight: 'calc(100vh - 64px)' }}>
+                <Layout.Content style={{ position: 'relative', minHeight: 'calc(100vh - 64px)' }}>
                     {/* colored background extends down half the viewport */}
                     <div
                         style={{
@@ -500,8 +503,8 @@ export function AdminDashboard() {
                             />
                         </Card>
                     </div>
-                </div>
-            </div>
+                </Layout.Content>
+            </Layout>
 
             {/* Delete Confirmation Modal */}
             <DeleteModal
@@ -581,7 +584,7 @@ export function AdminDashboard() {
                     </Form.Item>
                 </Form>
             </Modal>
-        </div>
+        </Layout>
     );
 }
 

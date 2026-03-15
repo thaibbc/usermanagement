@@ -1,4 +1,4 @@
-import { Button, Input, Form, message, Spin } from 'antd';
+import { Button, Input, Form, message, Spin, Layout, Row, Col, Card } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/users';
@@ -47,185 +47,190 @@ export function Login() {
     };
 
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 20,
-            }}
+        <Layout
+            style={{ minHeight: '100vh', backgroundColor: 'rgba(0,0,0,0.5)' }}
             onClick={handleClose}
         >
-            <Spin spinning={loading} tip="Đang đăng nhập..." size="large">
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                        position: 'relative',
-                        display: 'grid',
-                        gridTemplateColumns: isMobile ? '600px' : '600px 600px',
-                        backgroundColor: 'white',
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-                        maxWidth: isMobile ? 700 : 1000,
-                        width: '100%',
-                    }}
-                >
-                    <Button
-                        type="text"
-                        icon={<CloseOutlined />}
-                        onClick={() => navigate('/')}
+            <Layout.Content style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 1 }}>
+                <Spin spinning={loading} tip="Đang đăng nhập..." size="large">
+                    <Row
+                        onClick={(e) => e.stopPropagation()}
+                        justify="center"
+                        align="middle"
                         style={{
-                            position: 'absolute',
-                            top: 16,
-                            right: 16,
-                            color: '#666',
-                            fontSize: 20,
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            border: '2px solid #d9d9d9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 2,
-                        }}
-                    />
-
-                    {/* Left Side - Login Form */}
-                    <div
-                        style={{
-                            padding: '48px',
-                            backgroundColor: 'white',
                             position: 'relative',
+                            backgroundColor: 'white',
+                            borderRadius: 8,
+                            overflow: 'hidden',
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                            maxWidth: isMobile ? 700 : 1000,
+                            width: '100%',
+                            minHeight: isMobile ? 700 : 520,
                         }}
                     >
-
-                        <h1
+                        <Button
+                            type="text"
+                            icon={<CloseOutlined />}
+                            onClick={() => navigate('/')}
                             style={{
-                                fontSize: 32,
-                                fontWeight: 700,
-                                color: '#2C3E50',
-                                marginBottom: 48,
-                            }}
-                        >
-                            ĐĂNG NHẬP
-                        </h1>
-
-                        <Form layout="vertical" onFinish={handleLogin} autoComplete="off">
-                            <Form.Item
-                                label={
-                                    <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>
-                                        Email
-                                    </span>
-                                }
-                                name="email"
-                                rules={[
-                                    { required: true, message: 'Vui lòng nhập email!' },
-                                    { type: 'email', message: 'Email không hợp lệ!' },
-                                ]}
-                            >
-                                <Input size="large" style={{ borderRadius: 4 }} />
-                            </Form.Item>
-
-                            <Form.Item
-                                label={
-                                    <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>
-                                        Mật khẩu
-                                    </span>
-                                }
-                                name="password"
-                                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
-                                style={{ marginBottom: 16 }}
-                            >
-                                <Input.Password
-                                    size="large"
-                                    iconRender={(visible) =>
-                                        visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
-                                    }
-                                    style={{ borderRadius: 4 }}
-                                />
-                            </Form.Item>
-
-                            <div style={{ marginBottom: 32 }}>
-                                <a
-                                    onClick={() => navigate('/forgot-password')}
-                                    style={{
-                                        color: '#1890FF',
-                                        fontSize: 14,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    Quên mật khẩu?
-                                </a>
-                            </div>
-
-                            <Form.Item style={{ marginBottom: 32 }}>
-                                <Button
-                                    type="primary"
-                                    htmlType="submit"
-                                    loading={loading}
-                                    disabled={loading}
-                                    block
-                                    size="large"
-                                    style={{
-                                        height: 50,
-                                        fontSize: 16,
-                                        fontWeight: 600,
-                                        borderRadius: 4,
-                                    }}
-                                >
-                                    ĐĂNG NHẬP
-                                </Button>
-                            </Form.Item>
-                        </Form>
-
-                        <div
-                            style={{
-                                fontSize: 13,
-                                color: '#999',
-                                textAlign: 'center',
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            Website <strong>http://sachso.edu.vn</strong> chuyển sang
-                            <br />
-                            <strong>https://sachdientu.phuongnam.edu.vn</strong>
-                            <br />
-                            Từ ngày 24/10/2025
-                        </div>
-                    </div>
-
-                    {/* Right Side - Illustration */}
-                    {!isMobile && (
-                        <div
-                            style={{
-                                background: 'linear-gradient(135deg,#1890FF 0%,#0050B3 100%)',
-                                position: 'relative',
+                                position: 'absolute',
+                                top: 16,
+                                right: 16,
+                                color: '#666',
+                                fontSize: 20,
+                                width: 30,
+                                height: 30,
+                                borderRadius: '50%',
+                                border: '2px solid #d9d9d9',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: 40,
+                                zIndex: 2,
                             }}
-                        >
+                        />
 
-                            <img
-                                src={loginImage}
-                                alt="Login Illustration"
+                        {/* Left Side - Login Form */}
+                        <Col xs={24} lg={12} style={{ padding: isMobile ? 0 : 20, backgroundColor: '#f8faff', position: 'relative', maxWidth: isMobile ? '100%' : 400 }}>
+                            <div style={{ width: '100%', maxWidth: 450, margin: '0 auto' }}>
+                                <h1
+                                    style={{
+                                        fontSize: 28,
+                                        fontWeight: 700,
+                                        color: '#1f3a75',
+                                        marginBottom: 15,
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    ĐĂNG NHẬP
+                                </h1>
+
+                                <Card
+                                    bordered={false}
+                                    style={{
+                                        borderRadius: 12,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                                        background: '#ffffff',
+                                        padding: isMobile ? 20 : 28,
+                                    }}
+                                >
+                                    <Form layout="vertical" onFinish={handleLogin} autoComplete="off">
+                                        <Form.Item
+                                            label={
+                                                <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>
+                                                    Email
+                                                </span>
+                                            }
+                                            name="email"
+                                            rules={[
+                                                { required: true, message: 'Vui lòng nhập email!' },
+                                                { type: 'email', message: 'Email không hợp lệ!' },
+                                            ]}
+                                        >
+                                            <Input size="large" style={{ borderRadius: 4 }} />
+                                        </Form.Item>
+
+                                        <Form.Item
+                                            label={
+                                                <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>
+                                                    Mật khẩu
+                                                </span>
+                                            }
+                                            name="password"
+                                            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                                            style={{ marginBottom: 16 }}
+                                        >
+                                            <Input.Password
+                                                size="large"
+                                                iconRender={(visible) =>
+                                                    visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
+                                                }
+                                                style={{ borderRadius: 4 }}
+                                            />
+                                        </Form.Item>
+
+                                        <div style={{ marginBottom: 32 }}>
+                                            <a
+                                                onClick={() => navigate('/forgot-password')}
+                                                style={{
+                                                    color: '#1890FF',
+                                                    fontSize: 14,
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                Quên mật khẩu?
+                                            </a>
+                                        </div>
+
+                                        <Form.Item style={{ marginBottom: 32 }}>
+                                            <Button
+                                                type="primary"
+                                                htmlType="submit"
+                                                loading={loading}
+                                                disabled={loading}
+                                                block
+                                                size="large"
+                                                style={{
+                                                    height: 50,
+                                                    fontSize: 16,
+                                                    fontWeight: 600,
+                                                    borderRadius: 4,
+                                                }}
+                                            >
+                                                ĐĂNG NHẬP
+                                            </Button>
+                                        </Form.Item>
+                                    </Form>
+
+                                    <div
+                                        style={{
+                                            fontSize: 13,
+                                            color: '#999',
+                                            textAlign: 'center',
+                                            lineHeight: 1.6,
+                                        }}
+                                    >
+                                        Website <strong>http://sachso.edu.vn</strong> chuyển sang
+                                        <br />
+                                        <strong>https://sachdientu.phuongnam.edu.vn</strong>
+                                        <br />
+                                        Từ ngày 24/10/2025
+                                    </div>
+                                </Card>
+                            </div>
+                        </Col>
+
+                        {/* Right Side - Illustration */}
+                        {!isMobile && (
+                            <Col
+                                lg={12}
                                 style={{
-                                    width: '120%',
-                                    height: '120%',
-                                    maxWidth: 1000,
-                                    objectFit: 'cover',
+
+                                    position: 'relative',
+                                    right: -25,
+                                    display: 'flex',
+                                    alignItems: 'stretch',
+                                    justifyContent: 'center',
+                                    padding: 0,
+                                    overflow: 'hidden',
+                                    maxHeight: 900,
+                                    maxWidth: 500,
                                 }}
-                            />
-                        </div>
-                    )}
-                </div>
-            </Spin>
-        </div>
+                            >
+                                <img
+                                    src={loginImage}
+                                    alt="Login Illustration"
+                                    style={{
+                                        width: '650px',
+                                        height: '605px',
+                                        objectFit: 'cover',
+                                    }}
+                                />
+                            </Col>
+                        )}
+                    </Row>
+                </Spin>
+            </Layout.Content>
+        </Layout>
     );
 }
 

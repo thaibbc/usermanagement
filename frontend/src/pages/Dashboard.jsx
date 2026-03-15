@@ -11,6 +11,7 @@ import {
     SettingOutlined,
     SwitcherOutlined
 } from '@ant-design/icons';
+import { Layout, Row, Col, Card } from 'antd';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
@@ -79,8 +80,7 @@ export function Dashboard() {
 
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
-            {/* sidebar component (hidden on mobile, drawer used instead) */}
+        <Layout style={{ minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
             {!isMobile && (
                 <Sidebar
                     collapsed={isSidebarCollapsed}
@@ -88,97 +88,92 @@ export function Dashboard() {
                 />
             )}
 
-            {/* main area (shifted right to accommodate fixed sidebar) */}
-            <div style={{
-                flex: 1,
-                marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
-                transition: 'margin-left 0.3s ease'
-            }}>
+            <Layout
+                style={{
+                    flex: 1,
+                    marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
+                    transition: 'margin-left 0.3s ease'
+                }}
+            >
                 <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
 
 
                 {/* Content Area */}
-                <div style={{
+                <Layout.Content style={{
                     flex: 1,
                     padding: 32,
                     backgroundColor: '#F0F2F5'
                 }}>
                     {/* Stats Cards */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: 24,
-                        marginBottom: 32
-                    }}>
+                    <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
                         {stats.map((stat, index) => (
-                            <div
-                                key={index}
-                                style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: 12,
-                                    padding: 24,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                    position: 'relative',
-                                    overflow: 'hidden'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{
-                                            fontSize: 11,
-                                            fontWeight: 600,
-                                            color: '#64748B',
-                                            marginBottom: 12,
-                                            letterSpacing: '0.5px'
-                                        }}>
-                                            {stat.title}
-                                        </div>
-                                        <div style={{
-                                            fontSize: 32,
-                                            fontWeight: 700,
-                                            color: '#1E293B',
-                                            marginBottom: 8
-                                        }}>
-                                            {stat.value}
-                                        </div>
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            fontSize: 13,
-                                            color: '#FF6B6B'
-                                        }}>
-                                            <ArrowDownOutlined style={{ fontSize: 12 }} />
-                                            <span style={{ fontWeight: 600 }}>{stat.change}</span>
-                                            <span style={{ color: '#94A3B8', fontWeight: 400 }}>{stat.changeText}</span>
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        width: 56,
-                                        height: 56,
+                            <Col key={index} xs={24} sm={12} lg={6}>
+                                <Card
+                                    bodyStyle={{ padding: 24 }}
+                                    style={{
                                         borderRadius: 12,
-                                        backgroundColor: stat.bgColor,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 28
-                                    }}>
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                        border: 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                color: '#64748B',
+                                                marginBottom: 12,
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                {stat.title}
+                                            </div>
+                                            <div style={{
+                                                fontSize: 32,
+                                                fontWeight: 700,
+                                                color: '#1E293B',
+                                                marginBottom: 8
+                                            }}>
+                                                {stat.value}
+                                            </div>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                fontSize: 13,
+                                                color: '#FF6B6B'
+                                            }}>
+                                                <ArrowDownOutlined style={{ fontSize: 12 }} />
+                                                <span style={{ fontWeight: 600 }}>{stat.change}</span>
+                                                <span style={{ color: '#94A3B8', fontWeight: 400 }}>{stat.changeText}</span>
+                                            </div>
+                                        </div>
                                         <div style={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: 10,
-                                            backgroundColor: stat.iconBg,
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius: 12,
+                                            backgroundColor: stat.bgColor,
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'center'
+                                            justifyContent: 'center',
+                                            fontSize: 28
                                         }}>
-                                            {stat.icon}
+                                            <div style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: 10,
+                                                backgroundColor: stat.iconBg,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                {stat.icon}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </Card>
+                            </Col>
                         ))}
-                    </div>
+                    </Row>
 
                     {/* Chart */}
                     <div style={{
@@ -238,9 +233,9 @@ export function Dashboard() {
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
-            </div>
-        </div>
+                </Layout.Content>
+            </Layout>
+        </Layout>
     );
 }
 
