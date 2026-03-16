@@ -112,6 +112,13 @@ export default function FilterPanel({ filters, setFilters, onSearch, sidebarOpen
         grid-template-columns: repeat(6, minmax(100px, 1fr));
         gap: 10px;
     }
+        .filter-field{
+        flex-direction:column;
+        align-items:stretch;
+    }
+        .filter-field label{
+        display:none;
+    }
 }
 
 /* Tablet */
