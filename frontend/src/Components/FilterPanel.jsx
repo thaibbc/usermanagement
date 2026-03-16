@@ -5,11 +5,10 @@ export default function FilterPanel({ filters, setFilters, onSearch, sidebarOpen
 
     const containerStyle = {
         display: 'grid',
-        gap: sidebarOpen ? 5 : 12,
+        gap: sidebarOpen ? 16 : 12,
         marginBottom: 16,
         width: '100%',
-        padding: 5,
-        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
+        padding: 5
     };
 
     const fieldStyle = {
@@ -102,20 +101,41 @@ export default function FilterPanel({ filters, setFilters, onSearch, sidebarOpen
 
     const mobileCss = `
 
-/* DESKTOP: luôn 6 cột */
+/* Desktop & sidebar open/close: 6 columns */
 .filter-container{
-    grid-template-columns: repeat(6,1fr);
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
 }
 
-/* Khi màn hình nhỏ hơn desktop -> tự động xuống hàng */
+/* Khi chiều rộng giảm: các ô co lại để tránh chồng */
 @media (max-width:1200px){
     .filter-container{
-        grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+        grid-template-columns: repeat(6, minmax(100px, 1fr));
+        gap: 10px;
     }
 }
 
 /* Tablet */
 @media (max-width:768px){
+    .filter-container{
+        grid-template-columns: repeat(3, minmax(100px, 1fr));
+        gap: 10px;
+    }
+
+    .filter-field{
+        flex-direction:column;
+        align-items:stretch;
+    }
+        .filter-field label{
+        display:none;
+    }
+}
+
+/* Mobile: 6 hàng, ẩn label */
+@media (max-width:480px){
+    .filter-container{
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
 
     .filter-field{
         flex-direction:column;
@@ -125,20 +145,6 @@ export default function FilterPanel({ filters, setFilters, onSearch, sidebarOpen
     .filter-field label{
         display:none;
     }
-
-}
-
-/* Mobile */
-@media (max-width:480px){
-
-    .filter-container{
-        grid-template-columns:1fr;
-    }
-
-    .filter-field label{
-        display:none;
-    }
-
 }
 `;
 
