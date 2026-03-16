@@ -14,8 +14,10 @@ import {
     Spin,
     Layout,
     Row,
-    Col
+    Col,
+    Dropdown
 } from 'antd';
+import { EllipsisOutlined } from '@ant-design/icons';
 import FilterPanel from '../Components/FilterPanel';
 import UsersTable from '../Components/UsersTable';
 import HistoryTable from '../Components/HistoryTable';
@@ -415,6 +417,7 @@ export function AdminDashboard() {
 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isMobile = useIsMobile(1350);
+    const isMobileTabs = useIsMobile(768);
 
     return (
         <Layout style={{ minHeight: '100vh', backgroundColor: '#F0F2F5' }}>
@@ -479,11 +482,34 @@ export function AdminDashboard() {
                             style={{ boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}
                             styles={{ body: { padding: 0 } }}
                         >
+                            {isMobileTabs && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px' }}>
+                                    <Dropdown
+                                        menu={{
+                                            items: [
+                                                { key: 'manage', label: 'Quản lý người dùng', onClick: () => navigate('/users') },
+                                                { key: 'history', label: 'Lịch sử thao tác', onClick: () => navigate('/history') }
+                                            ]
+                                        }}
+                                        trigger={['click']}
+                                    >
+                                        <Button icon={<EllipsisOutlined />} />
+                                    </Dropdown>
+                                    <Button
+                                        type="primary"
+                                        icon={<PlusOutlined />}
+                                        onClick={() => setAddModalOpen(true)}
+                                    >
+                                        Thêm
+                                    </Button>
+                                </div>
+                            )}
                             <Tabs
                                 activeKey={activeTab}
-                                onChange={(key) => navigate(key === 'history' ? '/history' : '/')}
+                                onChange={(key) => navigate(key === 'history' ? '/history' : '/users')}
                                 items={tabItems}
-                                tabBarExtraContent={
+                                tabBarStyle={{ display: isMobileTabs ? 'none' : 'flex' }}
+                                tabBarExtraContent={!isMobileTabs ? (
                                     <Button
                                         type="primary"
                                         icon={<PlusOutlined />}
@@ -496,7 +522,7 @@ export function AdminDashboard() {
                                     >
                                         Thêm người dùng
                                     </Button>
-                                }
+                                ) : null}
                                 style={{
                                     padding: '16px 24px 0',
                                 }}

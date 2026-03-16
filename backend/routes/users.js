@@ -1,8 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 const Account = require('../models/Account');
 const ActionLog = require('../models/ActionLog');
+
+const avatarUpload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+            return cb(new Error('Chỉ chấp nhận ảnh'), false);
+        }
+        cb(null, true);
+    }
+});
 
 // GET all users (with optional query filters and pagination)
 router.get('/', async (req, res) => {
@@ -100,6 +113,31 @@ router.post('/', async (req, res) => {
     }
 });
 
+// UPLOAD avatar for a user
+router.post('/:id/avatar', avatarUpload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Không có file ảnh' });
+        }
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const encoded = req.file.buffer.toString('base64');
+        const avatarDataUrl = `data:${req.file.mimetype};base64,${encoded}`;
+
+        user.avatar = avatarDataUrl;
+        user.avatarUrl = avatarDataUrl; // keep compatible với frontend hiện tại
+        await user.save();
+
+        await ActionLog.create({ userId: user._id, userCode: user.code, action: 'update', details: `Updated avatar for user ${user.name}` });
+
+        res.json({ message: 'Avatar uploaded', avatarUrl: avatarDataUrl });
+    } catch (err) {
+        console.error('avatar upload failed', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // UPDATE a user
 router.put('/:id', async (req, res) => {
     // allow updating school as well; req.body may contain any of the schema fields
@@ -180,8 +218,15 @@ router.post('/login', async (req, res) => {
             return res.status(500).json({ message: 'Internal error' });
         }
         // generate token
-        // include name so frontend can display it
-        const payload = { id: user._id, email: account.email, accountType: user.accountType, name: user.name };
+        // include user fields so frontend can display them
+        const payload = {
+            id: user._id,
+            email: account.email,
+            accountType: user.accountType,
+            name: user.name,
+            avatar: user.avatar || '',
+            avatarUrl: user.avatarUrl || ''
+        };
         const token = jwt.sign({ id: user._id, email: account.email, accountType: user.accountType }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
         console.log('LOGIN success for', email);
         res.json({ token, user: payload });

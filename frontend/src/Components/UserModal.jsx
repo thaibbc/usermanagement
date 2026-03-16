@@ -124,8 +124,8 @@ export default function UserModal({
                         rules={[
                             { required: true, message: 'SĐT là bắt buộc' },
                             {
-                                pattern: /^\d{9,11}$/,
-                                message: 'SĐT phải gồm 9–11 chữ số'
+                                pattern: /^(09|03|07|08|05)\d{8}$/,
+                                message: 'SĐT không đúng định dạng và có 10 chữ số'
                             }
                         ]}
                     >

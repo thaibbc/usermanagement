@@ -2,7 +2,8 @@
 
 // choose local backend when running in development
 const API =
-    (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    import.meta.env.VITE_API_URL ||
+        (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
         ? 'http://localhost:5000'
         : 'https://usermanagement-vle7.onrender.com';
 
@@ -149,6 +150,36 @@ export async function deleteUser(id) {
     }
 
     return res.json();
+}
+
+// Upload avatar for user
+export async function uploadUserAvatar(id, file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+        const res = await fetch(`${USERS_URL}/${id}/avatar`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: formData
+        });
+
+        if (!res.ok) {
+            let msg = `Failed to upload avatar (${res.status})`;
+            try {
+                const data = await res.json();
+                if (data && data.message) msg = data.message;
+            } catch {
+                // ignore parse errors
+            }
+            throw new Error(msg);
+        }
+
+        return res.json();
+    } catch (err) {
+        console.error('uploadUserAvatar network/error', err);
+        throw new Error(err.message || 'Failed to upload avatar: network or unknown error');
+    }
 }
 
 // Get single user

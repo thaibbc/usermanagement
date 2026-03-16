@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Input, Form, Select, DatePicker, Badge, Modal, message, Dropdown, Spin, Layout, Row, Col, Card } from 'antd';
-import { getUser, updateUser, changePassword } from '../api/users';
+import { getUser, updateUser, changePassword, uploadUserAvatar } from '../api/users';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     HomeOutlined,
@@ -64,6 +64,7 @@ export function Profile() {
             school: 'ABC',
             grade: 'Giáo viên Cấp 1',
             phone: '',
+            avatarUrl: null,
             friends: 22,
             photos: 10,
             comments: 89
@@ -89,10 +90,17 @@ export function Profile() {
                 school: values.school,
                 grade: values.grade,
                 city: values.city,
-                district: values.district
+                district: values.district,
+                avatarUrl: avatarUrl || userData?.avatarUrl || '',
+                avatar: avatarUrl || userData?.avatar || ''
             });
-            setUserData(updated);
-            localStorage.setItem('user', JSON.stringify(updated));
+            const updatedWithAvatar = {
+                ...updated,
+                avatarUrl: avatarUrl || updated.avatarUrl || userData?.avatarUrl || null
+            };
+            setUserData(updatedWithAvatar);
+            setAvatarUrl(updatedWithAvatar.avatarUrl);
+            localStorage.setItem('user', JSON.stringify(updatedWithAvatar));
             // make sure any cached user lists reflect the change
             queryClient.invalidateQueries(['users']);
             queryClient.invalidateQueries('history');
@@ -115,9 +123,22 @@ export function Profile() {
                     const full = await getUser(id);
                     console.log('profile payload', full);
                     setUserData(full);
+                    if (full.avatar || full.avatarUrl) {
+                        setAvatarUrl(full.avatar || full.avatarUrl);
+                    }
                     localStorage.setItem('user', JSON.stringify(full));
                 } catch (err) {
                     console.error('failed to load profile', err);
+                    message.error('Không thể kết nối backend. Vui lòng chạy backend ở localhost:5000');
+                    // data tạm: giữ localstorage sẵn có hoặc initialUser
+                    const cached = typeof window !== 'undefined' && localStorage.getItem('user');
+                    if (cached) {
+                        try {
+                            setUserData(JSON.parse(cached));
+                        } catch {
+                            // bỏ qua
+                        }
+                    }
                 }
             }
         }
@@ -172,14 +193,26 @@ export function Profile() {
         setIsPasswordModalVisible(false);
     };
 
-    const handleAvatarChange = (e) => {
+    const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarUrl(reader.result);
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        if (!loginUser || (!loginUser.id && !loginUser._id)) {
+            message.error('Không thể xác định người dùng để upload avatar');
+            return;
+        }
+
+        try {
+            const id = loginUser.id || loginUser._id;
+            const result = await uploadUserAvatar(id, file);
+            const remoteUrl = result.avatarUrl;
+            setAvatarUrl(remoteUrl);
+            setUserData(prev => ({ ...prev, avatarUrl: remoteUrl }));
+            localStorage.setItem('user', JSON.stringify({ ...userData, avatarUrl: remoteUrl }));
+            message.success('Ảnh đại diện đã được upload và lưu trên server');
+        } catch (err) {
+            console.error('avatar upload failed', err);
+            message.error(err.message || 'Upload ảnh thất bại');
         }
     };
 
@@ -277,7 +310,7 @@ export function Profile() {
                                                     name="phone"
                                                     rules={[
                                                         { required: true, message: 'SĐT là bắt buộc' },
-                                                        { pattern: /^\d{9,11}$/, message: 'SĐT phải gồm 9–11 chữ số' }
+                                                        { pattern: /^(09|03|07|08|05)\d{8}$/, message: 'SĐT không đúng định dạng và có 10 chữ số' }
                                                     ]}
                                                 >
                                                     <Input

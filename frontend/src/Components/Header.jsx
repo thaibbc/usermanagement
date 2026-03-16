@@ -11,9 +11,41 @@ import useIsMobile from '../hooks/useIsMobile';
 
 function Header({ onMenuClick }) {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem('user');
+            return storedUser ? JSON.parse(storedUser) : null;
+        }
+        return null;
+    });
     const isMobile = useIsMobile(1350);
     const [drawerVisible, setDrawerVisible] = useState(false);
+
+    useEffect(() => {
+        const reloadUser = () => {
+            const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+            const parsed = storedUser ? JSON.parse(storedUser) : null;
+            setUser(parsed);
+        };
+
+        const handleStorage = (e) => {
+            if (e.key === 'user') {
+                reloadUser();
+            }
+        };
+
+        const handleUserUpdated = () => {
+            reloadUser();
+        };
+
+        window.addEventListener('storage', handleStorage);
+        window.addEventListener('userUpdated', handleUserUpdated);
+
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            window.removeEventListener('userUpdated', handleUserUpdated);
+        };
+    }, []);
 
     // build same sidebar items for drawer menu
     const sidebarItems = [
@@ -27,17 +59,10 @@ function Header({ onMenuClick }) {
         { icon: <SettingOutlined style={{ fontSize: 18 }} />, label: 'Cài đặt', path: '#' }
     ];
 
-    // Load user from localStorage
-    useEffect(() => {
-        const storedUser = typeof window !== 'undefined' && localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-    }, []);
-
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        setUser(null);
         navigate('/');
     };
 
@@ -57,6 +82,7 @@ function Header({ onMenuClick }) {
     ];
 
     const userName = user ? (user.name || user.email || "User") : "Testbank Admin";
+    const userAvatar = user ? (user.avatar || user.avatarUrl || null) : null;
 
     const handleMenuClick = () => {
         if (isMobile) {
@@ -125,9 +151,18 @@ function Header({ onMenuClick }) {
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: 20,
-                            border: '2px solid white'
+                            border: '2px solid white',
+                            overflow: 'hidden'
                         }}>
-                            👤
+                            {userAvatar ? (
+                                <img
+                                    src={userAvatar}
+                                    alt="avatar"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                '👤'
+                            )}
                         </div>
                         <span style={{ fontSize: 14, fontWeight: 500, color: 'white' }}>{userName}</span>
                     </div>
@@ -140,8 +175,8 @@ function Header({ onMenuClick }) {
                 closable={false}
                 onClose={handleDrawerClose}
                 open={drawerVisible}
-                bodyStyle={{ padding: 0 }}
-                width={250}
+                styles={{ body: { padding: 0 } }}
+                size={250}
             >
                 <div style={{ backgroundColor: '#1E293B', height: '100%', color: 'white' }}>
                     {sidebarItems.map((it, idx) => (

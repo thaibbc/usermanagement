@@ -2,9 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// ensure upload dirs for avatars exist
+const avatarDir = path.join(__dirname, 'uploads', 'avatars');
+fs.mkdirSync(avatarDir, { recursive: true });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // connect to MongoDB using MONGODB_URI from .env
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-management', {
@@ -49,8 +56,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-mana
         } catch (err) {
             console.error('Error creating default user:', err);
         }
-    } else {
-        console.log('Admin seeding skipped (set SEED_ADMIN=true to enable)');
     }
 }).catch(err => {
     console.error('MongoDB connection error:', err);

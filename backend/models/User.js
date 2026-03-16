@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
     // contact & authentication
     email: { type: String, required: true, unique: true },
     phone: { type: String, default: '' },
+    avatarUrl: { type: String, default: '' },
+    avatar: { type: String, default: '' }, // base64 data-URL for avatar image
     gender: { type: String, enum: ['Nam', 'Nữ', 'Khác', ''], default: '' },
     accountType: { type: String, enum: ['admin', 'teacher', 'parent', 'student'], default: '' },
     level: { type: String, default: '' },
