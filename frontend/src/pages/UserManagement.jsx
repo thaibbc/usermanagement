@@ -335,6 +335,10 @@ export function AdminDashboard() {
 
 
 
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const isMobile = useIsMobile(1350);
+    const isMobileTabs = useIsMobile(768);
+
     const tabItems = [
         {
             key: 'manage',
@@ -351,7 +355,7 @@ export function AdminDashboard() {
                     )}
 
                     {/* when user clicks search we call our wrapper so we can show a message if no results */}
-                    <FilterPanel filters={filters} setFilters={handleSetFilters} onSearch={handleSearch} />
+                    <FilterPanel filters={filters} setFilters={handleSetFilters} onSearch={handleSearch} sidebarOpen={!isSidebarCollapsed} />
 
                     {/* show alert only after a search returned no results */}
                     {noResultsMessage && (
@@ -414,10 +418,6 @@ export function AdminDashboard() {
             ),
         },
     ];
-
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const isMobile = useIsMobile(1350);
-    const isMobileTabs = useIsMobile(768);
 
     return (
         <Layout style={{ minHeight: '100vh', backgroundColor: '#F0F2F5' }}>

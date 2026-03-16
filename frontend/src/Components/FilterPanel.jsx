@@ -1,21 +1,23 @@
 import { Input, Button, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
-export default function FilterPanel({ filters, setFilters, onSearch }) {
+export default function FilterPanel({ filters, setFilters, onSearch, sidebarOpen = false }) {
 
     const containerStyle = {
         display: 'grid',
-        gap: 12,
+        gap: sidebarOpen ? 5 : 12,
         marginBottom: 16,
         width: '100%',
-        padding: 5
+        padding: 5,
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
     };
 
     const fieldStyle = {
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        minWidth: 0
+        minWidth: 0,   // QUAN TRỌNG để không bị tràn grid
+        width: '100%'
     };
 
     const labelStyle = {
@@ -25,8 +27,14 @@ export default function FilterPanel({ filters, setFilters, onSearch }) {
         whiteSpace: 'nowrap'
     };
 
+    const specialLabelStyle = {
+        ...labelStyle,
+        marginRight: sidebarOpen ? 8 : 0
+    };
+
     const inputStyle = {
         flex: 1,
+        minWidth: 0,
         width: '100%'
     };
 
@@ -192,7 +200,7 @@ export default function FilterPanel({ filters, setFilters, onSearch }) {
                     </div>
 
                     <div style={fieldStyle} className="filter-field">
-                        <label style={labelStyle}>Xã / Phường:</label>
+                        <label style={specialLabelStyle}>Xã / Phường:</label>
                         <Select
                             placeholder="Xã / Phường"
                             allowClear
@@ -205,7 +213,7 @@ export default function FilterPanel({ filters, setFilters, onSearch }) {
                     </div>
 
                     <div style={fieldStyle} className="filter-field">
-                        <label style={labelStyle}>Phone:</label>
+                        <label style={specialLabelStyle}>Phone:</label>
                         <Input
                             placeholder="Điện thoại"
                             value={filters.phone}
