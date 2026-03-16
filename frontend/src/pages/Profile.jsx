@@ -250,7 +250,7 @@ export function Profile() {
                             <Col xs={24} lg={16}>
                                 {/* Left - Profile Form */}
                                 <Card style={{ borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                                    <div style={{ backgroundColor: 'white', padding: 40 }}>
+                                    <div style={{ backgroundColor: 'white', padding: isMobile ? 10 : 40, borderRadius: 8 }}>
 
                                         <h2 style={{
                                             fontSize: 18,
@@ -459,7 +459,7 @@ export function Profile() {
                                                         height: 40,
                                                         fontSize: 14,
                                                         fontWeight: 600,
-                                                        paddingLeft: 24,
+                                                        paddingLeft: isMobile ? 16 : 24,
                                                         paddingRight: 24,
                                                         borderRadius: 4
                                                     }}
@@ -475,8 +475,8 @@ export function Profile() {
                                                         height: 40,
                                                         fontSize: 14,
                                                         fontWeight: 600,
-                                                        paddingLeft: 24,
-                                                        paddingRight: 24,
+                                                        paddingLeft: isMobile ? 10 : 24,
+                                                        paddingRight: isMobile ? 10 : 24,
                                                         borderRadius: 4
                                                     }}
                                                 >
