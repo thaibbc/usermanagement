@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useContext } from 'react';
 import { Button, Input, Form, Select, DatePicker, Badge, Modal, message, Dropdown, Spin, Layout, Row, Col, Card } from 'antd';
-import { getUser, updateUser, changePassword, uploadUserAvatar } from '../api/users';
+import { getUser, updateUser, changePassword } from '../api/users';
 import { useQueryClient } from '@tanstack/react-query';
+import { UserContext } from '../context/UserContext';
 import {
     HomeOutlined,
     BookOutlined,
@@ -42,6 +43,7 @@ export function Profile() {
     // const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState(null);
     const [fileInputRef, setFileInputRef] = useState(null);
+    const { setUser: setContextUser } = useContext(UserContext);
 
     // User data from login (stored in localStorage)
     const stored = typeof window !== 'undefined' && localStorage.getItem('user');
@@ -73,6 +75,17 @@ export function Profile() {
     const [userData, setUserData] = useState(initialUser);
     const queryClient = useQueryClient();
 
+    const splitFullName = (fullName) => {
+        const raw = (fullName || '').trim();
+        if (!raw) return { familyMiddle: '', firstName: '' };
+        const parts = raw.split(/\s+/);
+        if (parts.length === 1) {
+            // Nếu chỉ nhập 1 từ thì middleName/firstName đều giống nhau
+            return { familyMiddle: parts[0], firstName: parts[0] };
+        }
+        return { familyMiddle: parts.slice(0, -1).join(' '), firstName: parts[parts.length - 1] };
+    };
+
     const handleUpdate = async (values) => {
         console.log('Update values:', values);
         if (!loginUser || !loginUser.id && !loginUser._id) {
@@ -81,8 +94,14 @@ export function Profile() {
         }
         const id = loginUser.id || loginUser._id;
         try {
-            const updated = await updateUser(id, {
-                name: values.fullName,
+            const finalName = values.firstName
+                ? `${values.fullName} ${values.firstName}`.trim()
+                : values.fullName.trim();
+
+            await updateUser(id, {
+                name: finalName,
+                middleName: values.fullName.trim(),
+                firstName: values.firstName?.trim() || '',
                 email: values.email,
                 phone: values.phone,
                 gender: values.gender,
@@ -94,13 +113,15 @@ export function Profile() {
                 avatarUrl: avatarUrl || userData?.avatarUrl || '',
                 avatar: avatarUrl || userData?.avatar || ''
             });
-            const updatedWithAvatar = {
-                ...updated,
-                avatarUrl: avatarUrl || updated.avatarUrl || userData?.avatarUrl || null
-            };
-            setUserData(updatedWithAvatar);
-            setAvatarUrl(updatedWithAvatar.avatarUrl);
-            localStorage.setItem('user', JSON.stringify(updatedWithAvatar));
+            // Fetch the latest user from backend to avoid stale fields
+            const latestProfile = await getUser(id);
+
+            setUserData(latestProfile);
+            setAvatarUrl(latestProfile.avatarUrl || latestProfile.avatar || null);
+            setContextUser(latestProfile);
+            localStorage.setItem('user', JSON.stringify(latestProfile));
+            console.log('[Profile] avatar updated to:', latestProfile.avatarUrl || latestProfile.avatar);
+            window.dispatchEvent(new Event('userUpdated'));
             // make sure any cached user lists reflect the change
             queryClient.invalidateQueries(['users']);
             queryClient.invalidateQueries('history');
@@ -148,11 +169,14 @@ export function Profile() {
     // whenever userData changes (after fetch) update form fields
     useEffect(() => {
         if (userData) {
+            const fullNameValue = userData.middleName || userData.fullName || '';
+            const firstNameValue = userData.firstName || ((userData.name || '').split(' ').slice(-1)[0] || '');
+            const parsed = splitFullName(userData.name || `${fullNameValue} ${firstNameValue}`.trim());
             form.setFieldsValue({
                 email: userData.email,
                 phone: userData.phone,
-                fullName: userData.name || userData.fullName || '',
-                firstName: (userData.name || userData.fullName || '').split(' ').slice(-1)[0] || '',
+                fullName: fullNameValue || parsed.familyMiddle,
+                firstName: firstNameValue || parsed.firstName,
                 gender: userData.gender,
                 dateOfBirth: userData.dateOfBirth ? dayjs(userData.dateOfBirth) : undefined,
                 school: userData.school,
@@ -197,23 +221,54 @@ export function Profile() {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (!loginUser || (!loginUser.id && !loginUser._id)) {
-            message.error('Không thể xác định người dùng để upload avatar');
+        // If image is too large, prevent very long base64 JSON body and 413 error
+        const maxBytes = 2 * 1024 * 1024; // 2MB
+        if (file.size > maxBytes) {
+            message.error('Ảnh quá lớn. Vui lòng dùng ảnh dưới 2MB.');
             return;
         }
 
-        try {
-            const id = loginUser.id || loginUser._id;
-            const result = await uploadUserAvatar(id, file);
-            const remoteUrl = result.avatarUrl;
-            setAvatarUrl(remoteUrl);
-            setUserData(prev => ({ ...prev, avatarUrl: remoteUrl }));
-            localStorage.setItem('user', JSON.stringify({ ...userData, avatarUrl: remoteUrl }));
-            message.success('Ảnh đại diện đã được upload và lưu trên server');
-        } catch (err) {
-            console.error('avatar upload failed', err);
-            message.error(err.message || 'Upload ảnh thất bại');
+        if (!loginUser || (!loginUser.id && !loginUser._id)) {
+            message.error('Không thể xác định người dùng để update avatar');
+            return;
         }
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const dataUrl = reader.result;
+            if (!dataUrl || typeof dataUrl !== 'string') {
+                message.error('Không thể đọc dữ liệu avatar');
+                return;
+            }
+
+            try {
+                const id = loginUser.id || loginUser._id;
+                // Lưu trực tiếp vào MongoDB qua route PUT /api/users/:id
+                await updateUser(id, {
+                    avatar: dataUrl,
+                    avatarUrl: dataUrl
+                });
+
+                // Lấy dữ liệu mới nhất từ backend để tránh stale
+                const latest = await getUser(id);
+
+                setAvatarUrl(latest.avatar || latest.avatarUrl || null);
+                setUserData(latest);
+                setContextUser(latest);
+                localStorage.setItem('user', JSON.stringify(latest));
+                window.dispatchEvent(new Event('userUpdated'));
+
+                message.success('Ảnh đại diện đã được cập nhật');
+            } catch (err) {
+                console.error('avatar update failed', err);
+                message.error(err.message || 'Cập nhật ảnh thất bại');
+            }
+        };
+        reader.onerror = (readErr) => {
+            console.error('FileReader error', readErr);
+            message.error('Không thể đọc file ảnh');
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleAvatarClick = () => {
@@ -221,10 +276,23 @@ export function Profile() {
             fileInputRef.click();
         }
     };
+    const mobileCss = `
+    @media (max-width:400px){
+    .filter-container{
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .filter-container button{
+        width: 100%;
+    }
+}
+    `;
 
 
     return (
         <>
+            <style>{mobileCss}</style>
             <Layout style={{ minHeight: '100vh', background: 'linear-gradient(to top, #22D3EE, #ebf4f6)' }}>
                 {!isMobile && (
                     <Sidebar
@@ -335,6 +403,11 @@ export function Profile() {
                                                 >
                                                     <Input
                                                         size="large"
+                                                        // Không split tự động để user nhập họ + tên đệm nguyên vẹn
+                                                        onBlur={() => {
+                                                            const text = form.getFieldValue('fullName') || '';
+                                                            form.setFieldsValue({ fullName: text.trim() });
+                                                        }}
                                                         style={{
                                                             borderRadius: 4,
                                                             fontSize: 14
@@ -449,11 +522,12 @@ export function Profile() {
                                                 </Form.Item>
                                             </div>
 
-                                            <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+                                            <div className='filter-container' style={{ display: 'flex', gap: 12, marginTop: 32 }}>
                                                 <Button
                                                     type="primary"
                                                     htmlType="submit"
                                                     style={{
+                                                        display: 'flex',
                                                         backgroundColor: '#1890FF',
                                                         borderColor: '#1890FF',
                                                         height: 40,

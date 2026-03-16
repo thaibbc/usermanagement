@@ -2,8 +2,9 @@ import { Button, Input, Form, message, Spin, Layout, Row, Col, Card } from 'antd
 import { EyeOutlined, EyeInvisibleOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/users';
-import React from 'react';
+import React, { useContext } from 'react';
 import useIsMobile from '../hooks/useIsMobile';
+import { UserContext } from '../context/UserContext';
 
 const loginImage =
     'https://tackexinh.com/wp-content/uploads/2021/04/hinh-anh-lang-que-viet-nam-06.jpg';
@@ -12,8 +13,8 @@ export function Login() {
 
     const [loading, setLoading] = React.useState(false);
     const navigate = useNavigate();
-    const isMobile = useIsMobile(768);
-    const isTablet = useIsMobile(992) && !isMobile;
+    const isMobile = useIsMobile(770);
+    const { setUser } = useContext(UserContext);
 
     const handleLogin = async (values) => {
 
@@ -30,6 +31,7 @@ export function Login() {
 
             localStorage.setItem('authToken', token);
             localStorage.setItem('user', JSON.stringify(user));
+            setUser(user);
 
             window.dispatchEvent(new Event('userUpdated'));
 
@@ -47,10 +49,60 @@ export function Login() {
         }
 
     };
+    const responsiveCss = `
+
+@media (max-width:780px){
+
+.login-wrapper{
+padding:16px;
+}
+
+.login-form-wrapper{
+width:100vw !important;
+max-width:100vw !important;
+}
+
+}
+
+@media (max-width:770px){
+
+.login-form-wrapper{
+width:80vw !important;
+max-width:80vw !important;
+margin: 0 auto;
+}
+
+}
+
+@media (max-width:325px){
+
+.login-wrapper{
+padding:8px;
+}
+
+.login-form-wrapper{
+width:100vw !important;
+max-width:100vw !important;
+}
+
+.ant-card{
+width:100%;
+}
+
+}
+
+@media (max-width:668px) {
+    .close-btn {
+        display: none !important;
+    }
+}
+
+`;
 
     return (
 
         <Layout
+            className="login-wrapper"
             style={{
                 minHeight: '100vh',
                 background: 'rgba(0,0,0,0.45)',
@@ -60,6 +112,7 @@ export function Login() {
             }}
             onClick={() => navigate('/')}
         >
+            <style>{responsiveCss}</style>
 
             <Spin spinning={loading} tip="Đang đăng nhập..." size="large">
 
@@ -76,18 +129,18 @@ export function Login() {
                     }}
                 >
 
-                    <Button
-                        type="text"
+                    <Button className="close-btn" type="text"
                         icon={<CloseOutlined />}
                         onClick={() => navigate('/')}
                         style={{
                             position: 'absolute',
-                            top: 14,
-                            right: isMobile ? 'auto' : 14,
-                            left: isMobile ? 350 : 'auto',
+                            top: 12,
+                            right: 14,
+                            left: 'auto',
                             fontSize: 18,
                             borderRadius: '50%',
                             border: '1px solid #d9d9d9',
+                            background: '#fff',
                             zIndex: 1000,
                         }}
                     />
@@ -96,6 +149,7 @@ export function Login() {
                     {/* LEFT LOGIN FORM */}
 
                     <Col xs={24} md={12}
+                        className="login-container"
                         style={{
                             background: '#f8faff',
 
@@ -105,7 +159,12 @@ export function Login() {
                         }}
                     >
 
-                        <div style={{ width: '100%', maxWidth: isMobile ? 550 : isTablet ? 380 : 420 }}>
+                        <div className="login-form-wrapper" style={{
+                            width: '100%',
+                            maxWidth: isMobile ? 480 : 420,
+                            margin: '0 auto',
+                            padding: isMobile ? '0px' : 0
+                        }}>
 
                             <h1
                                 style={{
@@ -124,12 +183,15 @@ export function Login() {
                                 style={{
                                     borderRadius: 10,
                                     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                                    width: isMobile ? '100%' : isTablet ? 380 : 420,
+
                                 }}
                             >
 
-                                <Form layout="vertical" onFinish={handleLogin} autoComplete="off" style={{ width: isMobile ? 360 : isTablet ? 340 : 380 }}>
-
+                                <Form
+                                    layout="vertical"
+                                    onFinish={handleLogin}
+                                    autoComplete="off"
+                                >
                                     <Form.Item
                                         label="Email"
                                         name="email"

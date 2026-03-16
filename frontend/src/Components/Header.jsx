@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Dropdown, Drawer, Space } from "antd";
+import React, { useState, useContext } from "react";
+import { Dropdown, Drawer } from "antd";
 import {
     BellOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
     HomeOutlined, BookOutlined, SwitcherOutlined, UserOutlined as PersonOutlined,
@@ -8,49 +8,25 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import useIsMobile from '../hooks/useIsMobile';
+import { UserContext } from "../context/UserContext";
 
 function Header({ onMenuClick }) {
+
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const storedUser = localStorage.getItem('user');
-            return storedUser ? JSON.parse(storedUser) : null;
-        }
-        return null;
-    });
+    const { user, setUser } = useContext(UserContext);
+
     const isMobile = useIsMobile(1350);
     const [drawerVisible, setDrawerVisible] = useState(false);
 
-    useEffect(() => {
-        const reloadUser = () => {
-            const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-            const parsed = storedUser ? JSON.parse(storedUser) : null;
-            setUser(parsed);
-        };
-
-        const handleStorage = (e) => {
-            if (e.key === 'user') {
-                reloadUser();
-            }
-        };
-
-        const handleUserUpdated = () => {
-            reloadUser();
-        };
-
-        window.addEventListener('storage', handleStorage);
-        window.addEventListener('userUpdated', handleUserUpdated);
-
-        return () => {
-            window.removeEventListener('storage', handleStorage);
-            window.removeEventListener('userUpdated', handleUserUpdated);
-        };
-    }, []);
-
-    // build same sidebar items for drawer menu
+    // sidebar menu items
     const sidebarItems = [
         { icon: <HomeOutlined style={{ fontSize: 18 }} />, label: 'Trang chủ', path: '/dashboard' },
-        ...(user && user.accountType === 'admin' ? [{ icon: <SwitcherOutlined style={{ fontSize: 18 }} />, label: 'Quản Lý người dùng', path: '/users' }] : []),
+
+        ...(user && user.accountType === 'admin'
+            ? [{ icon: <SwitcherOutlined style={{ fontSize: 18 }} />, label: 'Quản Lý người dùng', path: '/users' }]
+            : []
+        ),
+
         { icon: <BookOutlined style={{ fontSize: 18 }} />, label: 'Lớp học', path: '#' },
         { icon: <PersonOutlined style={{ fontSize: 18 }} />, label: 'Câu hỏi', path: '#' },
         { icon: <FileTextOutlined style={{ fontSize: 18 }} />, label: 'Bài tập', path: '#' },
@@ -61,7 +37,6 @@ function Header({ onMenuClick }) {
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
         setUser(null);
         navigate('/');
     };
@@ -83,6 +58,61 @@ function Header({ onMenuClick }) {
 
     const userName = user ? (user.name || user.email || "User") : "Testbank Admin";
     const userAvatar = user ? (user.avatar || user.avatarUrl || null) : null;
+
+    const [headerName, setHeaderName] = useState(userName);
+    const [headerNameKey, setHeaderNameKey] = useState(0);
+    const [avatarCacheKey, setAvatarCacheKey] = useState(0);
+
+    React.useEffect(() => {
+        setHeaderName(userName);
+        setHeaderNameKey(prev => prev + 1);
+    }, [userName]);
+
+    React.useEffect(() => {
+        setAvatarCacheKey(Date.now());
+    }, [userAvatar]);
+
+    React.useEffect(() => {
+        const onUserUpdated = () => {
+            const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+            if (stored) {
+                try {
+                    const latestUser = JSON.parse(stored);
+                    console.log('[Header] userUpdated event received; profile should be:', (latestUser.avatar || latestUser.avatarUrl) || null, latestUser.name || latestUser.email);
+                    if (latestUser) {
+                        setUser(latestUser);
+                        setHeaderName(latestUser.name || latestUser.email || 'User');
+                        const latestAvatar = latestUser.avatar || latestUser.avatarUrl || null;
+                        const currentAvatar = user ? (user.avatar || user.avatarUrl || null) : null;
+                        if (latestAvatar !== currentAvatar) {
+                            console.warn('[Header] avatar mismatch after userUpdated: header:', currentAvatar, 'profile:', latestAvatar);
+                        } else {
+                            console.log('[Header] avatar in header now matches profile avatar:', latestAvatar);
+                        }
+                        const currentName = user ? (user.name || user.email || 'User') : 'Testbank Admin';
+                        const latestName = latestUser.name || latestUser.email || 'User';
+                        if (currentName !== latestName) {
+                            console.warn('[Header] name mismatch after userUpdated: header:', currentName, 'profile:', latestName);
+                        } else {
+                            console.log('[Header] name in header now matches profile name:', latestName);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to parse updated user', err);
+                }
+            }
+            setAvatarCacheKey(Date.now());
+        };
+
+        window.addEventListener('userUpdated', onUserUpdated);
+        return () => window.removeEventListener('userUpdated', onUserUpdated);
+    }, [setUser, user]);
+
+    const headerAvatarSrc = userAvatar ? (
+        userAvatar.startsWith('data:')
+            ? userAvatar
+            : `${userAvatar}${userAvatar.includes('?') ? '&' : '?'}t=${avatarCacheKey}`
+    ) : null;
 
     const handleMenuClick = () => {
         if (isMobile) {
@@ -111,11 +141,11 @@ function Header({ onMenuClick }) {
             justifyContent: isMobile ? 'space-between' : 'flex-end',
             alignItems: 'center',
             borderBottom: '1px solid #E8E8E8',
-
             position: 'sticky',
             top: 0,
             zIndex: 999
         }}>
+
             {isMobile && (
                 <MenuOutlined
                     onClick={handleMenuClick}
@@ -124,7 +154,8 @@ function Header({ onMenuClick }) {
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                {/* Notification Bell */}
+
+                {/* Notification */}
                 <div style={{ position: 'relative', cursor: 'pointer' }}>
                     <BellOutlined style={{ fontSize: 20, color: 'white' }} />
                     <div style={{
@@ -139,9 +170,11 @@ function Header({ onMenuClick }) {
                     }} />
                 </div>
 
-                {/* User Avatar and Name */}
+                {/* Avatar */}
                 <Dropdown menu={{ items: headerMenu }} placement="bottomRight" trigger={['click']}>
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+
                         <div style={{
                             width: 36,
                             height: 36,
@@ -154,22 +187,38 @@ function Header({ onMenuClick }) {
                             border: '2px solid white',
                             overflow: 'hidden'
                         }}>
+
                             {userAvatar ? (
                                 <img
-                                    src={userAvatar}
+                                    key={avatarCacheKey}
+                                    src={headerAvatarSrc}
                                     alt="avatar"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                             ) : (
                                 '👤'
                             )}
+
                         </div>
-                        <span style={{ fontSize: 14, fontWeight: 500, color: 'white' }}>{userName}</span>
+
+                        <span
+                            key={`header-name-${headerNameKey}`}
+                            style={{
+                                fontSize: 14,
+                                fontWeight: 500,
+                                color: 'white'
+                            }}
+                        >
+                            {headerName}
+                        </span>
+
                     </div>
+
                 </Dropdown>
+
             </div>
 
-            {/* mobile drawer containing sidebar links */}
+            {/* Drawer mobile */}
             <Drawer
                 placement="left"
                 closable={false}
@@ -178,7 +227,9 @@ function Header({ onMenuClick }) {
                 styles={{ body: { padding: 0 } }}
                 size={250}
             >
+
                 <div style={{ backgroundColor: '#1E293B', height: '100%', color: 'white' }}>
+
                     {sidebarItems.map((it, idx) => (
                         <div
                             key={idx}
@@ -193,11 +244,16 @@ function Header({ onMenuClick }) {
                             }}
                         >
                             {it.icon}
-                            <span style={{ fontSize: 14, fontWeight: 500 }}>{it.label}</span>
+                            <span style={{ fontSize: 14, fontWeight: 500 }}>
+                                {it.label}
+                            </span>
                         </div>
                     ))}
+
                 </div>
+
             </Drawer>
+
         </div>
     );
 }

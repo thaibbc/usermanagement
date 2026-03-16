@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Button,
@@ -43,6 +43,7 @@ import {
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
 import useIsMobile from '../hooks/useIsMobile';
+import { UserContext } from '../context/UserContext';
 
 // persistence will be handled by the provider below
 
@@ -60,6 +61,7 @@ const INITIAL_FILTERS = {
 
 export function AdminDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
+    const { user: currentUser, setUser: setContextUser } = useContext(UserContext);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [addModalOpen, setAddModalOpen] = useState(false);
@@ -322,7 +324,21 @@ export function AdminDashboard() {
     const handleEditConfirm = async (data) => {
         try {
             const id = editingUser._id || editingUser.id;
-            await updateMutation.mutateAsync({ id, updates: data });
+            const updated = await updateMutation.mutateAsync({ id, updates: data });
+
+            // nếu hiện tại đang đăng nhập là user đã thay đổi, cập nhật context + localStorage + event
+            const authUserRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+            const authUser = authUserRaw ? JSON.parse(authUserRaw) : null;
+            const editedId = updated?._id || updated?.id || id;
+            const curId = authUser?._id || authUser?.id;
+
+            if (authUser && curId && String(curId) === String(editedId)) {
+                const mergedUser = { ...authUser, ...updated };
+                setContextUser && setContextUser(mergedUser);
+                localStorage.setItem('user', JSON.stringify(mergedUser));
+                window.dispatchEvent(new Event('userUpdated'));
+            }
+
             setEditModalOpen(false);
             setEditingUser(null);
             message.success('Thông tin người dùng đã được cập nhật.');

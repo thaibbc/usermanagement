@@ -5,27 +5,31 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
+import { UserProvider } from "./context/UserContext";
+
 
 function App() {
   return (
-    <Routes>
-      {/* always start at the homepage */}
-      <Route path="/" element={<Home />} />
+    <UserProvider>
+      <Routes>
+        {/* always start at the homepage */}
+        <Route path="/" element={<Home />} />
 
-      {/* authentication & user pages */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/profile" element={<Profile />} />
+        {/* authentication & user pages */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
 
-      {/* application dashboards */}
-      <Route path="/dashboard" element={<Dashboard />} />
+        {/* application dashboards */}
+        <Route path="/dashboard" element={<Dashboard />} />
 
-      {/* admin dashboard */}
-      <Route path="/users" element={<UserManagement />} />
-      <Route path="/history" element={<UserManagement />} />
+        {/* admin dashboard */}
+        <Route path="/users" element={<UserManagement />} />
+        <Route path="/history" element={<UserManagement />} />
 
-      {/* catch‑all redirects back to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* catch‑all redirects back to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </UserProvider>
   )
 }
 

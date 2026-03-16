@@ -7,6 +7,19 @@ const User = require('../models/User');
 const Account = require('../models/Account');
 const ActionLog = require('../models/ActionLog');
 
+const splitName = (fullName) => {
+    if (!fullName || typeof fullName !== 'string') return { middleName: '', firstName: '', name: '' };
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return { middleName: '', firstName: '', name: '' };
+    if (parts.length === 1) {
+        // Nếu chỉ 1 từ: để both middleName và firstName giống nhau
+        return { middleName: parts[0], firstName: parts[0], name: parts[0] };
+    }
+    const firstName = parts[parts.length - 1];
+    const middleName = parts.slice(0, -1).join(' ');
+    return { middleName, firstName, name: `${middleName} ${firstName}`.trim() };
+};
+
 const avatarUpload = multer({
     storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
@@ -36,7 +49,7 @@ router.get('/', async (req, res) => {
             .skip(skip)
             .limit(pageSize);
 
-        // ensure each has a code and name (for any returned documents)
+        // ensure each has a code, name, middleName and firstName (for any returned documents)
         const ops = [];
         users.forEach(u => {
             if (!u.code) {
@@ -45,6 +58,13 @@ router.get('/', async (req, res) => {
             }
             if (!u.name && u.email) {
                 u.name = u.email.split('@')[0];
+                ops.push(u.save());
+            }
+            if ((!u.middleName || !u.firstName) && u.name) {
+                const parts = splitName(u.name);
+                u.middleName = parts.middleName;
+                u.firstName = parts.firstName;
+                // do not overwrite existing meaningful values with blank if it's already set
                 ops.push(u.save());
             }
         });
@@ -68,6 +88,11 @@ router.get('/:id', async (req, res) => {
         if (!user.name && user.email) {
             user.name = user.email.split('@')[0];
         }
+        if ((!user.middleName || !user.firstName) && user.name) {
+            const parts = splitName(user.name);
+            user.middleName = parts.middleName;
+            user.firstName = parts.firstName;
+        }
         await user.save();
         console.log('returning user', user._id.toString());
         res.json(user);
@@ -81,6 +106,14 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     // allow profile fields from frontend
     let { name, dateOfBirth, grade, gender, accountType, level, city, district, school, email, phone, status, password } = req.body;
+
+    if (name) {
+        const parts = splitName(name);
+        name = parts.name;
+        req.body.middleName = parts.middleName;
+        req.body.firstName = parts.firstName;
+    }
+
     if (!name) {
         return res.status(400).json({ message: 'Name is required' });
     }
@@ -142,6 +175,24 @@ router.post('/:id/avatar', avatarUpload.single('avatar'), async (req, res) => {
 router.put('/:id', async (req, res) => {
     // allow updating school as well; req.body may contain any of the schema fields
     try {
+        const existingUser = await User.findById(req.params.id);
+        if (!existingUser) return res.status(404).json({ message: 'User not found' });
+
+        // build 'middleName'/'firstName' from name if provided; or build name from provided middle+first
+        if (req.body.name) {
+            const parts = splitName(req.body.name);
+            req.body.middleName = parts.middleName;
+            req.body.firstName = parts.firstName;
+            req.body.name = parts.name;
+        } else if (req.body.middleName !== undefined || req.body.firstName !== undefined) {
+            const middle = (req.body.middleName || existingUser.middleName || '').trim();
+            const first = (req.body.firstName || existingUser.firstName || '').trim();
+            const full = [middle, first].filter(Boolean).join(' ').trim();
+            req.body.name = full || existingUser.name;
+            req.body.middleName = middle;
+            req.body.firstName = first;
+        }
+
         const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         if (!updated) return res.status(404).json({ message: 'User not found' });
         // if email was changed, update account record too

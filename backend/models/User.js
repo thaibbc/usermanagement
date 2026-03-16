@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
     // contact & authentication
     email: { type: String, required: true, unique: true },
     phone: { type: String, default: '' },
+    middleName: { type: String, default: '' }, // họ và tên đệm
+    firstName: { type: String, default: '' }, // tên
     avatarUrl: { type: String, default: '' },
     avatar: { type: String, default: '' }, // base64 data-URL for avatar image
     gender: { type: String, enum: ['Nam', 'Nữ', 'Khác', ''], default: '' },
