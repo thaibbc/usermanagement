@@ -18,7 +18,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     // SỬA: Phân biệt mobile và tablet
     const isMobile = useIsMobile(768); // Màn hình < 768px
     const isTablet = useIsMobile(1024); // Màn hình < 1024px
-    const isMobileOrTablet = useIsMobile(1024); // Tất cả màn hình < 1024px (dùng cho một số trường hợp)
+    // Tất cả màn hình < 1024px (dùng cho một số trường hợp)
 
     const [drawerVisible, setDrawerVisible] = useState(false);
 
