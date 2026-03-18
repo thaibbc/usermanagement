@@ -10,7 +10,7 @@ import ClassManagement from './pages/ClassManagement'
 import { ClassDetail } from './pages/ClassDetail'
 import { UserProvider } from "./context/UserContext";
 import QuestionBank from './pages/QuestionBank'
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './Components/ProtectedRoute'
 import { StudentClass } from './pages/StudentClass';
 import { MyLibrary } from './pages/MyLibrary';
 
