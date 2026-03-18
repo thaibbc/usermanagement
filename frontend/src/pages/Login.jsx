@@ -2,22 +2,20 @@ import { Button, Input, Form, message, Spin, Layout, Row, Col, Card } from 'antd
 import { EyeOutlined, EyeInvisibleOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/users';
-import React, { useContext } from 'react';
+import React from 'react';
 import useIsMobile from '../hooks/useIsMobile';
-import { UserContext } from '../context/UserContext';
+import { useUser } from '../context/UserContext'; // Import useUser thay vì UserContext
 
 const loginImage =
     'https://tackexinh.com/wp-content/uploads/2021/04/hinh-anh-lang-que-viet-nam-06.jpg';
 
 export function Login() {
-
     const [loading, setLoading] = React.useState(false);
     const navigate = useNavigate();
     const isMobile = useIsMobile(770);
-    const { setUser } = useContext(UserContext);
+    const { setUser } = useUser(); // Sử dụng useUser hook
 
     const handleLogin = async (values) => {
-
         const normalized = {
             email: values.email.trim().toLowerCase(),
             password: values.password
@@ -26,81 +24,65 @@ export function Login() {
         setLoading(true);
 
         try {
-
             const { token, user } = await login(normalized);
 
             localStorage.setItem('authToken', token);
             localStorage.setItem('user', JSON.stringify(user));
-            setUser(user);
+            setUser(user, token);
 
             window.dispatchEvent(new Event('userUpdated'));
 
             message.success('Đăng nhập thành công!');
-
             navigate('/dashboard');
 
         } catch (err) {
-
             console.error(err);
             message.error(err.message || 'Email hoặc mật khẩu không đúng!');
-
         } finally {
             setLoading(false);
         }
-
     };
+
     const responsiveCss = `
+        @media (max-width:780px){
+            .login-wrapper{
+                padding:16px;
+            }
+            .login-form-wrapper{
+                width:100vw !important;
+                max-width:100vw !important;
+            }
+        }
 
-@media (max-width:780px){
+        @media (max-width:770px){
+            .login-form-wrapper{
+                width:80vw !important;
+                max-width:80vw !important;
+                margin: 0 auto;
+            }
+        }
 
-.login-wrapper{
-padding:16px;
-}
+        @media (max-width:325px){
+            .login-wrapper{
+                padding:8px;
+            }
+            .login-form-wrapper{
+                width:100vw !important;
+                max-width:100vw !important;
+            }
+            .ant-card{
+                width:100%;
+            }
+        }
 
-.login-form-wrapper{
-width:100vw !important;
-max-width:100vw !important;
-}
-
-}
-
-@media (max-width:770px){
-
-.login-form-wrapper{
-width:80vw !important;
-max-width:80vw !important;
-margin: 0 auto;
-}
-
-}
-
-@media (max-width:325px){
-
-.login-wrapper{
-padding:8px;
-}
-
-.login-form-wrapper{
-width:100vw !important;
-max-width:100vw !important;
-}
-
-.ant-card{
-width:100%;
-}
-
-}
-
-@media (max-width:668px) {
-    .close-btn {
-        display: none !important;
-    }
-}
-
-`;
+        @media (max-width:668px) {
+            .close-btn {
+                display: none !important;
+            }
+        }
+    `;
 
     return (
-
         <Layout
             className="login-wrapper"
             style={{
@@ -115,7 +97,6 @@ width:100%;
             <style>{responsiveCss}</style>
 
             <Spin spinning={loading} tip="Đang đăng nhập..." size="large">
-
                 <Row
                     onClick={(e) => e.stopPropagation()}
                     style={{
@@ -128,8 +109,9 @@ width:100%;
                         maxWidth: 1000
                     }}
                 >
-
-                    <Button className="close-btn" type="text"
+                    <Button
+                        className="close-btn"
+                        type="text"
                         icon={<CloseOutlined />}
                         onClick={() => navigate('/')}
                         style={{
@@ -145,27 +127,22 @@ width:100%;
                         }}
                     />
 
-
                     {/* LEFT LOGIN FORM */}
-
                     <Col xs={24} md={12}
                         className="login-container"
                         style={{
                             background: '#f8faff',
-
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}
                     >
-
                         <div className="login-form-wrapper" style={{
                             width: '100%',
                             maxWidth: isMobile ? 480 : 420,
                             margin: '0 auto',
                             padding: isMobile ? '0px' : 0
                         }}>
-
                             <h1
                                 style={{
                                     fontSize: 26,
@@ -183,10 +160,8 @@ width:100%;
                                 style={{
                                     borderRadius: 10,
                                     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-
                                 }}
                             >
-
                                 <Form
                                     layout="vertical"
                                     onFinish={handleLogin}
@@ -200,45 +175,38 @@ width:100%;
                                             { type: 'email', message: 'Email không hợp lệ!' }
                                         ]}
                                     >
-
-                                        <Input size="large" />
-
+                                        <Input
+                                            size="large"
+                                            autoComplete="email"
+                                        />
                                     </Form.Item>
-
 
                                     <Form.Item
                                         label="Mật khẩu"
                                         name="password"
                                         rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
                                     >
-
                                         <Input.Password
                                             size="large"
+                                            autoComplete="current-password"
                                             iconRender={(visible) => visible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
                                         />
-
                                     </Form.Item>
 
-
                                     <div style={{ marginBottom: 20 }}>
-
                                         <a
                                             onClick={() => navigate('/forgot-password')}
                                             style={{
                                                 color: '#1677ff',
-                                                fontSize: 14
+                                                fontSize: 14,
+                                                cursor: 'pointer'
                                             }}
                                         >
-
                                             Quên mật khẩu?
-
                                         </a>
-
                                     </div>
 
-
                                     <Form.Item>
-
                                         <Button
                                             type="primary"
                                             htmlType="submit"
@@ -251,15 +219,10 @@ width:100%;
                                                 borderRadius: 6
                                             }}
                                         >
-
                                             ĐĂNG NHẬP
-
                                         </Button>
-
                                     </Form.Item>
-
                                 </Form>
-
 
                                 <div
                                     style={{
@@ -269,7 +232,6 @@ width:100%;
                                         marginTop: 10
                                     }}
                                 >
-
                                     Website <b>http://sachso.edu.vn</b>
                                     <br />
                                     chuyển sang
@@ -277,31 +239,21 @@ width:100%;
                                     <b>https://sachdientu.phuongnam.edu.vn</b>
                                     <br />
                                     Từ ngày 24/10/2025
-
                                 </div>
-
                             </Card>
-
                         </div>
-
                     </Col>
 
-
-
                     {/* RIGHT IMAGE */}
-
                     {!isMobile && (
-
                         <Col md={12}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 background: '#eef3ff',
-
                             }}
                         >
-
                             <img
                                 src={loginImage}
                                 alt="login"
@@ -311,20 +263,12 @@ width:100%;
                                     objectFit: 'cover'
                                 }}
                             />
-
-
                         </Col>
-
                     )}
-
                 </Row>
-
             </Spin>
-
         </Layout>
-
     );
-
 }
 
 export default Login;
