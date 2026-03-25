@@ -215,7 +215,7 @@ const CreateAssignmentDrawer = ({
 
     const getDrawerWidth = () => {
         if (isMobile) return '100%';
-        if (isMobileOrTablet) return '85%';
+        if (isMobileOrTablet) return '100%';
         return '110%';
     };
 
