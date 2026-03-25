@@ -216,7 +216,7 @@ const CreateAssignmentDrawer = ({
     const getDrawerWidth = () => {
         if (isMobile) return '100%';
         if (isMobileOrTablet) return '85%';
-        return '70%';
+        return '110%';
     };
 
     // Render câu hỏi chi tiết
@@ -305,25 +305,50 @@ const CreateAssignmentDrawer = ({
         <>
             <Drawer
                 title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%'
+                    }}>
                         <Space>
                             <FileTextOutlined style={{ color: '#00bcd4', fontSize: 18 }} />
                             <Text style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 600, color: '#00bcd4' }}>
                                 TẠO MỚI BÀI TẬP
                             </Text>
                         </Space>
-                        {formData.useLibrary && selectedQuestions.length > 0 && (
-                            <Tag color="green" icon={<CheckCircleOutlined />}>
-                                {selectedQuestions.length} câu hỏi
-                            </Tag>
-                        )}
+                        <Space>
+                            {formData.useLibrary && selectedQuestions.length > 0 && (
+                                <Tag color="green" icon={<CheckCircleOutlined />} style={{ marginRight: 8 }}>
+                                    {selectedQuestions.length} câu hỏi
+                                </Tag>
+                            )}
+                            <Button
+                                type="text"
+                                icon={<CloseOutlined />}
+                                onClick={onClose}
+                                disabled={loading}
+                                style={{
+                                    color: '#666',
+                                    fontSize: 16
+                                }}
+                            />
+                        </Space>
                     </div>
                 }
                 open={visible}
+                onClose={onClose}
                 size={getDrawerWidth() === '100%' ? 'large' : undefined}
                 width={getDrawerWidth() !== '100%' ? getDrawerWidth() : undefined}
-                closable={!loading}
-                mask={{ closable: !loading }}
+                closable={false}
+                maskClosable={!loading}
+                styles={{
+                    body: {
+                        padding: isMobile ? '16px' : '24px',
+                        overflowY: 'auto',
+                        maxHeight: 'calc(100vh - 108px)',
+                    }
+                }}
                 footer={
                     <div style={{
                         display: 'flex',
@@ -347,24 +372,8 @@ const CreateAssignmentDrawer = ({
                         </Button>
                     </div>
                 }
-                styles={{
-                    body: {
-                        padding: isMobile ? '16px' : '24px',
-                        overflowY: 'auto',
-                        maxHeight: 'calc(100vh - 108px)',
-                    }
-                }}
             >
                 <Spin spinning={loading} description="Đang xử lý...">
-                    {/* Thông báo hướng dẫn */}
-                    <Alert
-                        title="Hướng dẫn"
-                        description="Bạn có thể tạo bài tập mới hoặc chọn từ thư viện. Khi chọn từ thư viện, các câu hỏi sẽ được tự động thêm vào."
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 16 }}
-                    />
-
                     {/* Tiêu đề */}
                     <div style={{ marginBottom: isMobile ? 16 : 20 }}>
                         <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
@@ -553,7 +562,7 @@ const CreateAssignmentDrawer = ({
                                 height: isMobile ? 40 : 44
                             }}
                         >
-                            {formData.useLibrary ? '📚 Đã chọn bài tập từ thư viện' : '📖 Chọn bài tập từ thư viện'}
+                            {formData.useLibrary ? 'Đã chọn bài tập từ thư viện' : 'Chọn bài tập từ thư viện'}
                         </Button>
                         {!formData.useLibrary && (
                             <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
