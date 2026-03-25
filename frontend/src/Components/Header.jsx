@@ -176,7 +176,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
             return 0;
         }
         // Trên tablet và desktop: margin-left dựa vào trạng thái sidebar
-        return sidebarCollapsed ? 80 : 0;
+        return sidebarCollapsed ? 30 : 0;
     };
 
     const marginLeft = getMarginLeft();

@@ -25,7 +25,8 @@ import UserModal from '../Components/UserModal';
 import DeleteModal from '../Components/DeleteModal';
 
 // api helpers
-import { fetchUsers, deleteUser, createUser, updateUser, fetchHistory, changePassword } from '../api/users';
+import { fetchUsers, deleteUser, createUser, updateUser, changePassword } from '../api/users';
+import { fetchHistory } from '../api/history';
 import {
     SearchOutlined,
     PlusOutlined,
@@ -61,7 +62,7 @@ const INITIAL_FILTERS = {
 
 export function AdminDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
-    const { user: currentUser, setUser: setContextUser } = useContext(UserContext);
+    const { setUser: setContextUser } = useContext(UserContext);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [addModalOpen, setAddModalOpen] = useState(false);

@@ -25,7 +25,8 @@ import {
 } from '@ant-design/icons';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
-import CreateQuestionDrawer from '../Components/CreateQuestionDrawer';
+import CreateQuestionDrawer from '../Components/CreateQuestionModal';
+import { fetchQuestions, createQuestion, deleteQuestion } from '../api/questions';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -33,6 +34,8 @@ const { useBreakpoint } = Grid;
 
 export const QuestionBank = () => {
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [questions, setQuestions] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
         khoiLop: null,
         unit: null,
@@ -49,6 +52,33 @@ export const QuestionBank = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const screens = useBreakpoint();
 
+    const loadQuestions = async () => {
+        setLoading(true);
+        try {
+            const params = {
+                khoiLop: filters.khoiLop,
+                unit: filters.unit,
+                kyNang: filters.kyNang,
+                loaiCauHoi: filters.dangCauHoi,
+                mucDoNhanThuc: filters.mucDoNhanThuc,
+                search: filters.cauHoi || undefined
+            };
+            const data = await fetchQuestions(params);
+            const questionItems = data.questions ? data.questions.map(q => ({ ...q, key: q._id || q.id })) : [];
+            setQuestions(questionItems);
+        } catch (err) {
+            console.error('loadQuestions error', err);
+            message.error('Không thể tải câu hỏi');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadQuestions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Handle window resize for mobile detection
     useEffect(() => {
         const handleResize = () => {
@@ -58,61 +88,6 @@ export const QuestionBank = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Mock data
-    const mockQuestions = [
-        {
-            key: 1,
-            id: 9377,
-            khoiLop: 'Lớp 6',
-            unit: 'Unit 1',
-            kyNang: 'R',
-            cauHoi: 'Question:Test môTest hai',
-            answer: 'A/C',
-            loaiCauHoi: 'Cloze',
-            mucDoNhanThuc: 'Nhận biết',
-            ngayTao: '24/02/2025',
-            ngaySua: '25/04/2025'
-        },
-        {
-            key: 2,
-            id: 9359,
-            khoiLop: 'Lớp 7',
-            unit: 'Unit 7',
-            kyNang: 'R',
-            cauHoi: 'Question:Test 1',
-            answer: 'A',
-            loaiCauHoi: 'Reading comprehension',
-            mucDoNhanThuc: 'Nhận biết',
-            ngayTao: '12/02/2025',
-            ngaySua: '15/03/2025'
-        },
-        {
-            key: 3,
-            id: 8990,
-            khoiLop: 'Lớp 8',
-            unit: 'Unit 1',
-            kyNang: 'P',
-            cauHoi: 'Question:Identify the underlined letters that are pronounced differently from the others.',
-            answer: 'D',
-            loaiCauHoi: 'Multiple choice',
-            mucDoNhanThuc: 'Nhận biết',
-            ngayTao: '07/08/2024',
-            ngaySua: '10/08/2024'
-        },
-        {
-            key: 4,
-            id: 9000,
-            khoiLop: 'Lớp 6',
-            unit: 'Unit 1',
-            kyNang: 'P',
-            cauHoi: 'Question:Identify the words whose main stresses are different from the others.',
-            answer: 'C',
-            loaiCauHoi: 'Multiple choice',
-            mucDoNhanThuc: 'Nhận biết',
-            ngayTao: '07/08/2024',
-            ngaySua: '09/08/2024'
-        }
-    ];
 
     const columns = [
         {
@@ -208,17 +183,26 @@ export const QuestionBank = () => {
         setFilters({ ...filters, [field]: value });
     };
 
-    const handleSearch = () => {
-        message.info('Tìm kiếm với filters đã chọn');
+    const handleSearch = async () => {
+        await loadQuestions();
+        message.success('Đã cập nhật danh sách câu hỏi');
     };
 
-    const handleDeleteSelected = () => {
+    const handleDeleteSelected = async () => {
         if (selectedRowKeys.length === 0) {
             message.warning('Vui lòng chọn câu hỏi để xóa');
             return;
         }
-        message.success(`Đã xóa ${selectedRowKeys.length} câu hỏi`);
-        setSelectedRowKeys([]);
+
+        try {
+            await Promise.all(selectedRowKeys.map(key => deleteQuestion(key)));
+            message.success(`Đã xóa ${selectedRowKeys.length} câu hỏi`);
+            setSelectedRowKeys([]);
+            await loadQuestions();
+        } catch (err) {
+            console.error('delete selected error', err);
+            message.error('Xóa câu hỏi thất bại');
+        }
     };
 
     const handleCreateQuestion = () => {
@@ -229,10 +213,17 @@ export const QuestionBank = () => {
         setCreateDrawerVisible(false);
     };
 
-    const handleQuestionSubmit = (values) => {
-        console.log('New question created:', values);
-        message.success('Tạo câu hỏi thành công!');
-        handleDrawerClose();
+    const handleQuestionSubmit = async (values) => {
+        try {
+            await createQuestion(values);
+            message.success('Tạo câu hỏi thành công!');
+            handleDrawerClose();
+            setSelectedRowKeys([]);
+            await loadQuestions();
+        } catch (err) {
+            console.error('handleQuestionSubmit error', err);
+            message.error('Tạo câu hỏi thất bại');
+        }
     };
 
     const filterFields = [
@@ -495,7 +486,8 @@ export const QuestionBank = () => {
                     {/* Table */}
                     <Table
                         columns={columns}
-                        dataSource={mockQuestions}
+                        dataSource={questions}
+                        loading={loading}
                         scroll={{ x: 1800 }}
                         pagination={{
                             pageSize: 10,

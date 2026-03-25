@@ -1,0 +1,123 @@
+// Components/ClassInfoCard.jsx
+import React from 'react';
+import { Card, Typography, Row, Col, Button, Space, Tag, Dropdown, message, Modal } from 'antd';
+import { CopyOutlined, MoreOutlined, ArrowLeftOutlined, EditOutlined, SwapOutlined, DeleteOutlined, ExclamationCircleOutlined, ExperimentOutlined } from '@ant-design/icons';
+
+const { Text } = Typography;
+const { confirm } = Modal;
+
+const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBack, onUpdateStatus, isMobile, isTestMode = false }) => {
+    const handleDeleteClass = () => {
+        confirm({
+            title: 'Xác nhận xóa lớp',
+            icon: <ExclamationCircleOutlined />,
+            content: `Bạn có chắc chắn muốn xóa lớp "${classData.name}"?`,
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                message.success('Đã xóa lớp thành công');
+                onBack();
+            }
+        });
+    };
+
+    // Trong chế độ test, không hiển thị menu quản lý
+    const menuItems = isTestMode ? [] : [
+        { key: 'edit', label: 'Chỉnh sửa lớp', icon: <EditOutlined />, onClick: () => message.info('Tính năng đang phát triển') },
+        { key: 'status', label: classData.status === 'active' ? 'Đóng lớp' : 'Mở lớp', icon: <SwapOutlined />, onClick: () => onUpdateStatus(classData.status === 'active' ? 'inactive' : 'active') },
+        { key: 'delete', label: 'Xóa lớp', icon: <DeleteOutlined />, danger: true, onClick: handleDeleteClass }
+    ];
+
+    return (
+        <Card
+            title={
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : 0 }}>
+                    <Space>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, textTransform: 'uppercase' }}>
+                            Thông tin lớp học: {classData.name}
+                        </Text>
+                        {isTestMode && (
+                            <Tag icon={<ExperimentOutlined />} color="gold">
+                                Chế độ test
+                            </Tag>
+                        )}
+                    </Space>
+                    <Space>
+                        {!isTestMode && menuItems.length > 0 && (
+                            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                                <Button type="text" icon={<MoreOutlined />} size={isMobile ? 'small' : 'middle'} />
+                            </Dropdown>
+                        )}
+                        <Button type="text" icon={<ArrowLeftOutlined />} onClick={onBack} size={isMobile ? 'small' : 'middle'}>Quay lại</Button>
+                    </Space>
+                </div>
+            }
+            style={{ backgroundColor: 'white' }}
+            variant="borderless"
+        >
+            <Row gutter={[isMobile ? 16 : 24, isMobile ? 12 : 16]} style={{ marginBottom: isMobile ? 24 : 32 }}>
+                <Col xs={24} sm={12} md={8}>
+                    <div style={{ marginBottom: isMobile ? 12 : 16 }}>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Mã lớp học</Text>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.code}</Text>
+                            <CopyOutlined style={{ cursor: 'pointer', color: '#00bcd4', fontSize: isMobile ? '14px' : '16px' }} onClick={onCopyCode} />
+                        </div>
+                    </div>
+                    <div>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Giáo viên</Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.name}</Text>
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                        <Tag color={classData.status === 'active' ? 'green' : classData.status === 'pending' ? 'orange' : 'red'}>
+                            {classData.status === 'active' ? 'ĐANG HOẠT ĐỘNG' : classData.status === 'pending' ? 'CHỜ DUYỆT' : 'NGỪNG HOẠT ĐỘNG'}
+                        </Tag>
+                    </div>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                    <div style={{ marginBottom: isMobile ? 12 : 16 }}>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Tên lớp học</Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.name}</Text>
+                    </div>
+                    <div>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Điện thoại</Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.phone}</Text>
+                    </div>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                    <div style={{ marginBottom: isMobile ? 12 : 16 }}>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Sĩ số</Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                            {totalStudents} học sinh
+                        </Text>
+                    </div>
+                    <div>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Email</Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.email}</Text>
+                    </div>
+                </Col>
+            </Row>
+
+            {/* Thêm thông báo chế độ test nếu cần */}
+            {isTestMode && (
+                <div style={{
+                    marginTop: 16,
+                    padding: '12px 16px',
+                    backgroundColor: '#fff7e6',
+                    borderRadius: 8,
+                    border: '1px solid #ffd666'
+                }}>
+                    <Space>
+                        <ExperimentOutlined style={{ color: '#faad14' }} />
+                        <Text style={{ fontSize: 12, color: '#ad6800' }}>
+                            🔬 Bạn đang ở chế độ test. Bạn có thể xem và làm bài tập như học sinh, nhưng không thể quản lý lớp.
+                        </Text>
+                    </Space>
+                </div>
+            )}
+        </Card>
+    );
+};
+
+export default ClassInfoCard;

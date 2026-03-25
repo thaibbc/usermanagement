@@ -13,6 +13,7 @@ import QuestionBank from './pages/QuestionBank'
 import ProtectedRoute from './Components/ProtectedRoute'
 import { StudentClass } from './pages/StudentClass';
 import { MyLibrary } from './pages/MyLibrary';
+import BankManagement from './pages/QuestionBank';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected routes */}
+        {/* Protected routes - yêu cầu đăng nhập */}
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
@@ -35,45 +36,54 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Admin routes */}
-        <Route path="/users" element={
-          <ProtectedRoute requiredRole="admin">
-            <UserManagement />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/classes" element={
-          <ProtectedRoute requiredRole="admin">
-            <ClassManagement />
-          </ProtectedRoute>
-        } />
-
-        {/* ClassDetail - cho cả admin, teacher và student */}
-        <Route path="/classes/:classCode" element={
-          <ProtectedRoute>
-            <ClassDetail />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/my-library" element={
-          <ProtectedRoute>
-            <MyLibrary />
-          </ProtectedRoute>
-        } />
-
+        {/* Routes cho học sinh */}
         <Route path="/student-class" element={
           <ProtectedRoute>
             <StudentClass />
           </ProtectedRoute>
         } />
 
+        {/* Routes cho giáo viên và admin */}
+        <Route path="/my-library" element={
+          <ProtectedRoute requiredRole={['admin', 'teacher']}>
+            <MyLibrary />
+          </ProtectedRoute>
+        } />
+
+        {/* Routes cho giáo viên và admin (quản lý) */}
+        <Route path="/classes" element={
+          <ProtectedRoute requiredRole={['admin', 'teacher']}>
+            <ClassManagement />
+          </ProtectedRoute>
+        } />
+
         <Route path="/question-bank" element={
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute requiredRole={['admin', 'teacher']}>
             <QuestionBank />
           </ProtectedRoute>
         } />
 
-        {/* User routes */}
+        <Route path="/bank-management" element={
+          <ProtectedRoute requiredRole={['admin', 'teacher']}>
+            <BankManagement />
+          </ProtectedRoute>
+        } />
+
+        {/* ClassDetail - cho tất cả user đã đăng nhập */}
+        <Route path="/classes/:classCode" element={
+          <ProtectedRoute>
+            <ClassDetail />
+          </ProtectedRoute>
+        } />
+
+        {/* Routes chỉ dành cho admin */}
+        <Route path="/users" element={
+          <ProtectedRoute requiredRole="admin">
+            <UserManagement />
+          </ProtectedRoute>
+        } />
+
+        {/* User routes - đang phát triển */}
         <Route path="/my-classes" element={
           <ProtectedRoute>
             <div>Lớp học của tôi - Đang phát triển</div>

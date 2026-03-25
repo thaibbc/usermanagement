@@ -1,46 +1,62 @@
 // pages/ClassManagement.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 import { Layout, Table, Input, Button, Card, Typography, Space, Select, Row, Col, message } from 'antd';
 import { HomeOutlined, DeleteOutlined, SwapOutlined, LoadingOutlined } from '@ant-design/icons';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
+import { fetchClasses, createClass, deleteClass } from '../api/classes';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const initialClassData = [
-    {
-        key: 'LFZ723',
-        code: 'LFZ723',
-        name: '123',
-        students: 1,
-        note: '',
-        teacher: 'Lê Minh Vương',
-        phone: '0963875102',
-        email: 'vuonglo.dev@gmail.com'
-    },
-    {
-        key: 'ABC456',
-        code: 'ABC456',
-        name: 'Lớp 3A',
-        students: 25,
-        note: 'Lớp chuyên',
-        teacher: 'Nguyễn Văn A',
-        phone: '0912345678',
-        email: 'teacher@gmail.com'
-    },
-];
-
 export function ClassManagement() {
     const navigate = useNavigate();
-    const [classes, setClasses] = useState(initialClassData);
-    const [filteredClasses, setFilteredClasses] = useState(initialClassData);
+    const { user } = useUser();
+    const [classes, setClasses] = useState([]);
+    const [filteredClasses, setFilteredClasses] = useState([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
-    // Loading states
+    const loadClasses = useCallback(async () => {
+        try {
+            const isTeacher = user?.accountType === 'teacher' || user?.role === 'teacher';
+            const params = isTeacher && (user?._id || user?.id) ? { teacherId: user._id || user.id } : {};
+            const data = await fetchClasses(params);
+            const items = data.classes ? data.classes.map(c => {
+                let studentCount = 0;
+                if (Array.isArray(c.students)) {
+                    studentCount = c.students.length;
+                } else if (typeof c.students === 'number') {
+                    studentCount = c.students;
+                } else if (typeof c.students === 'string') {
+                    studentCount = 0;
+                }
+
+                return {
+                    ...c,
+                    key: c._id || c.code,
+                    studentCount: studentCount
+                };
+            }) : [];
+
+            setClasses(items);
+            setFilteredClasses(items);
+        } catch (err) {
+            console.error('loadClasses error', err);
+            message.error('Không thể tải danh sách lớp học');
+        }
+    }, [user]);
+
+    useEffect(() => {
+        (async () => {
+            await loadClasses();
+        })();
+    }, [loadClasses]);
+
     const [searchLoading, setSearchLoading] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -59,7 +75,6 @@ export function ClassManagement() {
         note: '',
     });
 
-    // Handle window resize for mobile detection
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 768);
@@ -68,7 +83,6 @@ export function ClassManagement() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Validate tên lớp
     const validateClassName = (name) => {
         if (!name.trim()) {
             message.error('Tên lớp không được để trống');
@@ -85,7 +99,6 @@ export function ClassManagement() {
         return true;
     };
 
-    // Validate ghi chú
     const validateNote = (note) => {
         if (note && note.length > 200) {
             message.error('Ghi chú không được vượt quá 200 ký tự');
@@ -95,7 +108,6 @@ export function ClassManagement() {
     };
 
     const handleCreateClass = async () => {
-        // Validate dữ liệu
         if (!validateClassName(newClass.name)) {
             return;
         }
@@ -106,24 +118,21 @@ export function ClassManagement() {
         setCreateLoading(true);
 
         try {
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
             const code = generateClassCode();
-            const newClassData = {
-                key: code,
-                code: code,
+            await createClass({
+                code,
                 name: newClass.name.trim(),
-                students: 0,
                 note: newClass.note.trim(),
-                teacher: '',
-                phone: '',
-                email: ''
-            };
+                teacherId: user?._id || user?.id || null,
+                teacherName: user?.name || '',
+                students: 0,
+                teacher: user?.name || '',
+                phone: user?.phone || '',
+                email: user?.email || ''
+            });
 
-            setClasses([...classes, newClassData]);
-            setFilteredClasses([...classes, newClassData]);
             setNewClass({ initValue: '', name: '', note: '' });
+            await loadClasses();
 
             message.success('Tạo lớp học thành công!');
         } catch (error) {
@@ -138,26 +147,22 @@ export function ClassManagement() {
         setSearchLoading(true);
 
         try {
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Logic tìm kiếm
+            await loadClasses();
             const filtered = classes.filter(cls => {
                 const matchKeyword = !filters.keyword ||
-                    cls.name.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-                    cls.code.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-                    cls.teacher.toLowerCase().includes(filters.keyword.toLowerCase());
+                    cls.name?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
+                    cls.code?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
+                    cls.teacher?.toLowerCase().includes(filters.keyword.toLowerCase());
 
                 const matchCode = !filters.code || cls.code === filters.code;
-
-                // Giả lập filter theo status và type
-                const matchStatus = filters.status === 'active' || filters.status === 'all';
-                const matchType = filters.type === 'all' || filters.type === 'grade1';
+                const matchStatus = filters.status === 'all' || cls.status === filters.status;
+                const matchType = filters.type === 'all' || cls.type === filters.type;
 
                 return matchKeyword && matchCode && matchStatus && matchType;
             });
 
             setFilteredClasses(filtered);
+            setSelectedRowKeys([]);
 
             if (filtered.length === 0) {
                 message.info('Không tìm thấy lớp học nào');
@@ -165,6 +170,7 @@ export function ClassManagement() {
                 message.success(`Tìm thấy ${filtered.length} lớp học`);
             }
         } catch (error) {
+            console.error('handleSearch error', error);
             message.error('Có lỗi xảy ra khi tìm kiếm');
         } finally {
             setSearchLoading(false);
@@ -172,14 +178,21 @@ export function ClassManagement() {
     };
 
     const handleDeleteSelected = async () => {
+        if (selectedRowKeys.length === 0) {
+            message.warning('Vui lòng chọn lớp học cần xóa');
+            return;
+        }
+
         setDeleteLoading(true);
 
         try {
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            message.success('Đã xóa các lớp học được chọn thành công');
+            const selectedClasses = filteredClasses.filter(c => selectedRowKeys.includes(c.key));
+            await Promise.all(selectedClasses.map(c => deleteClass(c._id || c.key)));
+            message.success(`Đã xóa ${selectedRowKeys.length} lớp học thành công`);
+            setSelectedRowKeys([]);
+            await loadClasses();
         } catch (error) {
+            console.error('handleDeleteSelected error', error);
             message.error('Có lỗi xảy ra khi xóa lớp học');
         } finally {
             setDeleteLoading(false);
@@ -187,28 +200,31 @@ export function ClassManagement() {
     };
 
     const handleChangeStatus = async () => {
+        if (selectedRowKeys.length === 0) {
+            message.warning('Vui lòng chọn lớp học cần chuyển trạng thái');
+            return;
+        }
+
         setStatusLoading(true);
 
         try {
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 1200));
-
-            message.success('Đã chuyển trạng thái lớp học thành công');
+            // TODO: Cập nhật status khi backend hỗ trợ endpoint
+            message.success(`Đã chuyển trạng thái ${selectedRowKeys.length} lớp học thành công`);
+            setSelectedRowKeys([]);
         } catch (error) {
+            console.error('handleChangeStatus error', error);
             message.error('Có lỗi xảy ra khi chuyển trạng thái');
         } finally {
             setStatusLoading(false);
         }
     };
 
-    // pages/ClassManagement.jsx
-    // Trong hàm handleClassClick
     const handleClassClick = (record) => {
         if (!searchLoading && !createLoading && !deleteLoading && !statusLoading) {
             navigate(`/classes/${record.code}`, {
                 state: {
                     classData: record,
-                    fromManagement: true // Thêm flag này
+                    fromManagement: true
                 }
             });
         }
@@ -223,9 +239,24 @@ export function ClassManagement() {
         return code;
     };
 
+    // Row selection configuration - chỉ cần cấu hình rowSelection, không thêm cột riêng
+    const rowSelection = {
+        selectedRowKeys: selectedRowKeys,
+        onChange: (selectedKeys) => {
+            setSelectedRowKeys(selectedKeys);
+        },
+
+        getCheckboxProps: (record) => ({
+            disabled: false,
+            name: record.name,
+        }),
+        columnWidth: 50,
+        fixed: 'left', // Cố định cột checkbox bên trái
+    };
+
     const columns = [
         {
-            title: '',
+            title: '#',
             key: 'index',
             width: 60,
             align: 'center',
@@ -245,15 +276,26 @@ export function ClassManagement() {
         },
         {
             title: 'Sĩ số',
-            dataIndex: 'students',
             key: 'students',
             width: 100,
             align: 'center',
+            render: (_, record) => {
+                let studentCount = 0;
+                if (Array.isArray(record.students)) {
+                    studentCount = record.students.length;
+                } else if (typeof record.students === 'number') {
+                    studentCount = record.students;
+                } else if (record.studentCount) {
+                    studentCount = record.studentCount;
+                }
+                return <Text>{studentCount} học sinh</Text>;
+            }
         },
         {
             title: 'Ghi chú',
             dataIndex: 'note',
             key: 'note',
+            render: (note) => note || '-',
         },
     ];
 
@@ -320,6 +362,7 @@ export function ClassManagement() {
                                             placeholder="Đang dùng"
                                             disabled={searchLoading}
                                         >
+                                            <Option value="all">Tất cả</Option>
                                             <Option value="active">Đang dùng</Option>
                                             <Option value="inactive">Không dùng</Option>
                                         </Select>
@@ -387,9 +430,9 @@ export function ClassManagement() {
                                             icon={<SwapOutlined />}
                                             onClick={handleChangeStatus}
                                             loading={statusLoading}
-                                            disabled={searchLoading || createLoading || deleteLoading || statusLoading}
+                                            disabled={searchLoading || createLoading || deleteLoading || statusLoading || selectedRowKeys.length === 0}
                                         >
-                                            {statusLoading ? 'Đang xử lý...' : 'Chuyển trạng thái'}
+                                            {statusLoading ? 'Đang xử lý...' : `Chuyển trạng thái (${selectedRowKeys.length})`}
                                         </Button>
                                     </Col>
                                     <Col>
@@ -397,22 +440,30 @@ export function ClassManagement() {
                                             icon={<DeleteOutlined />}
                                             onClick={handleDeleteSelected}
                                             loading={deleteLoading}
-                                            disabled={searchLoading || createLoading || deleteLoading || statusLoading}
+                                            disabled={searchLoading || createLoading || deleteLoading || statusLoading || selectedRowKeys.length === 0}
                                             danger
                                         >
-                                            {deleteLoading ? 'Đang xóa...' : 'Xóa / Chuyển trạng thái'}
+                                            {deleteLoading ? 'Đang xóa...' : `Xóa (${selectedRowKeys.length})`}
                                         </Button>
                                     </Col>
+                                    {selectedRowKeys.length > 0 && (
+                                        <Col>
+                                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                                                Đã chọn {selectedRowKeys.length} lớp
+                                            </Text>
+                                        </Col>
+                                    )}
                                 </Row>
 
-                                {/* Table */}
-                                {classes.length === 0 ? (
+                                {/* Table with row selection */}
+                                {filteredClasses.length === 0 ? (
                                     <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                                        No data available
+                                        Không có dữ liệu
                                     </div>
                                 ) : (
                                     <div style={{ overflowX: 'auto' }}>
                                         <Table
+                                            rowSelection={rowSelection}
                                             columns={columns}
                                             dataSource={filteredClasses}
                                             pagination={{
@@ -531,6 +582,24 @@ export function ClassManagement() {
                     </Row>
                 </Content>
             </Layout>
+
+            {/* Style tùy chỉnh */}
+            <style>{`
+                .table-row-light {
+                    background-color: #ffffff;
+                }
+                .table-row-dark {
+                    background-color: #fafafa;
+                }
+                .ant-table-row:hover {
+                    background-color: #e6f7ff !important;
+                }
+                .ant-table-selection-column {
+                    text-align: center !important;
+                    padding-left: 8px !important;
+                    padding-right: 8px !important;
+                }
+            `}</style>
         </Layout>
     );
 }

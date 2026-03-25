@@ -1,53 +1,62 @@
 // pages/ClassDetail.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
     Layout,
-    Card,
-    Typography,
-    Row,
-    Col,
     Tabs,
-    Button,
-    Drawer,
-    Input,
-    Select,
-    Table,
-    DatePicker,
+    Spin,
     message,
-    Tag,
-    InputNumber,
-    Tooltip,
+    Button,
+    Typography,
     Space,
-    Spin
+    Tag,
+    Modal,
+    Result
 } from 'antd';
 import {
     HomeOutlined,
-    CopyOutlined,
-    MoreOutlined,
-    CloseOutlined,
-    BookOutlined,
-    PlusOutlined,
-    FontColorsOutlined,
-    BoldOutlined,
-    ItalicOutlined,
-    UnderlineOutlined,
-    OrderedListOutlined,
-    UnorderedListOutlined,
-    AlignLeftOutlined,
-    AlignCenterOutlined,
-    AlignRightOutlined,
-    PictureOutlined,
-    LinkOutlined,
-    LoadingOutlined
+    ExclamationCircleOutlined,
+    ClockCircleOutlined,
+    CheckCircleOutlined,
+    InfoCircleOutlined
 } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
+import CreateAssignmentDrawer from '../Components/CreateAssignmentDrawer';
+import ClassInfoCard from '../Components/ClassInfoCard';
+import AssignmentList from '../Components/AssignmentList';
+import StudentTable from '../Components/StudentTable';
+import NotificationList from '../Components/NotificationList';
+import StudentResultTab from '../Components/StudentResultTab';
+import EbookTab from '../Components/EbookTab';
+import SubmitAssignmentModal from '../Components/SubmitAssignmentModal';
+import {
+    AddStudentModal,
+    ImportStudentModal,
+    StudentDetailModal,
+    EditStudentModal
+} from '../Components/StudentModals';
+import {
+    getClassByCode,
+    approveClassJoin,
+    rejectClassJoin,
+    removeStudentFromClass,
+    addStudentToClass,
+    importStudentsToClass,
+    bulkApproveJoinRequests,
+    getClassStats,
+    updateClassStatus,
+    fetchAssignments,
+    fetchSubmissions,
+    createAssignment,
+    deleteAssignment
+} from '../api/classes';
+import { getUser } from '../api/users';
 
 const { Content } = Layout;
 const { Text } = Typography;
-const { Option } = Select;
+const { confirm } = Modal;
 
 export function ClassDetail({ classData: propClassData, onBack }) {
     const location = useLocation();
@@ -58,28 +67,62 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [activeTab, setActiveTab] = useState('baitap');
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-    // SỬA: Dùng chung breakpoint với Sidebar và Header
     const [isMobileOrTablet, setIsMobileOrTablet] = useState(window.innerWidth <= 1024);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+    // Data states
     const [classData, setClassData] = useState(propClassData || location.state?.classData || null);
     const [loading, setLoading] = useState(!propClassData && !location.state?.classData);
     const [fromAdmin, setFromAdmin] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [classStats, setClassStats] = useState(null);
+    const [teacherInfo, setTeacherInfo] = useState({
+        name: 'Đang tải...',
+        phone: 'Đang tải...',
+        email: 'Đang tải...'
+    });
+
+    // Assignment states
+    const [assignments, setAssignments] = useState([]);
+    const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+    const [submissions, setSubmissions] = useState([]);
+
+    // Result view states
+    const [viewResultModalVisible, setViewResultModalVisible] = useState(false);
+    const [viewSubmissionModalVisible, setViewSubmissionModalVisible] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
+    const [selectedSubmission, setSelectedSubmission] = useState(null);
+
+    // Student management states
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [addStudentModalVisible, setAddStudentModalVisible] = useState(false);
+    const [importModalVisible, setImportModalVisible] = useState(false);
+    const [studentDetailModalVisible, setStudentDetailModalVisible] = useState(false);
+    const [editStudentModalVisible, setEditStudentModalVisible] = useState(false);
+    const [newStudentEmail, setNewStudentEmail] = useState('');
+    const [newStudentName, setNewStudentName] = useState('');
+    const [newStudentPhone, setNewStudentPhone] = useState('');
+    const [newStudentNote, setNewStudentNote] = useState('');
+    const [importFile, setImportFile] = useState(null);
+    const [searchText, setSearchText] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [selectedStudent, setSelectedStudent] = useState(null);
+
+    // Form states for assignment
     const [formData, setFormData] = useState({
         title: '',
         type: undefined,
         points: 10,
         color: '#00bcd4',
         requirements: '',
+        questions: [],
         selectedStudents: [],
         useLibrary: false,
         openTime: null,
         closeTime: null
     });
 
-    // Kiểm tra nguồn gốc và quyền
     useEffect(() => {
         if (location.state?.fromManagement) {
             setFromAdmin(true);
@@ -89,11 +132,21 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const isAdmin = user?.accountType === 'admin';
     const isTeacher = user?.accountType === 'teacher';
     const isStudent = user?.accountType === 'student';
+    const currentUserId = user?._id || user?.id;
 
-    // Chỉ hiển thị nút tạo bài tập khi là admin/teacher VÀ đến từ trang quản lý
-    const canCreateAssignment = (isAdmin || isTeacher) && fromAdmin;
+    // Kiểm tra xem user hiện tại có phải chủ lớp không
+    const classTeacherId = classData?.teacherId?._id || classData?.teacherId;
+    const isClassOwner = isAdmin || (isTeacher && String(classTeacherId) === String(currentUserId));
 
-    // Handle window resize for mobile detection
+    const isViewingAsStudent = isStudent || (isTeacher && !isClassOwner);
+    const canCreateAssignment = isClassOwner;
+    const canManageStudents = isClassOwner;
+
+    const isPending = classData?.pendingStudents?.some(s => String(s._id || s) === String(currentUserId));
+    const isApproved = classData?.students?.some(s => String(s._id || s) === String(currentUserId));
+
+    const totalStudents = classStats?.totalStudents ?? (Array.isArray(classData?.students) ? classData.students.length : (classData?.students || 0));
+
     useEffect(() => {
         const handleResize = () => {
             setIsMobileOrTablet(window.innerWidth <= 1024);
@@ -103,37 +156,254 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Fetch class data if not provided via props or location state
-    useEffect(() => {
-        if (!classData && classCode) {
-            const fetchClassData = async () => {
-                try {
-                    setLoading(true);
-                    // Mock data for demonstration
-                    setTimeout(() => {
-                        setClassData({
-                            key: classCode,
-                            code: classCode,
-                            name: 'Lớp học ' + classCode,
-                            students: 25,
-                            note: '',
-                            teacher: 'Lê Minh Vương',
-                            phone: '0963875102',
-                            email: 'vuonglo.dev@gmail.com'
-                        });
-                        setLoading(false);
-                    }, 500);
-                } catch (error) {
-                    console.error('Error fetching class data:', error);
-                    message.error('Không thể tải thông tin lớp học');
-                    navigate('/classes');
-                }
-            };
-
-            fetchClassData();
+    // ==================== ASSIGNMENT FUNCTIONS ====================
+    const loadAssignments = useCallback(async () => {
+        if (!classData?._id) return;
+        setAssignmentsLoading(true);
+        try {
+            const response = await fetchAssignments(classData._id);
+            const assignmentsData = response?.assignments || response?.data || [];
+            setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
+        } catch (err) {
+            console.error('Failed to load assignments:', err);
+        } finally {
+            setAssignmentsLoading(false);
         }
-    }, [classCode, classData, navigate]);
+    }, [classData?._id]);
 
+    const loadSubmissions = useCallback(async () => {
+        if (!classData?._id) return;
+        try {
+            const response = await fetchSubmissions(classData._id, isViewingAsStudent ? currentUserId : null);
+            let submissionsData = [];
+
+            if (response?.submissions && Array.isArray(response.submissions)) {
+                submissionsData = response.submissions;
+            } else if (response?.data && Array.isArray(response.data)) {
+                submissionsData = response.data;
+            } else if (Array.isArray(response)) {
+                submissionsData = response;
+            }
+
+            // Chuẩn hóa dữ liệu submissions
+            const normalizedSubmissions = submissionsData.map(sub => ({
+                ...sub,
+                assignmentId: sub.assignmentId?._id || sub.assignmentId || sub.assignment,
+                studentId: sub.studentId?._id || sub.studentId || sub.student,
+                status: sub.status || (sub.score ? 'graded' : 'submitted')
+            }));
+
+            setSubmissions(normalizedSubmissions);
+        } catch (err) {
+            console.error('Failed to load submissions:', err);
+            setSubmissions([]);
+        }
+    }, [classData?._id, isViewingAsStudent, currentUserId]);
+
+    const handleSaveAssignment = async () => {
+        if (!canCreateAssignment) {
+            message.warning('Bạn không có quyền tạo bài tập');
+            return;
+        }
+
+        if (!formData.title || !formData.title.trim()) {
+            message.error('Vui lòng nhập tiêu đề bài tập');
+            return;
+        }
+        if (!formData.type) {
+            message.error('Vui lòng chọn loại bài tập');
+            return;
+        }
+        if (!formData.points || formData.points <= 0) {
+            message.error('Điểm phải lớn hơn 0');
+            return;
+        }
+        if (formData.points > 100) {
+            message.error('Điểm không được vượt quá 100');
+            return;
+        }
+
+        setSubmitLoading(true);
+        try {
+            // Chuẩn bị dữ liệu câu hỏi để gửi lên API
+            const questionsToSave = formData.questions.map(q => ({
+                _id: q._id,
+                cauHoi: q.cauHoi,
+                loaiCauHoi: q.loaiCauHoi,
+                mucDoNhanThuc: q.mucDoNhanThuc,
+                answer: q.answer,
+                yeuCauDeBai: q.yeuCauDeBai,
+                noiDungBaiDoc: q.noiDungBaiDoc,
+                dapAnA: q.dapAnA,
+                dapAnB: q.dapAnB,
+                dapAnC: q.dapAnC,
+                dapAnD: q.dapAnD
+            }));
+
+            await createAssignment(classData._id, {
+                title: formData.title.trim(),
+                type: formData.type,
+                points: formData.points,
+                color: formData.color,
+                requirements: formData.requirements,
+                questions: questionsToSave,
+                selectedStudents: formData.selectedStudents,
+                openTime: formData.openTime,
+                closeTime: formData.closeTime
+            });
+            message.success('Đã tạo bài tập thành công!');
+            closeDrawer();
+            await loadAssignments();
+            await loadSubmissions();
+        } catch (err) {
+            console.error('handleSaveAssignment error:', err);
+            message.error(err?.message || 'Có lỗi xảy ra khi tạo bài tập');
+        } finally {
+            setSubmitLoading(false);
+        }
+    };
+
+    const handleDeleteAssignment = async (assignment) => {
+        if (!canCreateAssignment) return;
+
+        confirm({
+            title: 'Xác nhận xóa bài tập',
+            icon: <ExclamationCircleOutlined />,
+            content: `Bạn có chắc chắn muốn xóa bài tập "${assignment.title}"? Hành động này sẽ xóa tất cả bài nộp của học sinh.`,
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    await deleteAssignment(classData._id, assignment._id);
+                    message.success('Đã xóa bài tập thành công');
+                    await loadAssignments();
+                    await loadSubmissions();
+                } catch (err) {
+                    console.error('Delete assignment error:', err);
+                    message.error('Có lỗi xảy ra khi xóa bài tập');
+                }
+            }
+        });
+    };
+
+    const handleViewAssignment = (assignment) => {
+        Modal.info({
+            title: assignment.title,
+            width: 600,
+            content: (
+                <div style={{ marginTop: 16 }}>
+                    <p><strong>Loại bài tập:</strong> {
+                        assignment.type === 'quiz' ? 'Trắc nghiệm' :
+                            assignment.type === 'code' ? 'Lập trình' : 'Bài tập thường'
+                    }</p>
+                    <p><strong>Điểm:</strong> {assignment.points} điểm</p>
+                    <p><strong>Số câu hỏi:</strong> {assignment.questions?.length || 0} câu</p>
+                    {assignment.requirements && (
+                        <p><strong>Yêu cầu:</strong> {assignment.requirements}</p>
+                    )}
+                    {assignment.openTime && (
+                        <p><strong>Thời gian mở:</strong> {new Date(assignment.openTime).toLocaleString('vi-VN')}</p>
+                    )}
+                    {assignment.closeTime && (
+                        <p><strong>Thời gian đóng:</strong> {new Date(assignment.closeTime).toLocaleString('vi-VN')}</p>
+                    )}
+                    <p><strong>Ngày tạo:</strong> {new Date(assignment.createdAt).toLocaleString('vi-VN')}</p>
+                </div>
+            ),
+            okText: 'Đóng'
+        });
+    };
+
+    // ==================== TEACHER INFO FUNCTIONS ====================
+    const fetchTeacherInfo = useCallback(async (teacherId) => {
+        if (!teacherId) {
+            setTeacherInfo({
+                name: classData?.teacherName || 'Chưa cập nhật',
+                phone: 'Chưa cập nhật',
+                email: 'Chưa cập nhật'
+            });
+            return;
+        }
+
+        try {
+            if (typeof teacherId === 'object' && teacherId !== null) {
+                setTeacherInfo({
+                    name: teacherId.name || classData?.teacherName || 'Chưa cập nhật',
+                    phone: teacherId.phone || 'Chưa cập nhật',
+                    email: teacherId.email || 'Chưa cập nhật'
+                });
+                return;
+            }
+
+            const response = await getUser(teacherId);
+            if (response) {
+                setTeacherInfo({
+                    name: response.name || classData?.teacherName || 'Chưa cập nhật',
+                    phone: response.phone || 'Chưa cập nhật',
+                    email: response.email || 'Chưa cập nhật'
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching teacher info:', err);
+            setTeacherInfo({
+                name: classData?.teacherName || 'Chưa cập nhật',
+                phone: 'Chưa cập nhật',
+                email: 'Chưa cập nhật'
+            });
+        }
+    }, [classData?.teacherName]);
+
+    // ==================== CLASS DATA FUNCTIONS ====================
+    const loadClassData = useCallback(async (code) => {
+        if (!code) return;
+        try {
+            setLoading(true);
+            const response = await getClassByCode(code);
+            setClassData({
+                ...response,
+                key: response._id || response.code
+            });
+
+            if (response.teacherId) {
+                await fetchTeacherInfo(response.teacherId);
+            } else {
+                setTeacherInfo({
+                    name: response.teacherName || 'Chưa cập nhật',
+                    phone: 'Chưa cập nhật',
+                    email: 'Chưa cập nhật'
+                });
+            }
+
+            if (response._id) {
+                const stats = await getClassStats(response._id);
+                setClassStats(stats);
+            }
+        } catch (err) {
+            console.error('Error fetching class data:', err);
+            message.error('Không thể tải thông tin lớp học');
+            navigate('/student-class');
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate, fetchTeacherInfo]);
+
+    useEffect(() => {
+        if (classCode) {
+            loadClassData(classCode);
+        } else if (classData?.code) {
+            loadClassData(classData.code);
+        }
+    }, [classCode, classData?.code, loadClassData]);
+
+    useEffect(() => {
+        if (classData?._id) {
+            loadAssignments();
+            loadSubmissions();
+        }
+    }, [classData?._id, loadAssignments, loadSubmissions]);
+
+    // ==================== HANDLERS ====================
     const handleCopyCode = () => {
         if (classData?.code) {
             navigator.clipboard.writeText(classData.code);
@@ -151,13 +421,13 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     const closeDrawer = () => {
         setDrawerVisible(false);
-        // Reset form khi đóng
         setFormData({
             title: '',
             type: undefined,
             points: 10,
             color: '#00bcd4',
             requirements: '',
+            questions: [],
             selectedStudents: [],
             useLibrary: false,
             openTime: null,
@@ -165,78 +435,296 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         });
     };
 
-    const handleSave = async () => {
-        // Validate form
-        if (!formData.title.trim()) {
-            message.error('Vui lòng nhập tiêu đề bài tập');
-            return;
-        }
-        if (!formData.type) {
-            message.error('Vui lòng chọn loại bài tập');
-            return;
-        }
-        if (formData.points <= 0) {
-            message.error('Điểm phải lớn hơn 0');
-            return;
-        }
-
-        setSubmitLoading(true);
-
-        try {
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            console.log('Saving:', formData);
-            message.success('Đã lưu bài tập thành công');
-            closeDrawer();
-        } catch (error) {
-            message.error('Có lỗi xảy ra khi lưu bài tập');
-        } finally {
-            setSubmitLoading(false);
-        }
-    };
-
     const handleBack = () => {
         if (onBack) {
             onBack();
-        } else {
+        } else if (isClassOwner) {
             navigate('/classes');
+        } else {
+            navigate('/student-class');
         }
     };
 
-    // Sample student data
-    const studentData = [
-        {
-            key: '1',
-            name: 'Nguyễn Văn A',
-            email: 'nguyenvana@gmail.com'
-        },
-        {
-            key: '2',
-            name: 'Trần Thị B',
-            email: 'tranthib@gmail.com'
-        },
-        {
-            key: '3',
-            name: 'Lê Văn C',
-            email: 'levanc@gmail.com'
+    const handleUpdateStatus = async (newStatus) => {
+        if (!canManageStudents) return;
+
+        confirm({
+            title: 'Xác nhận thay đổi trạng thái',
+            icon: <ExclamationCircleOutlined />,
+            content: `Bạn có chắc chắn muốn chuyển trạng thái lớp thành "${newStatus === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}"?`,
+            okText: 'Xác nhận',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                setActionLoading(true);
+                try {
+                    await updateClassStatus(classData._id, newStatus);
+                    message.success('Cập nhật trạng thái thành công');
+                    await loadClassData(classData.code);
+                } catch (err) {
+                    console.error('Update status error:', err);
+                    message.error('Có lỗi xảy ra khi cập nhật trạng thái');
+                } finally {
+                    setActionLoading(false);
+                }
+            }
+        });
+    };
+
+    // ==================== STUDENT MANAGEMENT HANDLERS ====================
+    const handleApproveStudent = async (pendingStudent) => {
+        if (!canManageStudents) return;
+
+        if (!pendingStudent || !pendingStudent.id) {
+            message.error('Không tìm thấy thông tin học sinh');
+            return;
         }
-    ];
 
-    const studentColumns = [
-        {
-            title: 'Tên học sinh',
-            dataIndex: 'name',
-            key: 'name',
-        },
-        {
-            title: 'Email',
-            dataIndex: 'email',
-            key: 'email',
-        },
-    ];
+        setActionLoading(true);
+        try {
+            await approveClassJoin(classData._id, pendingStudent.id);
+            message.success(`Đã duyệt học sinh ${pendingStudent.name}`);
+            await loadClassData(classData.code);
+            setSelectedRowKeys([]);
+        } catch (err) {
+            console.error('approveClassJoin error', err);
+            message.error(err?.message || 'Duyệt lớp không thành công');
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
-    // Color palette
+    const handleRejectStudent = async (pendingStudent) => {
+        if (!canManageStudents) return;
+
+        if (!pendingStudent || !pendingStudent.id) {
+            message.error('Không tìm thấy thông tin học sinh');
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            await rejectClassJoin(classData._id, pendingStudent.id);
+            message.success(`Đã từ chối học sinh ${pendingStudent.name}`);
+            await loadClassData(classData.code);
+            setSelectedRowKeys([]);
+        } catch (err) {
+            console.error('rejectClassJoin error', err);
+            message.error(err?.message || 'Từ chối lớp không thành công');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDeleteSelectedStudents = (keys = null) => {
+        if (!canManageStudents) return;
+
+        const keysToDelete = keys || selectedRowKeys;
+        if (keysToDelete.length === 0) {
+            message.warning('Vui lòng chọn học sinh cần xóa');
+            return;
+        }
+
+        confirm({
+            title: 'Xác nhận xóa học sinh',
+            icon: <ExclamationCircleOutlined />,
+            content: `Bạn có chắc chắn muốn xóa ${keysToDelete.length} học sinh đã chọn?`,
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                setActionLoading(true);
+                try {
+                    await Promise.all(keysToDelete.map(studentId =>
+                        removeStudentFromClass(classData._id, studentId.replace('pending-', ''))
+                    ));
+                    message.success(`Đã xóa ${keysToDelete.length} học sinh thành công`);
+                    setSelectedRowKeys([]);
+                    await loadClassData(classData.code);
+                } catch (err) {
+                    console.error('Delete students error:', err);
+                    message.error('Có lỗi xảy ra khi xóa học sinh');
+                } finally {
+                    setActionLoading(false);
+                }
+            }
+        });
+    };
+
+    const handleAddStudent = async () => {
+        if (!canManageStudents) return;
+
+        if (!newStudentEmail.trim()) {
+            message.error('Vui lòng nhập email học sinh');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newStudentEmail)) {
+            message.error('Email không hợp lệ');
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            await addStudentToClass(classData._id, {
+                email: newStudentEmail,
+                name: newStudentName,
+                phone: newStudentPhone,
+                note: newStudentNote
+            });
+            message.success('Đã thêm học sinh thành công');
+            setAddStudentModalVisible(false);
+            resetAddStudentForm();
+            await loadClassData(classData.code);
+        } catch (err) {
+            console.error('Add student error:', err);
+            message.error(err?.message || 'Có lỗi xảy ra khi thêm học sinh');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const resetAddStudentForm = () => {
+        setNewStudentEmail('');
+        setNewStudentName('');
+        setNewStudentPhone('');
+        setNewStudentNote('');
+    };
+
+    const handleImportStudents = async () => {
+        if (!canManageStudents) return;
+
+        if (!importFile) {
+            message.error('Vui lòng chọn file để import');
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            await importStudentsToClass(classData._id, importFile);
+            message.success('Import học sinh thành công');
+            setImportModalVisible(false);
+            setImportFile(null);
+            await loadClassData(classData.code);
+        } catch (err) {
+            console.error('Import students error:', err);
+            message.error(err?.message || 'Có lỗi xảy ra khi import');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleApproveAllPending = () => {
+        if (!canManageStudents) return;
+
+        const pendingStudents = classData?.pendingStudents || [];
+        if (pendingStudents.length === 0) {
+            message.info('Không có học sinh nào đang chờ duyệt');
+            return;
+        }
+
+        const pendingIds = pendingStudents.map(s => s._id || s);
+
+        confirm({
+            title: 'Xác nhận phê duyệt tất cả',
+            icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+            content: `Bạn có chắc chắn muốn phê duyệt ${pendingStudents.length} học sinh đang chờ?`,
+            okText: 'Phê duyệt',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                setActionLoading(true);
+                try {
+                    await bulkApproveJoinRequests(classData._id, pendingIds);
+                    message.success(`Đã phê duyệt ${pendingStudents.length} học sinh thành công`);
+                    await loadClassData(classData.code);
+                    setSelectedRowKeys([]);
+                } catch (err) {
+                    console.error('Approve all error:', err);
+                    message.error('Có lỗi xảy ra khi phê duyệt');
+                } finally {
+                    setActionLoading(false);
+                }
+            }
+        });
+    };
+
+    const handleViewStudent = (student) => {
+        setSelectedStudent(student);
+        setStudentDetailModalVisible(true);
+    };
+
+    const handleEditStudent = (student) => {
+        if (!canManageStudents) return;
+
+        setSelectedStudent(student);
+        setNewStudentName(student.name);
+        setNewStudentEmail(student.email);
+        setNewStudentPhone(student.phone);
+        setNewStudentNote(student.note);
+        setEditStudentModalVisible(true);
+    };
+
+    const downloadTemplate = () => {
+        const template = 'email,name,phone,note\nstudent1@email.com,Student 1,0123456789,Ghi chú 1\nstudent2@email.com,Student 2,0987654321,Ghi chú 2';
+        const blob = new Blob([template], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'template_import_students.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // ==================== FILTER FUNCTIONS ====================
+    const getFilteredStudents = () => {
+        const approved = (classData?.students || []).map((stu, index) => ({
+            key: stu._id || stu,
+            id: stu._id || stu,
+            code: stu.code || stu.studentCode || `HS${String(index + 1).padStart(3, '0')}`,
+            name: stu.name || 'Không tên',
+            email: stu.email || '-',
+            phone: stu.phone || '-',
+            note: stu.note || '',
+            status: 'Đã duyệt',
+            type: 'approved',
+            avatar: stu.avatar,
+            joinDate: stu.joinDate || new Date().toLocaleDateString('vi-VN')
+        }));
+
+        const pending = (classData?.pendingStudents || []).map((stu, index) => ({
+            key: `pending-${stu._id || stu}`,
+            id: stu._id || stu,
+            code: stu.code || stu.studentCode || `HS${String(approved.length + index + 1).padStart(3, '0')}`,
+            name: stu.name || 'Không tên',
+            email: stu.email || '-',
+            phone: stu.phone || '-',
+            note: stu.note || 'Đang chờ duyệt',
+            status: 'Chờ duyệt',
+            type: 'pending',
+            avatar: stu.avatar,
+            requestDate: stu.requestDate || new Date().toLocaleDateString('vi-VN')
+        }));
+
+        let all = [...approved, ...pending];
+
+        if (searchText) {
+            const searchLower = searchText.toLowerCase();
+            all = all.filter(s =>
+                s.name.toLowerCase().includes(searchLower) ||
+                s.email.toLowerCase().includes(searchLower) ||
+                s.code.toLowerCase().includes(searchLower) ||
+                (s.phone && s.phone.toLowerCase().includes(searchLower))
+            );
+        }
+
+        if (statusFilter !== 'all') {
+            all = all.filter(s => s.type === statusFilter);
+        }
+
+        return all;
+    };
+
+    const studentData = getFilteredStudents();
     const colors = [
         '#ffffff', '#000000', '#ff0000', '#e91e63', '#9c27b0', '#673ab7',
         '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
@@ -244,133 +732,167 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         '#795548', '#607d8b'
     ];
 
-    // Tab items cho từng role
-    const getTabItems = () => {
-        const baseTabs = [
-            {
-                key: 'baitap',
-                label: 'Bài tập',
-                children: (
-                    <div>
-                        {canCreateAssignment && (
-                            <Button
-                                type="primary"
-                                style={{ marginBottom: 16, backgroundColor: '#00bcd4' }}
-                                onClick={showDrawer}
-                                icon={<PlusOutlined />}
-                                block={isMobileOrTablet}
-                            >
-                                Tạo bài tập
-                            </Button>
-                        )}
-                        <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                            <BookOutlined style={{ fontSize: 48, marginBottom: 16, color: '#ddd' }} />
-                            <div>Chưa có bài tập nào</div>
-                            {isStudent && (
-                                <div style={{ fontSize: 13, marginTop: 8 }}>
-                                    Giáo viên sẽ giao bài tập cho bạn
-                                </div>
-                            )}
-                            {(isAdmin || isTeacher) && !fromAdmin && (
-                                <div style={{ fontSize: 13, marginTop: 8 }}>
-                                    Vui lòng vào từ trang Quản lý lớp học để tạo bài tập
-                                </div>
-                            )}
-                            {canCreateAssignment && (
-                                <div style={{ fontSize: 13, marginTop: 8 }}>
-                                    Nhấn nút "Tạo bài tập" để thêm bài tập mới
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                key: 'ketqua',
-                label: 'Kết quả rèn luyện',
-                children: (
-                    <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                        <div>Chưa có kết quả nào</div>
-                    </div>
-                ),
-            },
-            {
-                key: 'hocsinh',
-                label: 'Học sinh',
-                children: (
-                    <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                        <div>Chưa có học sinh nào</div>
-                    </div>
-                ),
-            },
-            {
-                key: 'thongbao',
-                label: 'Thông báo',
-                children: (
-                    <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                        <div>Chưa có thông báo nào</div>
-                    </div>
-                ),
-            },
-            {
-                key: 'renluyen',
-                label: 'Rèn luyện, bồi dưỡng',
-                children: (
-                    <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                        <div>Chưa có bài rèn luyện nào</div>
-                    </div>
-                ),
-            },
-        ];
+    const getNotifications = () => {
+        if (!classData) return [];
+        const studentId = user?._id || user?.id;
+        const isPendingCheck = (classData.pendingStudents || []).map(s => String(s._id || s)).includes(String(studentId));
+        const isJoinedCheck = (classData.students || []).map(s => String(s._id || s)).includes(String(studentId));
+        const notifications = [];
 
-        // Thêm tab Sách điện tử cho học sinh
-        if (isStudent) {
-            baseTabs.push({
-                key: 'sachdientu',
-                label: 'Sách điện tử',
-                children: (
-                    <div style={{ padding: isMobile ? '12px' : '24px' }}>
-                        <Row gutter={[16, 16]}>
-                            {[1, 2, 3, 4, 5, 6].map((item) => (
-                                <Col xs={24} sm={12} md={8} lg={6} key={item}>
-                                    <Card
-                                        hoverable
-                                        cover={
-                                            <div style={{
-                                                height: isMobile ? 120 : 160,
-                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontSize: isMobile ? 36 : 48
-                                            }}>
-                                                📚
-                                            </div>
-                                        }
-                                        onClick={() => message.info('Đang phát triển')}
-                                    >
-                                        <Card.Meta
-                                            title={`Sách giáo khoa ${item}`}
-                                            description="Nhà xuất bản Giáo dục"
-                                        />
-                                        <div style={{ marginTop: 12 }}>
-                                            <Tag color="blue">Lớp {Math.floor(Math.random() * 5) + 6}</Tag>
-                                            <Tag color="green">Còn hàng</Tag>
-                                        </div>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    </div>
-                ),
-            });
+        if (isViewingAsStudent) {
+            if (isPendingCheck) {
+                notifications.push('Yêu cầu tham gia đã gửi, chờ giáo viên duyệt.');
+            } else if (isJoinedCheck) {
+                notifications.push('Bạn đã được duyệt tham gia lớp.');
+            } else {
+                notifications.push('Bạn chưa tham gia hoặc yêu cầu nào. Hãy nhập mã để gửi yêu cầu.');
+            }
         }
 
-        return baseTabs;
+        if (isClassOwner) {
+            if (classData.pendingStudents?.length > 0) {
+                notifications.push(`Có ${classData.pendingStudents.length} yêu cầu mới của học sinh cần duyệt.`);
+            } else {
+                notifications.push('Hiện không có yêu cầu mới từ học sinh');
+            }
+        }
+
+        if (notifications.length === 0) {
+            notifications.push('Chưa có thông báo nào');
+        }
+
+        return notifications;
     };
 
-    // Show loading state
+    // ==================== TAB ITEMS ====================
+    const tabItems = [
+        {
+            key: 'baitap',
+            label: (
+                <span>
+                    Bài tập
+                    {assignments.length > 0 && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>{assignments.length}</Tag>
+                    )}
+                </span>
+            ),
+            children: (
+                <AssignmentList
+                    assignments={assignments}
+                    loading={assignmentsLoading}
+                    canCreateAssignment={canCreateAssignment}
+                    onCreateAssignment={showDrawer}
+                    onViewAssignment={handleViewAssignment}
+                    onDeleteAssignment={handleDeleteAssignment}
+                    isMobileOrTablet={isMobileOrTablet}
+                    isAdmin={isAdmin && isClassOwner}
+                    isTeacher={isTeacher && isClassOwner}
+                    fromAdmin={fromAdmin}
+                    isStudent={isViewingAsStudent}
+                    submissions={submissions}
+                    currentUserId={currentUserId}
+                    onAssignmentSubmitted={() => {
+                        loadAssignments();
+                        loadSubmissions();
+                    }}
+                    isTestMode={false}
+                    onViewResult={(assignment, submission) => {
+                        setSelectedAssignment(assignment);
+                        setSelectedSubmission(submission);
+                        setViewResultModalVisible(true);
+                    }}
+                    onViewSubmission={(assignment, submission) => {
+                        setSelectedAssignment(assignment);
+                        setSelectedSubmission(submission);
+                        setViewSubmissionModalVisible(true);
+                    }}
+                />
+            )
+        },
+        {
+            key: 'ketqua',
+            label: 'Kết quả rèn luyện',
+            children: (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
+                    <div>Chưa có kết quả nào</div>
+                </div>
+            )
+        },
+        {
+            key: 'hocsinh',
+            label: (
+                <span>
+                    Học sinh
+                    {(classData?.pendingStudents?.length > 0 && canManageStudents) && (
+                        <Tag color="orange" style={{ marginLeft: 8 }}>
+                            {classData.pendingStudents.length} chờ
+                        </Tag>
+                    )}
+                </span>
+            ),
+            children: (
+                <div style={{ padding: isMobile ? '8px' : '16px' }}>
+                    {canManageStudents ? (
+                        <StudentTable
+                            students={getFilteredStudents()}
+                            loading={actionLoading}
+                            selectedRowKeys={selectedRowKeys}
+                            onSelectChange={setSelectedRowKeys}
+                            searchText={searchText}
+                            onSearchChange={setSearchText}
+                            statusFilter={statusFilter}
+                            onStatusFilterChange={setStatusFilter}
+                            onAddStudent={() => {
+                                resetAddStudentForm();
+                                setAddStudentModalVisible(true);
+                            }}
+                            onImportStudent={() => setImportModalVisible(true)}
+                            onDeleteSelected={handleDeleteSelectedStudents}
+                            onApproveAll={handleApproveAllPending}
+                            onApproveStudent={handleApproveStudent}
+                            onRejectStudent={handleRejectStudent}
+                            onViewStudent={handleViewStudent}
+                            onEditStudent={handleEditStudent}
+                            canManage={true}
+                            isMobile={isMobile}
+                            pendingCount={classData?.pendingStudents?.length || 0}
+                        />
+                    ) : (
+                        <StudentResultTab isPending={isPending} isApproved={isApproved} />
+                    )}
+                </div>
+            )
+        },
+        {
+            key: 'thongbao',
+            label: 'Thông báo',
+            children: (
+                <NotificationList
+                    notifications={getNotifications()}
+                    isMobile={isMobile}
+                />
+            )
+        },
+        {
+            key: 'renluyen',
+            label: 'Rèn luyện, bồi dưỡng',
+            children: (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
+                    <div>Chưa có bài rèn luyện nào</div>
+                </div>
+            )
+        }
+    ];
+
+    if (isViewingAsStudent) {
+        tabItems.push({
+            key: 'sachdientu',
+            label: 'Sách điện tử',
+            children: <EbookTab isMobile={isMobile} />
+        });
+    }
+
+    // ==================== RENDER ====================
     if (loading) {
         return (
             <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
@@ -392,14 +914,13 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         sidebarCollapsed={isSidebarCollapsed}
                     />
                     <Content style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Spin size="large" tip="Đang tải thông tin lớp học..." />
+                        <Spin size="large" description="Đang tải thông tin lớp học..." />
                     </Content>
                 </Layout>
             </Layout>
         );
     }
 
-    // Show error if no class data
     if (!classData) {
         return (
             <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
@@ -423,7 +944,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     <Content style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                         <div>
                             <Text type="danger">Không tìm thấy thông tin lớp học</Text>
-                            <Button type="primary" onClick={() => navigate('/classes')} style={{ marginLeft: 16 }}>
+                            <Button type="primary" onClick={() => navigate('/student-class')} style={{ marginLeft: 16 }}>
                                 Quay lại
                             </Button>
                         </div>
@@ -435,7 +956,6 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     return (
         <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
-            {/* Sidebar - chỉ hiển thị trên desktop */}
             {!isMobileOrTablet && (
                 <Sidebar
                     collapsed={isSidebarCollapsed}
@@ -455,7 +975,6 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     sidebarCollapsed={isSidebarCollapsed}
                 />
 
-                {/* Breadcrumb */}
                 <div style={{
                     backgroundColor: '#00bcd4',
                     padding: isMobile ? '12px 16px' : '16px 24px',
@@ -466,392 +985,137 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 }}>
                     <HomeOutlined style={{ fontSize: isMobile ? '18px' : '20px', color: 'white' }} />
                     <Text style={{ color: 'white', fontSize: isMobile ? '13px' : '14px' }}>
-                        {isStudent ? 'Học sinh' : (fromAdmin ? 'Quản lý' : 'Học sinh')} - Lớp học - {classData.name}
+                        {isClassOwner ? 'Quản lý' : 'Học sinh'} - Lớp học - {classData.name}
                     </Text>
                 </div>
 
-                {/* Main Content */}
                 <Content style={{ padding: isMobile ? '16px' : '24px' }}>
-                    <Card
-                        title={
-                            <div style={{
-                                display: 'flex',
-                                flexDirection: isMobile ? 'column' : 'row',
-                                justifyContent: 'space-between',
-                                alignItems: isMobile ? 'flex-start' : 'center',
-                                gap: isMobile ? '12px' : 0
-                            }}>
-                                <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    Thông tin lớp học: {classData.name}
-                                </Text>
-                                <Button
-                                    type="text"
-                                    icon={<MoreOutlined />}
-                                    onClick={handleBack}
-                                    size={isMobile ? 'small' : 'middle'}
-                                >
-                                    Quay lại
-                                </Button>
-                            </div>
-                        }
-                        style={{ backgroundColor: 'white' }}
-                        variant="borderless"
-                    >
-                        {/* Class Info Grid */}
-                        <Row gutter={[isMobile ? 16 : 24, isMobile ? 12 : 16]} style={{ marginBottom: isMobile ? 24 : 32 }}>
-                            <Col xs={24} sm={12} md={8}>
-                                <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Mã lớp học
-                                    </Text>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.code}</Text>
-                                        <CopyOutlined
-                                            style={{ cursor: 'pointer', color: '#00bcd4', fontSize: isMobile ? '14px' : '16px' }}
-                                            onClick={handleCopyCode}
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Giáo viên
-                                    </Text>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.teacher}</Text>
-                                </div>
-                            </Col>
-                            <Col xs={24} sm={12} md={8}>
-                                <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Tên lớp học
-                                    </Text>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.name}</Text>
-                                </div>
-                                <div>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Điện thoại
-                                    </Text>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.phone}</Text>
-                                </div>
-                            </Col>
-                            <Col xs={24} sm={12} md={8}>
-                                <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Sĩ số
-                                    </Text>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.students} học sinh</Text>
-                                </div>
-                                <div>
-                                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                        Email
-                                    </Text>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.email}</Text>
-                                </div>
-                            </Col>
-                        </Row>
-
-                        {/* Tabs */}
-                        <Tabs
-                            activeKey={activeTab}
-                            onChange={setActiveTab}
-                            items={getTabItems()}
-                            size={isMobile ? 'small' : 'middle'}
-                            tabBarGutter={isMobile ? 8 : 16}
-                            tabBarStyle={{ fontSize: isMobile ? '12px' : '14px' }}
-                        />
-                    </Card>
+                    <ClassInfoCard
+                        classData={classData}
+                        teacherInfo={teacherInfo}
+                        totalStudents={totalStudents}
+                        onCopyCode={handleCopyCode}
+                        onBack={handleBack}
+                        onUpdateStatus={handleUpdateStatus}
+                        isMobile={isMobile}
+                        isTestMode={false}
+                    />
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={tabItems}
+                        size={isMobile ? 'small' : 'middle'}
+                        tabBarGutter={isMobile ? 8 : 16}
+                        tabBarStyle={{ fontSize: isMobile ? '12px' : '14px' }}
+                    />
                 </Content>
 
-                {/* Drawer - Create Assignment */}
                 {canCreateAssignment && (
-                    <Drawer
-                        title={
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Text style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 600, color: '#00bcd4' }}>
-                                    TẠO MỚI BÀI TẬP
-                                </Text>
-                                <CloseOutlined style={{ cursor: 'pointer', color: '#666' }} onClick={closeDrawer} />
-                            </div>
-                        }
-                        placement="right"
+                    <CreateAssignmentDrawer
+                        visible={drawerVisible}
                         onClose={closeDrawer}
-                        open={drawerVisible}
-                        width={isMobile ? '100%' : (isMobileOrTablet ? '90%' : '80%')}
-                        closable={!submitLoading}
-                        maskClosable={!submitLoading}
-                        footer={
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                gap: 8,
-                                padding: isMobile ? '12px 16px' : '12px 24px'
-                            }}>
-                                <Button
-                                    onClick={closeDrawer}
-                                    disabled={submitLoading}
-                                    size={isMobile ? 'middle' : 'large'}
-                                >
-                                    Đóng
-                                </Button>
-                                <Button
-                                    type="primary"
-                                    onClick={handleSave}
-                                    loading={submitLoading}
-                                    disabled={submitLoading}
-                                    size={isMobile ? 'middle' : 'large'}
-                                    style={{ backgroundColor: '#00bcd4' }}
-                                >
-                                    {submitLoading ? 'Đang lưu...' : 'Lưu thông tin'}
-                                </Button>
-                            </div>
-                        }
-                        styles={{
-                            body: {
-                                padding: isMobile ? '16px' : '24px 32px',
-                                overflowY: 'auto',
-                                maxHeight: 'calc(100vh - 108px)',
-                                opacity: submitLoading ? 0.7 : 1,
-                                pointerEvents: submitLoading ? 'none' : 'auto'
-                            }
-                        }}
-                    >
-                        <Spin spinning={submitLoading} tip="Đang xử lý...">
-                            {/* Tiêu đề */}
-                            <div style={{ marginBottom: isMobile ? 16 : 24 }}>
-                                <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                    Tiêu đề <span style={{ color: '#ff4d4f' }}>*</span>
-                                </Text>
-                                <Input
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    placeholder="Nhập tiêu đề bài tập"
-                                    size={isMobile ? 'middle' : 'large'}
-                                    disabled={submitLoading}
-                                />
-                            </div>
-
-                            {/* Loại bài tập và Điểm */}
-                            <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 0]} style={{ marginBottom: isMobile ? 16 : 24 }}>
-                                <Col xs={24} md={18}>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                        Loại bài tập: <span style={{ color: '#ff4d4f' }}>*</span>
-                                    </Text>
-                                    <Select
-                                        value={formData.type}
-                                        onChange={(value) => setFormData({ ...formData, type: value })}
-                                        placeholder="Chọn loại bài tập"
-                                        style={{ width: '100%' }}
-                                        size={isMobile ? 'middle' : 'large'}
-                                        disabled={submitLoading}
-                                    >
-                                        <Option value="normal">Normal</Option>
-                                        <Option value="quiz">Quiz</Option>
-                                        <Option value="code">Code</Option>
-                                    </Select>
-                                </Col>
-                                <Col xs={24} md={6}>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                        Điểm <span style={{ color: '#ff4d4f' }}>*</span>
-                                    </Text>
-                                    <InputNumber
-                                        min={1}
-                                        max={100}
-                                        value={formData.points}
-                                        onChange={(value) => setFormData({ ...formData, points: value || 1 })}
-                                        style={{ width: '100%' }}
-                                        size={isMobile ? 'middle' : 'large'}
-                                        disabled={submitLoading}
-                                    />
-                                </Col>
-                            </Row>
-
-                            {/* Thời gian mở và đóng */}
-                            {formData.type && (
-                                <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 0]} style={{ marginBottom: isMobile ? 16 : 24 }}>
-                                    <Col xs={24} md={12}>
-                                        <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                            Thời gian mở
-                                        </Text>
-                                        <DatePicker
-                                            showTime
-                                            value={formData.openTime}
-                                            onChange={(value) => setFormData({ ...formData, openTime: value })}
-                                            format="DD/MM/YYYY HH:mm"
-                                            placeholder="Chọn thời gian mở"
-                                            style={{ width: '100%' }}
-                                            size={isMobile ? 'middle' : 'large'}
-                                            disabled={submitLoading}
-                                        />
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                            Thời gian đóng
-                                        </Text>
-                                        <DatePicker
-                                            showTime
-                                            value={formData.closeTime}
-                                            onChange={(value) => setFormData({ ...formData, closeTime: value })}
-                                            format="DD/MM/YYYY HH:mm"
-                                            placeholder="Chọn thời gian đóng"
-                                            style={{ width: '100%' }}
-                                            size={isMobile ? 'middle' : 'large'}
-                                            disabled={submitLoading}
-                                        />
-                                    </Col>
-                                </Row>
-                            )}
-
-                            {/* Màu sắc */}
-                            <div style={{ marginBottom: isMobile ? 16 : 24 }}>
-                                <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 12, fontWeight: 500 }}>
-                                    Màu sắc
-                                </Text>
-                                <div style={{ display: 'flex', gap: isMobile ? 6 : 10, flexWrap: 'wrap' }}>
-                                    {colors.slice(0, isMobile ? 10 : 20).map(color => (
-                                        <Tooltip key={color} title={color}>
-                                            <div
-                                                onClick={() => !submitLoading && setFormData({ ...formData, color })}
-                                                style={{
-                                                    width: isMobile ? 28 : 32,
-                                                    height: isMobile ? 28 : 32,
-                                                    borderRadius: '50%',
-                                                    backgroundColor: color,
-                                                    border: color === '#ffffff' ? '2px solid #d9d9d9' : 'none',
-                                                    cursor: submitLoading ? 'not-allowed' : 'pointer',
-                                                    boxShadow: formData.color === color ? '0 0 0 3px #00bcd4' : 'none',
-                                                    transition: 'all 0.2s ease',
-                                                    transform: formData.color === color ? 'scale(1.1)' : 'scale(1)',
-                                                    opacity: submitLoading ? 0.5 : 1
-                                                }}
-                                            >
-                                                {formData.color === color && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '50%',
-                                                        left: '50%',
-                                                        transform: 'translate(-50%, -50%)',
-                                                        width: isMobile ? 8 : 10,
-                                                        height: isMobile ? 8 : 10,
-                                                        borderRadius: '50%',
-                                                        backgroundColor: '#fff',
-                                                        border: '1px solid rgba(0,0,0,0.1)'
-                                                    }} />
-                                                )}
-                                            </div>
-                                        </Tooltip>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Yêu cầu / Hướng dẫn và Chọn học sinh */}
-                            <Row gutter={[isMobile ? 16 : 24, isMobile ? 16 : 24]} style={{ marginBottom: isMobile ? 16 : 24 }}>
-                                {/* Cột trái: Yêu cầu */}
-                                <Col xs={24} md={12}>
-                                    <Text style={{ fontSize: isMobile ? '13px' : '14px', display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                        Yêu cầu / Hướng dẫn
-                                    </Text>
-
-                                    {/* Text Editor Toolbar */}
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: 2,
-                                        marginBottom: 8,
-                                        padding: isMobile ? '6px' : '8px',
-                                        backgroundColor: '#fafafa',
-                                        borderRadius: '4px 4px 0 0',
-                                        border: '1px solid #d9d9d9',
-                                        borderBottom: 'none',
-                                        flexWrap: 'wrap'
-                                    }}>
-                                        <Select defaultValue="Normal" size="small" style={{ width: isMobile ? 80 : 100 }}>
-                                            <Option value="Normal">Normal</Option>
-                                            <Option value="Heading1">H1</Option>
-                                            <Option value="Heading2">H2</Option>
-                                        </Select>
-                                        <Select defaultValue="Normal" size="small" style={{ width: isMobile ? 80 : 100 }}>
-                                            <Option value="Normal">Normal</Option>
-                                            <Option value="Arial">Arial</Option>
-                                        </Select>
-
-                                        <Space size={2} wrap>
-                                            <Button size="small" icon={<FontColorsOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<BoldOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<ItalicOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<UnderlineOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<OrderedListOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<UnorderedListOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<AlignLeftOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<AlignCenterOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<AlignRightOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<PictureOutlined />} disabled={submitLoading} />
-                                            <Button size="small" icon={<LinkOutlined />} disabled={submitLoading} />
-                                        </Space>
-                                    </div>
-
-                                    <Input.TextArea
-                                        value={formData.requirements}
-                                        onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                                        placeholder="Nhập yêu cầu / hướng dẫn"
-                                        rows={isMobile ? 4 : 6}
-                                        style={{ borderRadius: '0 0 4px 4px' }}
-                                        disabled={submitLoading}
-                                    />
-                                    <Text style={{ fontSize: '11px', color: '#999', marginTop: 4, display: 'block' }}>
-                                        Hỗ trợ định dạng: Ctrl+B (In đậm), Ctrl+I (Nghiêng), Ctrl+U (Gạch chân)
-                                    </Text>
-                                </Col>
-
-                                {/* Cột phải: Chọn học sinh */}
-                                <Col xs={24} md={12}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
-                                            Chọn học sinh giao bài
-                                        </Text>
-                                        <Tag color="blue">Đã chọn: {formData.selectedStudents.length}/{studentData.length}</Tag>
-                                    </div>
-
-                                    <Table
-                                        rowSelection={{
-                                            type: 'checkbox',
-                                            selectedRowKeys: formData.selectedStudents,
-                                            onChange: (selectedRowKeys) => setFormData({ ...formData, selectedStudents: selectedRowKeys }),
-                                            getCheckboxProps: () => ({
-                                                disabled: submitLoading,
-                                            }),
-                                        }}
-                                        columns={studentColumns}
-                                        dataSource={studentData}
-                                        pagination={false}
-                                        size="small"
-                                        scroll={{ y: isMobile ? 150 : 240 }}
-                                    />
-                                </Col>
-                            </Row>
-
-                            {/* Chọn bài tập từ thư viện */}
-                            <div>
-                                <Button
-                                    type={formData.useLibrary ? 'primary' : 'default'}
-                                    icon={<BookOutlined />}
-                                    onClick={() => !submitLoading && setFormData({ ...formData, useLibrary: !formData.useLibrary })}
-                                    size={isMobile ? 'middle' : 'large'}
-                                    disabled={submitLoading}
-                                    block={isMobile}
-                                    style={{
-                                        backgroundColor: formData.useLibrary ? '#00bcd4' : undefined,
-                                        borderColor: formData.useLibrary ? '#00bcd4' : undefined
-                                    }}
-                                >
-                                    {formData.useLibrary ? 'Đã chọn bài tập từ thư viện' : 'Chọn bài tập từ thư viện'}
-                                </Button>
-                                {!formData.useLibrary && (
-                                    <Text style={{ fontSize: '12px', color: '#ff4d4f', display: 'block', marginTop: 8 }}>
-                                        Chưa chọn bài tập từ thư viện
-                                    </Text>
-                                )}
-                            </div>
-                        </Spin>
-                    </Drawer>
+                        onSubmit={handleSaveAssignment}
+                        loading={submitLoading}
+                        formData={formData}
+                        setFormData={setFormData}
+                        studentData={studentData.filter(s => s.status === 'Đã duyệt')}
+                        colors={colors}
+                        isMobile={isMobile}
+                        isMobileOrTablet={isMobileOrTablet}
+                    />
                 )}
+
+                {/* Modals - chỉ hiển thị khi có quyền quản lý */}
+                {canManageStudents && (
+                    <>
+                        <AddStudentModal
+                            visible={addStudentModalVisible}
+                            onCancel={() => {
+                                setAddStudentModalVisible(false);
+                                resetAddStudentForm();
+                            }}
+                            onSubmit={handleAddStudent}
+                            loading={actionLoading}
+                            email={newStudentEmail}
+                            setEmail={setNewStudentEmail}
+                            name={newStudentName}
+                            setName={setNewStudentName}
+                            phone={newStudentPhone}
+                            setPhone={setNewStudentPhone}
+                            note={newStudentNote}
+                            setNote={setNewStudentNote}
+                        />
+
+                        <ImportStudentModal
+                            visible={importModalVisible}
+                            onCancel={() => {
+                                setImportModalVisible(false);
+                                setImportFile(null);
+                            }}
+                            onSubmit={handleImportStudents}
+                            loading={actionLoading}
+                            importFile={importFile}
+                            setImportFile={setImportFile}
+                            onDownloadTemplate={downloadTemplate}
+                        />
+
+                        <EditStudentModal
+                            visible={editStudentModalVisible}
+                            onCancel={() => {
+                                setEditStudentModalVisible(false);
+                                resetAddStudentForm();
+                            }}
+                            onSubmit={() => {
+                                message.success('Cập nhật thông tin thành công');
+                                setEditStudentModalVisible(false);
+                            }}
+                            loading={actionLoading}
+                            name={newStudentName}
+                            setName={setNewStudentName}
+                            email={newStudentEmail}
+                            phone={newStudentPhone}
+                            setPhone={setNewStudentPhone}
+                            note={newStudentNote}
+                            setNote={setNewStudentNote}
+                        />
+                    </>
+                )}
+
+                <StudentDetailModal
+                    visible={studentDetailModalVisible}
+                    onCancel={() => setStudentDetailModalVisible(false)}
+                    student={selectedStudent}
+                />
+
+                {/* Modal xem kết quả bài tập */}
+                <SubmitAssignmentModal
+                    visible={viewResultModalVisible}
+                    onCancel={() => {
+                        setViewResultModalVisible(false);
+                        setSelectedAssignment(null);
+                        setSelectedSubmission(null);
+                    }}
+                    assignment={selectedAssignment}
+                    currentUserId={currentUserId}
+                    onSubmitSuccess={() => { }}
+                    isViewMode={true}
+                    existingSubmission={selectedSubmission}
+                />
+
+                {/* Modal xem bài nộp (chưa chấm) */}
+                <SubmitAssignmentModal
+                    visible={viewSubmissionModalVisible}
+                    onCancel={() => {
+                        setViewSubmissionModalVisible(false);
+                        setSelectedAssignment(null);
+                        setSelectedSubmission(null);
+                    }}
+                    assignment={selectedAssignment}
+                    currentUserId={currentUserId}
+                    onSubmitSuccess={() => { }}
+                    isViewMode={true}
+                    existingSubmission={selectedSubmission}
+                />
             </Layout>
         </Layout>
     );

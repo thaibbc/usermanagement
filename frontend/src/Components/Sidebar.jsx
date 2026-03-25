@@ -1,10 +1,10 @@
+// Sidebar.jsx - Chỉ cần sửa phần commonMenuItems
 import React, { useState, useEffect } from "react";
 import { MenuOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     HomeOutlined,
     BookOutlined,
-    UserOutlined,
     FileTextOutlined,
     TeamOutlined,
     CustomerServiceOutlined,
@@ -21,27 +21,46 @@ import useIsMobile from '../hooks/useIsMobile';
 function Sidebar({ collapsed, setCollapsed }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, loading } = useUser();
+    const { user, loading, isAdmin, isTeacher, isStudent } = useUser();
 
-    // SỬA: Chỉ ẩn trên mobile (<768px)
-    const isMobile = useIsMobile(768); // Màn hình < 768px
-    const isTablet = useIsMobile(1024); // Màn hình < 1024px (bao gồm cả mobile)
-
-    // internal collapse state
+    const isMobile = useIsMobile(768);
     const [internalCollapsed, setInternalCollapsed] = useState(false);
+
+    const userAvatar = user ? (user.avatar || user.avatarUrl || null) : null;
+    const [avatarCacheKey, setAvatarCacheKey] = useState(Date.now());
+
+    useEffect(() => {
+        setAvatarCacheKey(Date.now());
+    }, [userAvatar]);
+
+    useEffect(() => {
+        const onUserUpdated = () => {
+            setAvatarCacheKey(Date.now());
+        };
+        window.addEventListener('userUpdated', onUserUpdated);
+        return () => window.removeEventListener('userUpdated', onUserUpdated);
+    }, []);
+
+    const sidebarAvatarSrc = userAvatar ? (
+        userAvatar.startsWith('data:')
+            ? userAvatar
+            : `${userAvatar}${userAvatar.includes('?') ? '&' : '?'}t=${avatarCacheKey}`
+    ) : null;
+
+    // Sử dụng state từ props hoặc internal
     const isSidebarCollapsed = collapsed !== undefined ? collapsed : internalCollapsed;
     const setIsSidebarCollapsed = setCollapsed || setInternalCollapsed;
 
-    // Khi ở mobile (<768px), tự động ẩn sidebar
-    useEffect(() => {
+    // Xử lý đóng sidebar khi click vào link trên mobile
+    const handleMenuClick = (path) => {
+        navigate(path);
         if (isMobile) {
             setIsSidebarCollapsed(true);
         }
-    }, [isMobile, setIsSidebarCollapsed]);
+    };
 
-    const isAdmin = user?.accountType === 'admin';
-
-    const userMenuItems = [
+    // Menu items cho tất cả người dùng (học sinh, giáo viên, admin)
+    const commonMenuItems = [
         {
             icon: <HomeOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Trang chủ',
@@ -50,41 +69,33 @@ function Sidebar({ collapsed, setCollapsed }) {
         {
             icon: <BookOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Lớp học',
+            // QUAN TRỌNG: Admin và Teacher cũng dùng StudentClass để test bài
             path: '/student-class'
         },
         {
             icon: <FileTextOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Bài tập',
-            path: '/assignments'
+            path: '#'
         },
         {
             icon: <TeamOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Phòng thi',
-            path: '/exam-rooms'
-        },
-        {
-            icon: <CheckOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
-            label: 'Thư viện của tôi',
-            path: '/my-library'
+            path: '#'
         },
         {
             icon: <CustomerServiceOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Hỗ trợ',
-            path: '/support'
+            path: '#'
         },
         {
             icon: <SettingOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Cài đặt',
-            path: '/settings'
+            path: '#'
         }
     ];
 
-    const adminMenuItems = [
-        {
-            icon: <SwitcherOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
-            label: 'Quản lý người dùng',
-            path: '/users'
-        },
+    // Menu items dành cho giáo viên và admin (quản lý)
+    const managementMenuItems = [
         {
             icon: <ProfileOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Quản lý lớp học',
@@ -96,16 +107,25 @@ function Sidebar({ collapsed, setCollapsed }) {
             path: '/question-bank'
         },
         {
-            icon: <BankOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
-            label: 'Quản lý ngân hàng',
-            path: '/bank-management'
+            icon: <CheckOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
+            label: 'Thư viện của tôi',
+            path: '/my-library'
+        }
+    ];
+
+    // Menu items chỉ dành riêng cho admin
+    const adminOnlyMenuItems = [
+        {
+            icon: <SwitcherOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
+            label: 'Quản lý người dùng',
+            path: '/users'
         }
     ];
 
     if (loading) {
         return (
             <div style={{
-                width: isSidebarCollapsed ? (isMobile ? 0 : 80) : 250,
+                width: isSidebarCollapsed ? 80 : 250,
                 backgroundColor: '#1E293B',
                 transition: 'width 0.3s ease',
                 position: 'fixed',
@@ -122,20 +142,14 @@ function Sidebar({ collapsed, setCollapsed }) {
         );
     }
 
-    // QUAN TRỌNG: Tính toán width
     const getSidebarWidth = () => {
-        if (isMobile) {
-            // Trên mobile (<768px): width = 0 (ẩn hoàn toàn)
-            return 0;
-        }
-        // Trên tablet và desktop (>=768px)
         return isSidebarCollapsed ? 80 : 250;
     };
 
-    // Tính toán vị trí left
     const getSidebarLeft = () => {
-        if (isMobile) {
-            return -getSidebarWidth(); // Đưa ra ngoài màn hình
+        // Trên mobile, khi collapsed thì ẩn, khi mở thì hiện
+        if (isMobile && isSidebarCollapsed) {
+            return -getSidebarWidth();
         }
         return 0;
     };
@@ -148,15 +162,7 @@ function Sidebar({ collapsed, setCollapsed }) {
         return (
             <div
                 key={keyPrefix}
-                onClick={() => {
-                    if (item.path && item.path !== '#') {
-                        navigate(item.path);
-                        // Tự động đóng sidebar trên mobile sau khi chọn
-                        if (isMobile) {
-                            setIsSidebarCollapsed(true);
-                        }
-                    }
-                }}
+                onClick={() => handleMenuClick(item.path)}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -189,7 +195,6 @@ function Sidebar({ collapsed, setCollapsed }) {
                     <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
                 )}
 
-                {/* Tooltip khi collapsed - chỉ trên tablet/desktop */}
                 {isSidebarCollapsed && !isMobile && (
                     <div style={{
                         position: 'absolute',
@@ -235,6 +240,28 @@ function Sidebar({ collapsed, setCollapsed }) {
                     }}
                 />
             )}
+
+            {/* Nút toggle sidebar cho mobile (chỉ hiện khi sidebar đóng) */}
+            {isMobile && isSidebarCollapsed && (
+                <div
+                    onClick={() => setIsSidebarCollapsed(false)}
+                    style={{
+                        position: 'fixed',
+                        left: 16,
+                        top: 16,
+                        zIndex: 1001,
+                        backgroundColor: '#1E293B',
+                        borderRadius: 8,
+                        padding: 10,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        transition: 'all 0.3s ease',
+                    }}
+                >
+                    <MenuOutlined style={{ color: 'white', fontSize: 18 }} />
+                </div>
+            )}
+
             <div style={{
                 width: sidebarWidth,
                 backgroundColor: '#1E293B',
@@ -246,7 +273,7 @@ function Sidebar({ collapsed, setCollapsed }) {
                 zIndex: 1000,
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: isMobile && !isSidebarCollapsed ? '2px 0 8px rgba(0,0,0,0.15)' : 'none',
+                boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
                 overflow: 'hidden',
             }}>
                 {/* Logo */}
@@ -309,8 +336,18 @@ function Sidebar({ collapsed, setCollapsed }) {
                             fontWeight: 'bold',
                             fontSize: 16,
                             flexShrink: 0,
+                            overflow: 'hidden'
                         }}>
-                            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                            {sidebarAvatarSrc ? (
+                                <img
+                                    key={avatarCacheKey}
+                                    src={sidebarAvatarSrc}
+                                    alt="avatar"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+                            )}
                         </div>
                         <div style={{ overflow: 'hidden' }}>
                             <div style={{
@@ -330,7 +367,7 @@ function Sidebar({ collapsed, setCollapsed }) {
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                             }}>
-                                {isAdmin ? 'Quản trị viên' : 'Học viên'}
+                                {isAdmin ? 'Quản trị viên' : isTeacher ? 'Giáo viên' : 'Học viên'}
                             </div>
                         </div>
                     </div>
@@ -341,13 +378,41 @@ function Sidebar({ collapsed, setCollapsed }) {
                     flex: 1,
                     padding: isSidebarCollapsed ? '16px 0' : '16px',
                     overflowY: 'auto',
-                    scrollbarWidth: 'none',
-                    msOverflowStyle: 'none',
+                    overflowX: 'hidden',
                 }}>
-                    {userMenuItems.map((item, index) =>
-                        renderMenuItem(item, `user-${index}`)
+                    {/* Common menu cho tất cả user */}
+                    {commonMenuItems.map((item, index) =>
+                        renderMenuItem(item, `common-${index}`)
                     )}
 
+                    {/* Management menu cho giáo viên và admin */}
+                    {(isTeacher || isAdmin) && (
+                        <>
+                            {!isSidebarCollapsed && (
+                                <div style={{ marginTop: 16, marginBottom: 16 }}>
+                                    <div style={{
+                                        borderTop: '1px solid rgba(255,255,255,0.1)',
+                                        marginBottom: 12
+                                    }} />
+                                    <div style={{
+                                        color: 'rgba(255,255,255,0.5)',
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        letterSpacing: '0.5px',
+                                        textTransform: 'uppercase',
+                                        paddingLeft: 8
+                                    }}>
+                                        QUẢN LÝ
+                                    </div>
+                                </div>
+                            )}
+                            {managementMenuItems.map((item, index) =>
+                                renderMenuItem(item, `management-${index}`)
+                            )}
+                        </>
+                    )}
+
+                    {/* Admin only menu */}
                     {isAdmin && (
                         <>
                             {!isSidebarCollapsed && (
@@ -364,12 +429,11 @@ function Sidebar({ collapsed, setCollapsed }) {
                                         textTransform: 'uppercase',
                                         paddingLeft: 8
                                     }}>
-                                        ADMINISTRATORS
+                                        HỆ THỐNG
                                     </div>
                                 </div>
                             )}
-
-                            {adminMenuItems.map((item, index) =>
+                            {adminOnlyMenuItems.map((item, index) =>
                                 renderMenuItem(item, `admin-${index}`)
                             )}
                         </>
@@ -392,8 +456,40 @@ function Sidebar({ collapsed, setCollapsed }) {
 
             <style>
                 {`
+                    /* Tooltip hiển thị khi hover vào icon */
                     div:hover > .sidebar-tooltip {
                         opacity: 1 !important;
+                    }
+                    
+                    /* Custom scrollbar */
+                    ::-webkit-scrollbar {
+                        width: 4px;
+                    }
+                    
+                    ::-webkit-scrollbar-track {
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 4px;
+                    }
+                    
+                    ::-webkit-scrollbar-thumb {
+                        background: rgba(255,255,255,0.3);
+                        border-radius: 4px;
+                    }
+                    
+                    ::-webkit-scrollbar-thumb:hover {
+                        background: rgba(255,255,255,0.5);
+                    }
+                    
+                    /* Hiệu ứng transition cho menu items */
+                    .menu-item {
+                        transition: all 0.3s ease;
+                    }
+                    
+                    /* Đảm bảo menu hiển thị đầy đủ trên mobile khi mở */
+                    @media (max-width: 768px) {
+                        .ant-menu {
+                            background-color: #1E293B;
+                        }
                     }
                 `}
             </style>

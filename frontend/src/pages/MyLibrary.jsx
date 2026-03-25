@@ -1,5 +1,5 @@
 // pages/MyLibrary.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Layout,
     Tabs,
@@ -12,7 +12,8 @@ import {
     Typography,
     Input,
     Tag,
-    Modal
+    Modal,
+    Spin
 } from 'antd';
 import {
     PlusOutlined,
@@ -26,13 +27,23 @@ import {
     HomeOutlined,
     FileOutlined,
     StarOutlined,
-    ExclamationCircleOutlined
+    ExclamationCircleOutlined,
+    ReloadOutlined
 } from '@ant-design/icons';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
 import { FolderDrawer } from '../Components/FolderDrawer';
 import { CreateTestModal } from '../Components/CreateTestModal';
 import { CreateAutoTestModal } from '../Components/CreateAutoTestModal';
+import {
+    fetchFolders,
+    fetchTests,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    createTest,
+    deleteTest
+} from '../api/library';
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -41,17 +52,22 @@ const { confirm } = Modal;
 export const MyLibrary = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [expandedKeys, setExpandedKeys] = useState(['khoi-9']);
+    const [expandedKeys, setExpandedKeys] = useState([]);
     const [selectedKeys, setSelectedKeys] = useState([]);
     const [showBanner, setShowBanner] = useState(true);
     const [searchText, setSearchText] = useState('');
-    const [loading, setLoading] = useState(false); // Thêm loading state
+    const [loading, setLoading] = useState(false);
+    const [selectedFolderId, setSelectedFolderId] = useState(null);
 
     // Modal states
     const [folderModalVisible, setFolderModalVisible] = useState(false);
     const [editingFolder, setEditingFolder] = useState(null);
     const [createTestModalVisible, setCreateTestModalVisible] = useState(false);
     const [autoTestModalVisible, setAutoTestModalVisible] = useState(false);
+
+    // Data states
+    const [treeData, setTreeData] = useState([]);
+    const [tableData, setTableData] = useState([]);
 
     // Handle window resize
     useEffect(() => {
@@ -62,70 +78,116 @@ export const MyLibrary = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Tree data for left panel
-    const [treeData, setTreeData] = useState([
-        {
-            title: 'Khối 9',
-            key: 'khoi-9',
-            icon: <FolderOutlined />,
-            color: '#2E3A59',
-            children: [
-                { title: 'Toán', key: 'khoi-9-toan', icon: <FileOutlined />, color: '#2196F3' },
-                { title: 'Văn', key: 'khoi-9-van', icon: <FileOutlined />, color: '#4CAF50' },
-                { title: 'Anh', key: 'khoi-9-anh', icon: <FileOutlined />, color: '#FF9800' },
-            ]
-        },
-        {
-            title: 'Khối 8',
-            key: 'khoi-8',
-            icon: <FolderOutlined />,
-            color: '#2E3A59',
-            children: [
-                { title: 'Toán', key: 'khoi-8-toan', icon: <FileOutlined />, color: '#2196F3' },
-                { title: 'Văn', key: 'khoi-8-van', icon: <FileOutlined />, color: '#4CAF50' },
-            ]
-        },
-        {
-            title: 'Khối 7',
-            key: 'khoi-7',
-            icon: <FolderOutlined />,
-            color: '#2E3A59',
-        },
-        {
-            title: 'Khối 6',
-            key: 'khoi-6',
-            icon: <FolderOutlined />,
-            color: '#2E3A59',
-        },
-    ]);
+    // Convert API folder data to Tree format với màu sắc và icon động
+    // pages/MyLibrary.jsx - Cập nhật buildTreeData
 
-    // Table data for right panel
-    const [tableData, setTableData] = useState([
-        { key: 1, id: 1, name: 'Test 2kỳ/04 - P3', total: 15, type: 'Đề thi', starred: true },
-        { key: 2, id: 2, name: 'Test 2kỳ/04 - P2', total: 12, type: 'Đề thi', starred: false },
-        { key: 3, id: 3, name: 'test 2kỳ/04', total: 20, type: 'Bài tập', starred: true },
-        { key: 4, id: 4, name: 'Test L8 - U1 + 4', total: 25, type: 'Đề thi', starred: false },
-        { key: 5, id: 5, name: 'Kiểm tra 15 phút (1)', total: 10, type: 'Kiểm tra', starred: false },
-        { key: 6, id: 6, name: 'Kiểm tra 15 phút (1)', total: 10, type: 'Kiểm tra', starred: true },
-        { key: 7, id: 7, name: 'Kiểm tra 15 phút (1)', total: 10, type: 'Kiểm tra', starred: false },
-        { key: 8, id: 8, name: 'Test Unit 1 + Unit Starter', total: 30, type: 'Bài tập', starred: false },
-        { key: 9, id: 9, name: 'Test tạo nhiều đề', total: 40, type: 'Đề thi', starred: true },
-        { key: 10, id: 10, name: 'test picture 4', total: 8, type: 'Bài tập', starred: false },
-        { key: 11, id: 11, name: 'Test picture 2', total: 8, type: 'Bài tập', starred: false },
-        { key: 12, id: 12, name: 'Kiểm tra 15 phút T', total: 10, type: 'Kiểm tra', starred: false },
-        { key: 13, id: 13, name: 'Kiểm tra 15 phút T', total: 10, type: 'Kiểm tra', starred: false },
-        { key: 14, id: 14, name: 'test Picture', total: 8, type: 'Bài tập', starred: true },
-        { key: 15, id: 15, name: 'OTest 3', total: 25, type: 'Đề thi', starred: false },
-        { key: 16, id: 16, name: 'OTest 1', total: 25, type: 'Đề thi', starred: false },
-        { key: 17, id: 17, name: 'Test', total: 20, type: 'Bài tập', starred: false },
-    ]);
+    const buildTreeData = (folders) => {
+        if (!folders || !Array.isArray(folders)) return [];
 
+        const folderMap = {};
+
+        // Log để debug
+        console.log('Building tree from folders:', folders);
+
+        // Tạo map các folder
+        folders.forEach(folder => {
+            folderMap[folder._id] = {
+                key: folder._id,
+                title: folder.title || folder.name || 'Không tên',
+                color: folder.color || '#2E3A59',
+                order: folder.order || 1,
+                parentId: folder.parentId,
+                children: [],
+                ...folder
+            };
+        });
+
+        // Xây dựng cây
+        const roots = [];
+        folders.forEach(folder => {
+            if (folder.parentId && folderMap[folder.parentId]) {
+                // Nếu có parent, thêm vào children của parent
+                folderMap[folder.parentId].children.push(folderMap[folder._id]);
+                console.log(`Folder ${folder.title} added to parent ${folderMap[folder.parentId].title}`);
+            } else {
+                // Nếu không có parent, là root
+                roots.push(folderMap[folder._id]);
+                console.log(`Folder ${folder.title} is root`);
+            }
+        });
+
+        // Sắp xếp theo order
+        const sortByOrder = (nodes) => {
+            return nodes.sort((a, b) => (a.order || 1) - (b.order || 1));
+        };
+
+        const sortTree = (nodes) => {
+            nodes = sortByOrder(nodes);
+            nodes.forEach(node => {
+                if (node.children && node.children.length > 0) {
+                    node.children = sortTree(node.children);
+                }
+            });
+            return nodes;
+        };
+
+        const sortedTree = sortTree(roots);
+        console.log('Final tree:', sortedTree);
+        return sortedTree;
+    };
+
+    // Load tests theo folder được chọn
+    const loadTests = useCallback(async (folderId = null) => {
+        try {
+            setLoading(true);
+            const params = folderId ? { folderId } : {};
+            const testsRes = await fetchTests(params);
+            const tests = testsRes?.tests || testsRes?.data || testsRes || [];
+            setTableData(Array.isArray(tests) ? tests : []);
+        } catch (err) {
+            console.error('Failed to load tests', err);
+            message.error(err.message || 'Không thể tải danh sách bài tập');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Load toàn bộ dữ liệu
+    const loadLibraryData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const foldersRes = await fetchFolders();
+            const folders = Array.isArray(foldersRes) ? foldersRes : (foldersRes?.data || []);
+
+            const tree = buildTreeData(folders);
+            setTreeData(tree);
+
+            // Nếu có folder đang chọn, load tests của folder đó
+            if (selectedFolderId) {
+                await loadTests(selectedFolderId);
+            } else {
+                setTableData([]);
+            }
+        } catch (err) {
+            console.error('Failed to load library data', err);
+            message.error(err.message || 'Không thể tải thư viện đề kiểm tra');
+        } finally {
+            setLoading(false);
+        }
+    }, [loadTests, selectedFolderId]);
+
+    useEffect(() => {
+        loadLibraryData();
+    }, [loadLibraryData]);
+
+    // Columns cho bảng bài tập
     const columns = [
         {
             title: '#',
-            dataIndex: 'id',
+            dataIndex: 'index',
             width: 60,
-            align: 'center'
+            align: 'center',
+            render: (_, __, index) => index + 1
         },
         {
             title: 'Tên bài tập',
@@ -134,7 +196,7 @@ export const MyLibrary = () => {
             render: (text, record) => (
                 <Space>
                     <FileOutlined style={{ color: record.starred ? '#faad14' : '#1890ff' }} />
-                    <Text strong={record.starred}>{text}</Text>
+                    <Text strong={record.starred}>{text || record.title}</Text>
                     {record.starred && <StarOutlined style={{ color: '#faad14' }} />}
                 </Space>
             )
@@ -149,7 +211,7 @@ export const MyLibrary = () => {
                     'Bài tập': 'green',
                     'Kiểm tra': 'orange'
                 };
-                return <Tag color={colors[type]}>{type}</Tag>;
+                return <Tag color={colors[type] || 'blue'}>{type || 'Đề thi'}</Tag>;
             }
         },
         {
@@ -157,7 +219,7 @@ export const MyLibrary = () => {
             dataIndex: 'total',
             width: 120,
             align: 'center',
-            render: (total) => <Tag color="processing">{total} câu</Tag>
+            render: (total) => <Tag color="processing">{total || 0} câu</Tag>
         },
         {
             title: 'Thao tác',
@@ -172,7 +234,7 @@ export const MyLibrary = () => {
                         size="small"
                         onClick={(e) => {
                             e.stopPropagation();
-                            message.info(`Chỉnh sửa: ${record.name}`);
+                            message.info(`Chỉnh sửa: ${record.name || record.title}`);
                         }}
                     />
                     <Button
@@ -190,7 +252,7 @@ export const MyLibrary = () => {
         }
     ];
 
-    // Helper function to find folder
+    // Tìm folder trong tree
     const findFolder = (nodes, key) => {
         for (const node of nodes) {
             if (node.key === key) return node;
@@ -202,7 +264,7 @@ export const MyLibrary = () => {
         return null;
     };
 
-    // Helper function to find parent key
+    // Tìm parent key của folder
     const findParentKey = (nodes, childKey, parentKey = null) => {
         for (const node of nodes) {
             if (node.key === childKey) return parentKey;
@@ -214,18 +276,72 @@ export const MyLibrary = () => {
         return null;
     };
 
-    const handleTreeSelect = (selectedKeys, info) => {
+    // Xử lý chọn folder
+    const handleTreeSelect = async (selectedKeys, info) => {
+        const folderId = selectedKeys && selectedKeys.length > 0 ? selectedKeys[0] : null;
         setSelectedKeys(selectedKeys);
-        message.info(`Đã chọn: ${info.node.title}`);
+        setSelectedFolderId(folderId);
+
+        // Tự động mở rộng folder cha
+        if (folderId) {
+            const parentKey = findParentKey(treeData, folderId);
+            if (parentKey) {
+                setExpandedKeys(prev => [...new Set([...prev, parentKey])]);
+            }
+        }
+
+        if (info.node?.title) {
+            message.info(`Đã chọn: ${info.node.title}`);
+        }
+
+        await loadTests(folderId);
     };
 
+    // Xử lý mở rộng/thu gọn folder
     const handleTreeExpand = (expandedKeys) => {
         setExpandedKeys(expandedKeys);
     };
 
+    // Xử lý click ra ngoài để bỏ chọn folder
+    const handleClickOutside = useCallback((e) => {
+        // Không auto clear khi đang mở modal
+        if (folderModalVisible || createTestModalVisible || autoTestModalVisible) return;
+
+        const treeElement = document.querySelector('.ant-tree');
+        const modalElement = e.target.closest('.ant-modal') || document.querySelector('.ant-modal');
+        const drawerElement = e.target.closest('.ant-drawer') || document.querySelector('.ant-drawer');
+        const buttonElement = e.target.closest('.ant-btn');
+
+        if (buttonElement) return;
+
+        if (treeElement && !treeElement.contains(e.target) &&
+            !modalElement?.contains(e.target) &&
+            !drawerElement?.contains(e.target)) {
+            setSelectedKeys([]);
+            setSelectedFolderId(null);
+            setTableData([]);
+        }
+    }, [folderModalVisible, createTestModalVisible, autoTestModalVisible]);
+
+    useEffect(() => {
+        document.addEventListener('click', handleClickOutside);
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [handleClickOutside]);
+
     // Folder handlers
     const handleAddFolder = () => {
         setEditingFolder(null);
+        const defaultParent = selectedKeys.length > 0 ? selectedKeys[0] : null;
+
+        if (defaultParent) {
+            const folder = findFolder(treeData, defaultParent);
+            if (folder) {
+                message.info(`Sẽ tạo thư mục con bên trong "${folder.title}"`);
+            }
+        }
+
         setFolderModalVisible(true);
     };
 
@@ -243,10 +359,10 @@ export const MyLibrary = () => {
                 id: folder.key,
                 name: folder.title,
                 parent: parentKey || '',
-                order: 1,
+                order: folder.order || 1,
                 color: folder.color || '#2E3A59',
-                createdAt: '18/03/2025',
-                updatedAt: '18/03/2025'
+                createdAt: folder.createdAt || '18/03/2025',
+                updatedAt: folder.updatedAt || '18/03/2025'
             });
             setFolderModalVisible(true);
         }
@@ -274,79 +390,161 @@ export const MyLibrary = () => {
             okText: 'Xóa',
             okType: 'danger',
             cancelText: 'Hủy',
-            onOk() {
-                // Logic xóa thư mục
-                message.success(`Đã xóa thư mục "${folder?.title}" thành công`);
-                setSelectedKeys([]);
+            onOk: async () => {
+                try {
+                    await deleteFolder(folder?.key || folder?._id);
+                    message.success(`Đã xóa thư mục "${folder?.title}" thành công`);
+                    setSelectedKeys([]);
+                    setSelectedFolderId(null);
+                    await loadLibraryData();
+                } catch (err) {
+                    console.error('deleteFolder error', err);
+                    message.error('Xóa thư mục thất bại');
+                }
             },
         });
     };
 
+    // pages/MyLibrary.jsx - Sửa handleFolderSubmit
+
     const handleFolderSubmit = async (values) => {
         setLoading(true);
         try {
-            console.log('Folder data:', values);
+            const folderData = {
+                name: values.name,
+                title: values.name,
+                parentId: values.parent || null, // parent là ID của folder cha
+                color: values.color || '#2E3A59',
+                order: values.order || 1
+            };
 
-            // Giả lập API call
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('Sending to API:', folderData);
 
-            if (editingFolder) {
-                // Cập nhật thư mục
+            let response;
+            if (editingFolder?.id) {
+                response = await updateFolder(editingFolder.id, folderData);
                 message.success(`Đã cập nhật thư mục "${values.name}" thành công!`);
             } else {
-                // Thêm thư mục mới
+                response = await createFolder(folderData);
                 message.success(`Đã tạo thư mục "${values.name}" thành công!`);
             }
 
             setFolderModalVisible(false);
             setEditingFolder(null);
-        } catch (error) {
+
+            // Load lại dữ liệu
+            await loadLibraryData();
+
+            // Mở rộng thư mục cha nếu có
+            if (values.parent) {
+                setExpandedKeys(prev => [...new Set([...prev, values.parent])]);
+
+                // Nếu đang tạo thư mục con, tự động chọn folder cha để hiển thị
+                if (!editingFolder) {
+                    setSelectedKeys([values.parent]);
+                    setSelectedFolderId(values.parent);
+                }
+            }
+
+            console.log('Folder created/updated:', response);
+        } catch (err) {
+            console.error('handleFolderSubmit error:', err);
             message.error('Có lỗi xảy ra, vui lòng thử lại');
         } finally {
             setLoading(false);
         }
     };
-
     // Test handlers
     const handleCreateTest = () => {
+        if (!selectedKeys.length) {
+            message.warning('Vui lòng chọn một thư mục để thêm bài tập');
+            return;
+        }
         setCreateTestModalVisible(true);
     };
 
     const handleCreateAutoTest = () => {
+        if (!selectedKeys.length) {
+            message.warning('Vui lòng chọn một thư mục để thêm bài tập');
+            return;
+        }
         setAutoTestModalVisible(true);
     };
 
-    const handleTestSubmit = (data) => {
-        console.log('Test created:', data);
-        message.success('Đã tạo đề kiểm tra thành công!');
-        setCreateTestModalVisible(false);
+    const handleTestSubmit = async (data) => {
+        try {
+            const testData = {
+                name: data.testName || 'Tên đề',
+                type: 'Đề thi',
+                total: data.selectedQuestions?.length || 0,
+                starred: false,
+                folderId: selectedKeys[0] || null,
+                questions: (data.selectedQuestions || []).map(q => q.id)
+            };
+
+            await createTest(testData);
+            message.success('Đã tạo đề kiểm tra thành công!');
+            setCreateTestModalVisible(false);
+            await loadLibraryData();
+        } catch (err) {
+            console.error('handleTestSubmit error', err);
+            message.error('Tạo đề kiểm tra thất bại');
+        }
     };
 
-    const handleAutoTestSubmit = (data) => {
-        console.log('Auto test created:', data);
-        message.success('Đã tạo đề tự động thành công!');
-        setAutoTestModalVisible(false);
+    const handleAutoTestSubmit = async (data) => {
+        try {
+            const autoTestData = {
+                name: data.testName || 'Đề tự động',
+                type: data.testType || 'Đề thi',
+                total: data.rows?.reduce((sum, row) => sum + (row.count || 0), 0) || 0,
+                config: data,
+                folderId: selectedKeys[0] || null
+            };
+
+            console.log('Auto test created:', autoTestData);
+            message.success('Đã tạo đề tự động thành công!');
+            setAutoTestModalVisible(false);
+            await loadLibraryData();
+        } catch (err) {
+            console.error('handleAutoTestSubmit error', err);
+            message.error('Tạo đề tự động thất bại');
+        }
     };
 
     const showDeleteConfirm = (record) => {
         confirm({
             title: 'Xác nhận xóa bài tập',
             icon: <ExclamationCircleOutlined />,
-            content: `Bạn có chắc chắn muốn xóa "${record.name}"?`,
+            content: `Bạn có chắc chắn muốn xóa "${record.name || record.title}"?`,
             okText: 'Xóa',
             okType: 'danger',
             cancelText: 'Hủy',
-            onOk() {
-                setTableData(tableData.filter(item => item.key !== record.key));
-                message.success('Đã xóa bài tập thành công');
+            onOk: async () => {
+                try {
+                    await deleteTest(record._id || record.key);
+                    message.success('Đã xóa bài tập thành công');
+                    await loadLibraryData();
+                } catch (err) {
+                    console.error('deleteTest error', err);
+                    message.error('Xóa bài tập thất bại');
+                }
             },
         });
     };
 
+    // Refresh dữ liệu
+    const handleRefresh = async () => {
+        await loadLibraryData();
+        message.success('Đã làm mới dữ liệu');
+    };
+
     // Filter table data based on search
     const filteredData = tableData.filter(item =>
-        item.name.toLowerCase().includes(searchText.toLowerCase())
+        (item.name || item.title || '').toLowerCase().includes(searchText.toLowerCase())
     );
+
+    // pages/MyLibrary.jsx - Cập nhật phần Tree Actions
 
     const tabItems = [
         {
@@ -383,12 +581,13 @@ export const MyLibrary = () => {
                                 icon={<PlusOutlined />}
                                 onClick={handleAddFolder}
                             >
-                                Thêm
+                                {selectedKeys.length > 0 ? 'Thêm thư mục con' : 'Thêm thư mục'}
                             </Button>
                             <Button
                                 size="small"
                                 icon={<EditOutlined />}
                                 onClick={handleEditFolder}
+                                disabled={selectedKeys.length === 0}
                             >
                                 Sửa
                             </Button>
@@ -397,10 +596,14 @@ export const MyLibrary = () => {
                                 danger
                                 icon={<DeleteOutlined />}
                                 onClick={handleDeleteFolder}
+                                disabled={selectedKeys.length === 0}
                             >
                                 Xóa
                             </Button>
+
                         </div>
+
+
 
                         {/* Search in tree */}
                         <Input
@@ -411,16 +614,35 @@ export const MyLibrary = () => {
                         />
 
                         {/* Tree Component */}
-                        <Tree
-                            showIcon
-                            switcherIcon={<FolderOpenOutlined />}
-                            defaultExpandedKeys={expandedKeys}
-                            expandedKeys={expandedKeys}
-                            selectedKeys={selectedKeys}
-                            onSelect={handleTreeSelect}
-                            onExpand={handleTreeExpand}
-                            treeData={treeData}
-                        />
+                        {loading && !treeData.length ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                <Spin size="small" />
+                                <div style={{ marginTop: 8 }}>Đang tải...</div>
+                            </div>
+                        ) : (
+                            <Tree
+                                showIcon
+                                icon={(props) => {
+                                    let nodeColor = '#2E3A59';
+                                    if (props.data && props.data[props.pos]) {
+                                        nodeColor = props.data[props.pos].color || '#2E3A59';
+                                    } else if (props.color) {
+                                        nodeColor = props.color;
+                                    }
+
+                                    if (props.expanded) {
+                                        return <FolderOpenOutlined style={{ color: nodeColor, fontSize: '16px' }} />;
+                                    }
+                                    return <FolderOutlined style={{ color: nodeColor, fontSize: '16px' }} />;
+                                }}
+                                switcherIcon={<FolderOpenOutlined />}
+                                expandedKeys={expandedKeys}
+                                selectedKeys={selectedKeys}
+                                onSelect={handleTreeSelect}
+                                onExpand={handleTreeExpand}
+                                treeData={treeData}
+                            />
+                        )}
                     </div>
 
                     {/* Right Panel - Table */}
@@ -449,12 +671,14 @@ export const MyLibrary = () => {
                                     type="primary"
                                     icon={<PlusOutlined />}
                                     onClick={handleCreateTest}
+                                    disabled={!selectedKeys.length}
                                 >
                                     Tạo đề kiểm tra
                                 </Button>
                                 <Button
                                     icon={<ThunderboltOutlined />}
                                     onClick={handleCreateAutoTest}
+                                    disabled={!selectedKeys.length}
                                 >
                                     Tạo tự động
                                 </Button>
@@ -472,44 +696,37 @@ export const MyLibrary = () => {
 
                         {/* Table */}
                         <div style={{ flex: 1, overflow: 'auto' }}>
-                            <Table
-                                columns={columns}
-                                dataSource={filteredData}
-                                pagination={{
-                                    pageSize: 10,
-                                    showTotal: (total) => `Tổng ${total} bài tập`
-                                }}
-                                scroll={{ x: 'max-content', y: isMobile ? 'auto' : 'calc(100vh - 480px)' }}
-                                bordered={false}
-                                size="middle"
-                            />
+                            {!selectedKeys.length ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '60px 20px',
+                                    color: '#999'
+                                }}>
+                                    <FolderOutlined style={{ fontSize: 48, marginBottom: 16, color: '#ddd' }} />
+                                    <div>Vui lòng chọn một thư mục để xem bài tập</div>
+                                </div>
+                            ) : (
+                                <Table
+                                    columns={columns}
+                                    dataSource={filteredData}
+                                    loading={loading}
+                                    pagination={{
+                                        pageSize: 10,
+                                        showTotal: (total) => `Tổng ${total} bài tập`
+                                    }}
+                                    scroll={{ x: 'max-content', y: isMobile ? 'auto' : 'calc(100vh - 480px)' }}
+                                    bordered={false}
+                                    size="middle"
+                                    rowKey={(record) => record._id || record.key || Math.random()}
+                                    locale={{ emptyText: 'Chưa có bài tập nào trong thư mục này' }}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
             )
         },
-        {
-            key: '2',
-            label: 'Lịch sử thao tác',
-            children: (
-                <div style={{
-                    padding: '48px',
-                    textAlign: 'center',
-                    color: '#999',
-                    background: '#fff',
-                    borderRadius: '8px',
-                    minHeight: '300px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <div>
-                        <FileOutlined style={{ fontSize: 48, color: '#ddd', marginBottom: 16 }} />
-                        <p>Lịch sử thao tác - Đang phát triển</p>
-                    </div>
-                </div>
-            )
-        }
+        // ... tab thứ 2 giữ nguyên
     ];
 
     return (
@@ -621,13 +838,16 @@ export const MyLibrary = () => {
 
             {/* Modals */}
             <FolderDrawer
+                key={editingFolder?.id || 'new-folder'}
                 visible={folderModalVisible}
                 onClose={() => {
                     setFolderModalVisible(false);
                     setEditingFolder(null);
                 }}
                 onSubmit={handleFolderSubmit}
-                initialValues={editingFolder}
+                initialValues={editingFolder ? editingFolder : {
+                    parent: selectedKeys.length > 0 ? selectedKeys[0] : null
+                }}
                 parentOptions={treeData.map(item => ({
                     value: item.key,
                     label: item.title

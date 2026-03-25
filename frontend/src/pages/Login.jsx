@@ -96,7 +96,7 @@ export function Login() {
         >
             <style>{responsiveCss}</style>
 
-            <Spin spinning={loading} tip="Đang đăng nhập..." size="large">
+            <Spin spinning={loading} description="Đang đăng nhập..." size="large">
                 <Row
                     onClick={(e) => e.stopPropagation()}
                     style={{

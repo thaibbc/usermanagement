@@ -1,7 +1,6 @@
 // context/UserContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
 
-// Export UserContext để có thể dùng useContext trực tiếp nếu muốn
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
@@ -17,7 +16,8 @@ export const UserProvider = ({ children }) => {
                 console.log("Loading user:", { token, storedUser });
 
                 if (token && storedUser) {
-                    setUser(JSON.parse(storedUser));
+                    const parsedUser = JSON.parse(storedUser);
+                    setUser(parsedUser);
                 }
             } catch (error) {
                 console.error("Error loading user:", error);
@@ -44,23 +44,30 @@ export const UserProvider = ({ children }) => {
         localStorage.removeItem("user");
     };
 
-    // For testing: set a default admin user if no user exists
-    useEffect(() => {
-        if (!loading && !user) {
-            const testUser = {
-                id: 1,
-                name: "Admin User",
-                email: "admin@example.com",
-                accountType: "admin"
-            };
-            localStorage.setItem("authToken", "test-token");
-            localStorage.setItem("user", JSON.stringify(testUser));
-            setUser(testUser);
-        }
-    }, [loading, user]);
+    // Helper functions để kiểm tra role
+    const isAdmin = user?.accountType === 'admin';
+    const isTeacher = user?.accountType === 'teacher';
+    const isStudent = user?.accountType === 'student';
 
     return (
-        <UserContext.Provider value={{ user, loading, setUser: updateUser, logout }}>
+        <UserContext.Provider value={{
+            user,
+            loading,
+            setUser: updateUser,
+            logout,
+            // Thêm các helper
+            isAdmin,
+            isTeacher,
+            isStudent,
+            // Thêm function để kiểm tra role cụ thể
+            hasRole: (roles) => {
+                if (!user) return false;
+                if (Array.isArray(roles)) {
+                    return roles.includes(user.accountType);
+                }
+                return user.accountType === roles;
+            }
+        }}>
             {children}
         </UserContext.Provider>
     );

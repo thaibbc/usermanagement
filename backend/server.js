@@ -19,6 +19,31 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-mana
     useUnifiedTopology: true
 }).then(async () => {
     console.log('Connected to MongoDB');
+
+    // Ensure at least one admin user exists for first-time use (dev friendly)
+    try {
+        const User = require('./models/User');
+        const Account = require('./models/Account');
+        const existingUser = await User.findOne({ accountType: 'admin' });
+
+        if (!existingUser) {
+            const defaultAdmin = {
+                name: 'Admin',
+                email: 'admin@example.com',
+                accountType: 'admin'
+            };
+            const createdUser = await User.create(defaultAdmin);
+            await Account.create({
+                userId: createdUser._id,
+                email: defaultAdmin.email,
+                password: 'admin123'
+            });
+            console.log(`Created default admin user & account (${defaultAdmin.email} / admin123)`);
+        }
+    } catch (err) {
+        console.error('Error creating default admin user:', err);
+    }
+
     // optional admin seeding; set SEED_ADMIN=true to enable
     if (process.env.SEED_ADMIN === 'true') {
         try {
@@ -69,8 +94,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // routes
 const usersRouter = require('./routes/users');
 const historyRouter = require('./routes/history');
+const libraryRouter = require('./routes/library');
+const questionsRouter = require('./routes/questions');
+const classesRouter = require('./routes/classes');
 app.use('/api/users', usersRouter);
 app.use('/api/history', historyRouter);
+app.use('/api/library', libraryRouter);
+app.use('/api/questions', questionsRouter);
+app.use('/api/classes', classesRouter);
 app.get('/', (req, res) => {
     res.send('User management backend is running');
 });

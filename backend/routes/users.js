@@ -278,7 +278,7 @@ router.post('/login', async (req, res) => {
             avatar: user.avatar || '',
             avatarUrl: user.avatarUrl || ''
         };
-        const token = jwt.sign({ id: user._id, email: account.email, accountType: user.accountType }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id, email: account.email, accountType: user.accountType }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
         console.log('LOGIN success for', email);
         res.json({ token, user: payload });
     } catch (err) {

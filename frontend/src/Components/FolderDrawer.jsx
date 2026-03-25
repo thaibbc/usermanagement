@@ -39,10 +39,15 @@ export const FolderDrawer = ({
 
     const isEditMode = !!initialValues;
 
+    // Reset form và color khi initialValues thay đổi
     useEffect(() => {
         if (visible) {
             if (initialValues) {
-                form.setFieldsValue(initialValues);
+                form.setFieldsValue({
+                    name: initialValues.name,
+                    parent: initialValues.parent || null,
+                    order: initialValues.order || 1
+                });
                 setSelectedColor(initialValues.color || '#2E3A59');
             } else {
                 form.resetFields();
@@ -62,16 +67,30 @@ export const FolderDrawer = ({
                 return;
             }
 
-            await onSubmit({
-                ...values,
+            // Log để kiểm tra
+            console.log('Form values:', values);
+            console.log('Selected color:', selectedColor);
+
+            const submitData = {
+                name: values.name,
+                parent: values.parent || null,  // Giá trị parent từ form
                 color: selectedColor,
-                id: initialValues?.id
-            });
+                order: values.order || 1
+            };
+
+            // Nếu là edit mode, thêm id
+            if (isEditMode && initialValues?.id) {
+                submitData.id = initialValues.id;
+            }
+
+            console.log('FolderDrawer submitting:', submitData);
+
+            await onSubmit(submitData);
 
             form.resetFields();
             setSelectedColor('#2E3A59');
             setLoading(false);
-            // Không gọi onClose ở đây vì onSubmit đã xử lý
+            onClose(); // Đóng modal sau khi submit thành công
 
         } catch (error) {
             console.error('Validation failed:', error);
@@ -97,9 +116,9 @@ export const FolderDrawer = ({
 
     // Responsive width
     const getModalWidth = () => {
-        if (!screens.md) return '90%'; // Mobile
-        if (!screens.lg) return 520; // Tablet
-        return 440; // Desktop
+        if (!screens.md) return '95%'; // Mobile
+        if (!screens.lg) return '80%'; // Tablet
+        return 420; // Desktop
     };
 
     return (
@@ -111,15 +130,23 @@ export const FolderDrawer = ({
                     color: '#00BCD4',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    padding: screens.xs ? '0' : '4px 0'
                 }}>
-                    <FolderOutlined />
-                    <span>{isEditMode ? 'CẬP NHẬT THƯ MỤC' : 'TẠO THƯ MỤC MỚI'}</span>
+                    <FolderOutlined style={{ fontSize: screens.xs ? '16px' : '18px' }} />
+                    <span>
+                        {isEditMode
+                            ? 'CẬP NHẬT THƯ MỤC'
+                            : (initialValues?.parent ? 'THÊM THƯ MỤC CON' : 'THÊM THƯ MỤC MỚI')
+                        }
+                    </span>
                 </div>
             }
-            width={getModalWidth()}
-            onCancel={handleClose}
             open={visible}
+            onCancel={handleClose}
+            width={getModalWidth()}
+            maskClosable={!loading}
+            closable={!loading}
             footer={
                 <div style={{
                     display: 'flex',
@@ -147,26 +174,26 @@ export const FolderDrawer = ({
             }
             styles={{
                 body: {
-                    padding: screens.xs ? '16px' : '20px',
+                    padding: screens.xs ? '12px' : '16px',
                     maxHeight: '60vh',
                     overflowY: 'auto'
                 },
                 header: {
-                    borderBottom: '1px solid #f0f0f0',
-                    padding: screens.xs ? '12px 16px' : '14px 20px'
+                    padding: screens.xs ? '12px 16px' : '14px 20px',
+                    borderBottom: '1px solid #f0f0f0'
                 },
                 footer: {
-                    borderTop: '1px solid #f0f0f0',
-                    padding: screens.xs ? '0 16px' : '0 20px'
+                    padding: screens.xs ? '0 16px 12px' : '0 20px 16px',
+                    borderTop: '1px solid #f0f0f0'
                 }
             }}
         >
             <Form
                 form={form}
                 layout="vertical"
-                size={screens.xs ? 'middle' : 'middle'}
+                size={screens.xs ? 'small' : 'middle'}
                 initialValues={initialValues || {
-                    parent: parentOptions[0]?.value || 'khoi-9',
+                    parent: null,
                     order: 1
                 }}
             >
@@ -186,11 +213,13 @@ export const FolderDrawer = ({
                 >
                     <Select
                         placeholder="Chọn cấp cha"
-                        dropdownStyle={{ maxHeight: 300 }}
+                        dropdownStyle={{ maxHeight: 250 }}
                         showSearch
                         optionFilterProp="children"
-                        size={screens.xs ? 'middle' : 'default'}
+                        size={screens.xs ? 'small' : 'middle'}
+                        allowClear
                     >
+                        <Select.Option value={null}>Không có (Thư mục gốc)</Select.Option>
                         {getParentOptions().map(option => (
                             <Select.Option key={option.value} value={option.value}>
                                 {option.label}
@@ -219,7 +248,7 @@ export const FolderDrawer = ({
                     <Input
                         placeholder="Nhập tên thư mục"
                         maxLength={100}
-                        size={screens.xs ? 'middle' : 'default'}
+                        size={screens.xs ? 'small' : 'middle'}
                     />
                 </Form.Item>
 
@@ -247,7 +276,7 @@ export const FolderDrawer = ({
                         style={{ width: '100%' }}
                         min={1}
                         max={999}
-                        size={screens.xs ? 'middle' : 'default'}
+                        size={screens.xs ? 'small' : 'middle'}
                     />
                 </Form.Item>
 
@@ -268,9 +297,9 @@ export const FolderDrawer = ({
                         {/* Colors grid - responsive */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: screens.xs ? 'repeat(8, 1fr)' : 'repeat(10, 1fr)',
+                            gridTemplateColumns: screens.xs ? 'repeat(6, 1fr)' : 'repeat(8, 1fr)',
                             gap: screens.xs ? '4px' : '6px',
-                            marginBottom: '10px'
+                            marginBottom: '8px'
                         }}>
                             {COLORS.map((color) => (
                                 <Tooltip key={color} title={color}>
@@ -279,10 +308,10 @@ export const FolderDrawer = ({
                                         style={{
                                             width: screens.xs ? '24px' : '28px',
                                             height: screens.xs ? '24px' : '28px',
-                                            borderRadius: '6px',
+                                            borderRadius: '4px',
                                             backgroundColor: color,
                                             cursor: 'pointer',
-                                            border: selectedColor === color ? '3px solid #1890ff' : '1px solid #d9d9d9',
+                                            border: selectedColor === color ? '2px solid #1890ff' : '1px solid #d9d9d9',
                                             boxShadow: selectedColor === color ? '0 0 0 2px rgba(24, 144, 255, 0.2)' : 'none',
                                             transition: 'all 0.2s ease',
                                         }}
@@ -304,8 +333,8 @@ export const FolderDrawer = ({
                                 Màu đã chọn:
                             </span>
                             <div style={{
-                                width: screens.xs ? '18px' : '20px',
-                                height: screens.xs ? '18px' : '20px',
+                                width: screens.xs ? '20px' : '22px',
+                                height: screens.xs ? '20px' : '22px',
                                 borderRadius: '4px',
                                 backgroundColor: selectedColor,
                                 border: '1px solid #d9d9d9'
@@ -316,40 +345,6 @@ export const FolderDrawer = ({
                         </div>
                     </div>
                 </Form.Item>
-
-                {/* Thông tin thêm khi edit */}
-                {isEditMode && initialValues && (
-                    <div style={{
-                        marginTop: '12px',
-                        padding: '10px 12px',
-                        background: '#f0f9ff',
-                        borderRadius: '6px',
-                        border: '1px solid #bae7ff'
-                    }}>
-                        <div style={{
-                            fontSize: screens.xs ? '12px' : '13px',
-                            fontWeight: 600,
-                            color: '#00BCD4',
-                            marginBottom: '6px'
-                        }}>
-                            Thông tin thư mục
-                        </div>
-                        <Row gutter={[8, 4]}>
-                            <Col span={12}>
-                                <span style={{ color: '#666' }}>Ngày tạo:</span>
-                            </Col>
-                            <Col span={12} style={{ textAlign: 'right', fontWeight: 500 }}>
-                                <span>{initialValues.createdAt || '---'}</span>
-                            </Col>
-                            <Col span={12}>
-                                <span style={{ color: '#666' }}>Cập nhật:</span>
-                            </Col>
-                            <Col span={12} style={{ textAlign: 'right', fontWeight: 500 }}>
-                                <span>{initialValues.updatedAt || '---'}</span>
-                            </Col>
-                        </Row>
-                    </div>
-                )}
             </Form>
         </Modal>
     );

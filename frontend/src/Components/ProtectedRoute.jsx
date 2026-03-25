@@ -1,11 +1,14 @@
-// components/ProtectedRoute.jsx
-import { Navigate } from 'react-router-dom';
+// Components/ProtectedRoute.jsx
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { Spin } from 'antd';
 
-function ProtectedRoute({ children, requiredRole }) {
+const ProtectedRoute = ({ children, requiredRole = null }) => {
     const { user, loading } = useUser();
+    const location = useLocation();
 
+    // Đang tải thông tin user
     if (loading) {
         return (
             <div style={{
@@ -13,24 +16,39 @@ function ProtectedRoute({ children, requiredRole }) {
                 justifyContent: 'center',
                 alignItems: 'center',
                 height: '100vh',
-                flexDirection: 'column',
-                gap: '16px'
+                fontSize: '16px',
+                color: '#666'
             }}>
-                <Spin size="large" />
-                <div style={{ color: '#00BCD4' }}>Đang tải...</div>
+                <Spin size="large" description="Đang tải..." />
             </div>
         );
     }
 
+    // Chưa đăng nhập
     if (!user) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (requiredRole && user.accountType !== requiredRole) {
-        return <Navigate to="/dashboard" replace />;
+    // Kiểm tra role nếu có yêu cầu
+    if (requiredRole) {
+        let hasRequiredRole = false;
+
+        // Nếu requiredRole là mảng
+        if (Array.isArray(requiredRole)) {
+            hasRequiredRole = requiredRole.includes(user.accountType);
+        }
+        // Nếu requiredRole là string
+        else {
+            hasRequiredRole = user.accountType === requiredRole;
+        }
+
+        if (!hasRequiredRole) {
+            // Chuyển hướng về dashboard nếu không có quyền
+            return <Navigate to="/dashboard" replace />;
+        }
     }
 
     return children;
-}
+};
 
 export default ProtectedRoute;

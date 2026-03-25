@@ -1,0 +1,18 @@
+{
+  "_id": "69c0fcfa756aeaa779db0bf7",
+  "khoiLop": "Lớp 6",
+  "unit": "Unit 5",
+  "kyNang": "Writing",
+  "cauHoi": "123",
+  "answer": "1",
+  "dapAnA": "",
+  "dapAnB": "",
+  "dapAnC": "",
+  "dapAnD": "",
+  "loaiCauHoi": "reading",
+  "mucDoNhanThuc": "Nhận biết",
+  "yeuCauDeBai": "choose_answer",
+  "createdAt": "2026-03-23T08:42:34.052Z",
+  "updatedAt": "2026-03-23T08:42:34.053Z",
+  "__v": 0
+}
