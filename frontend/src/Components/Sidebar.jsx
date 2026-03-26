@@ -106,6 +106,7 @@ function Sidebar({ collapsed, setCollapsed }) {
             label: 'Ngân hàng câu hỏi',
             path: '/question-bank'
         },
+
         {
             icon: <CheckOutlined style={{ fontSize: isSidebarCollapsed ? 20 : 18 }} />,
             label: 'Thư viện của tôi',
@@ -142,8 +143,16 @@ function Sidebar({ collapsed, setCollapsed }) {
         );
     }
 
+    // Tìm hàm getSidebarWidth (khoảng dòng 150-160) và sửa lại:
+
     const getSidebarWidth = () => {
-        return isSidebarCollapsed ? 80 : 250;
+        if (isMobile) {
+            return 0;
+        }
+        // Trên desktop/tablet: margin dựa vào trạng thái sidebar
+        // isSidebarCollapsed = true -> sidebar thu gọn (80px)
+        // isSidebarCollapsed = false -> sidebar mở rộng (250px)
+        return isSidebarCollapsed ? 80 : 250;  // ← SỬA: sidebarCollapsed -> isSidebarCollapsed
     };
 
     const getSidebarLeft = () => {

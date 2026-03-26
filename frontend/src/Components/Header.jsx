@@ -18,7 +18,6 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     // SỬA: Phân biệt mobile và tablet
     const isMobile = useIsMobile(768); // Màn hình < 768px
     const isTablet = useIsMobile(1024); // Màn hình < 1024px
-    // Tất cả màn hình < 1024px (dùng cho một số trường hợp)
 
     const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -169,14 +168,19 @@ function Header({ onMenuClick, sidebarCollapsed }) {
         setDrawerVisible(false);
     };
 
-    // QUAN TRỌNG: Tính toán marginLeft
+    // QUAN TRỌNG: Tính toán marginLeft - SỬA LẠI
     const getMarginLeft = () => {
         if (isMobile) {
             // Trên mobile: margin-left = 0 (sidebar đã ẩn hoàn toàn)
             return 0;
         }
         // Trên tablet và desktop: margin-left dựa vào trạng thái sidebar
-        return sidebarCollapsed ? 30 : 0;
+        // Nếu sidebarCollapsed được truyền từ component cha (ClassDetail), sử dụng giá trị đó
+        // Nếu không, mặc định là 0 (các trang khác)
+        if (sidebarCollapsed !== undefined) {
+            return sidebarCollapsed ? 80 : 250;
+        }
+        return 0;
     };
 
     const marginLeft = getMarginLeft();

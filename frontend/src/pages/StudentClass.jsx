@@ -394,7 +394,10 @@ export function StudentClass() {
                 marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                 transition: 'margin-left 0.3s ease'
             }}>
-                <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                <Header
+                    onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                // sidebarCollapsed={isSidebarCollapsed}
+                />
 
                 {/* Breadcrumb */}
                 <div style={{

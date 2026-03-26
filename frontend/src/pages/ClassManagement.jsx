@@ -7,6 +7,7 @@ import { HomeOutlined, DeleteOutlined, SwapOutlined, LoadingOutlined } from '@an
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
 import { fetchClasses, createClass, deleteClass } from '../api/classes';
+import useIsMobile from '../hooks/useIsMobile';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -18,8 +19,10 @@ export function ClassManagement() {
     const [classes, setClasses] = useState([]);
     const [filteredClasses, setFilteredClasses] = useState([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+    // Sử dụng hook để kiểm tra mobile
+    const isMobile = useIsMobile(768);
 
     const loadClasses = useCallback(async () => {
         try {
@@ -74,14 +77,6 @@ export function ClassManagement() {
         name: '',
         note: '',
     });
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     const validateClassName = (name) => {
         if (!name.trim()) {
@@ -239,19 +234,18 @@ export function ClassManagement() {
         return code;
     };
 
-    // Row selection configuration - chỉ cần cấu hình rowSelection, không thêm cột riêng
+    // Row selection configuration
     const rowSelection = {
         selectedRowKeys: selectedRowKeys,
         onChange: (selectedKeys) => {
             setSelectedRowKeys(selectedKeys);
         },
-
         getCheckboxProps: (record) => ({
             disabled: false,
             name: record.name,
         }),
         columnWidth: 50,
-        fixed: 'left', // Cố định cột checkbox bên trái
+        fixed: 'left',
     };
 
     const columns = [
@@ -301,7 +295,7 @@ export function ClassManagement() {
 
     return (
         <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
-            {/* Sidebar */}
+            {/* Sidebar - không hiển thị trên mobile */}
             {!isMobile && (
                 <Sidebar
                     collapsed={isSidebarCollapsed}

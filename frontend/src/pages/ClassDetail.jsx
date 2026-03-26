@@ -53,6 +53,7 @@ import {
     deleteAssignment
 } from '../api/classes';
 import { getUser } from '../api/users';
+import useIsMobile from '../hooks/useIsMobile';
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -67,8 +68,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [activeTab, setActiveTab] = useState('baitap');
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobileOrTablet, setIsMobileOrTablet] = useState(window.innerWidth <= 1024);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    // Sử dụng hook useIsMobile để đồng bộ với các trang khác
+    const isMobile = useIsMobile(768);
+    const isTablet = useIsMobile(1024);
 
     // Data states
     const [classData, setClassData] = useState(propClassData || location.state?.classData || null);
@@ -146,15 +149,6 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const isApproved = classData?.students?.some(s => String(s._id || s) === String(currentUserId));
 
     const totalStudents = classStats?.totalStudents ?? (Array.isArray(classData?.students) ? classData.students.length : (classData?.students || 0));
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobileOrTablet(window.innerWidth <= 1024);
-            setIsMobile(window.innerWidth <= 768);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     // ==================== ASSIGNMENT FUNCTIONS ====================
     const loadAssignments = useCallback(async () => {
@@ -784,7 +778,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     onCreateAssignment={showDrawer}
                     onViewAssignment={handleViewAssignment}
                     onDeleteAssignment={handleDeleteAssignment}
-                    isMobileOrTablet={isMobileOrTablet}
+                    isMobileOrTablet={isTablet}
                     isAdmin={isAdmin && isClassOwner}
                     isTeacher={isTeacher && isClassOwner}
                     fromAdmin={fromAdmin}
@@ -896,7 +890,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     if (loading) {
         return (
             <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
-                {!isMobileOrTablet && (
+                {!isMobile && (
                     <Sidebar
                         collapsed={isSidebarCollapsed}
                         setCollapsed={setIsSidebarCollapsed}
@@ -906,7 +900,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    marginLeft: isMobileOrTablet ? 0 : (isSidebarCollapsed ? 80 : 250),
+                    marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                     transition: 'margin-left 0.3s ease'
                 }}>
                     <Header
@@ -924,7 +918,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     if (!classData) {
         return (
             <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
-                {!isMobileOrTablet && (
+                {!isMobile && (
                     <Sidebar
                         collapsed={isSidebarCollapsed}
                         setCollapsed={setIsSidebarCollapsed}
@@ -934,8 +928,8 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    marginLeft: isMobileOrTablet ? 0 : (isSidebarCollapsed ? 80 : 250),
-                    transition: 'margin-left 0.3s ease'
+                    marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
+                    transition: 'margin-left 0.3s ease',
                 }}>
                     <Header
                         onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -956,7 +950,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     return (
         <Layout style={{ minHeight: '100vh', backgroundColor: '#e0f7fa' }}>
-            {!isMobileOrTablet && (
+            {!isMobile && (
                 <Sidebar
                     collapsed={isSidebarCollapsed}
                     setCollapsed={setIsSidebarCollapsed}
@@ -967,12 +961,12 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                marginLeft: isMobileOrTablet ? 0 : (isSidebarCollapsed ? 80 : 250),
+                marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 80 : 250),
                 transition: 'margin-left 0.3s ease'
             }}>
                 <Header
                     onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    sidebarCollapsed={isSidebarCollapsed}
+                // sidebarCollapsed={isSidebarCollapsed}
                 />
 
                 <div style={{
@@ -1021,7 +1015,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         studentData={studentData.filter(s => s.status === 'Đã duyệt')}
                         colors={colors}
                         isMobile={isMobile}
-                        isMobileOrTablet={isMobileOrTablet}
+                        isMobileOrTablet={isTablet}
                     />
                 )}
 
