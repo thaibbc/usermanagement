@@ -19,7 +19,7 @@ import useIsMobile from '../hooks/useIsMobile';
 
 export function Dashboard() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const isMobile = useIsMobile(1350);
+    const isMobile = useIsMobile(1024);
 
 
     // Stats data

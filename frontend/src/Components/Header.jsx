@@ -8,18 +8,31 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from 'react-router-dom';
 
-import useIsMobile from '../hooks/useIsMobile';
 import { UserContext } from "../context/UserContext";
 
 function Header({ onMenuClick, sidebarCollapsed }) {
     const navigate = useNavigate();
     const { user, setUser } = useContext(UserContext);
 
-    // Phân biệt mobile và tablet
-    const isMobile = useIsMobile(768); // Màn hình < 768px
-    const isTablet = useIsMobile(1024); // Màn hình < 1024px
+    // Sử dụng state để theo dõi kích thước màn hình thực tế
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+    const isDesktop = windowWidth >= 1024;
+    // Chỉ hiển thị nút menu trên mobile và tablet (dưới 1024px)
+    const showMenuButton = isMobile || isTablet;
 
     const [drawerVisible, setDrawerVisible] = useState(false);
+
+    // Theo dõi resize window
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const isAdmin = user?.accountType === 'admin';
     const isTeacher = user?.accountType === 'teacher';
@@ -168,7 +181,8 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     ) : null;
 
     const handleMenuClick = () => {
-        if (isMobile) {
+        // Trên mobile và tablet, mở drawer
+        if (showMenuButton) {
             setDrawerVisible(true);
         } else if (onMenuClick) {
             onMenuClick();
@@ -188,11 +202,11 @@ function Header({ onMenuClick, sidebarCollapsed }) {
 
     // Tính toán marginLeft
     const getMarginLeft = () => {
-        if (isMobile) {
-            // Trên mobile: margin-left = 0 (sidebar đã ẩn hoàn toàn)
+        // Trên mobile và tablet, không cần margin left vì sidebar không hiển thị
+        if (showMenuButton) {
             return 0;
         }
-        // Trên tablet và desktop: margin-left dựa vào trạng thái sidebar
+        // Trên desktop: margin-left dựa vào trạng thái sidebar
         if (sidebarCollapsed !== undefined) {
             return sidebarCollapsed ? 80 : 250;
         }
@@ -218,100 +232,103 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     };
 
     return (
-        <div style={{
-            backgroundColor: '#1E293B',
-            padding: isMobile ? '12px 16px' : (isTablet ? '14px 20px' : '16px 24px'),
-            display: 'flex',
-            justifyContent: isMobile ? 'space-between' : 'flex-end',
-            alignItems: 'center',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 999,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginLeft: marginLeft,
-            width: `calc(100% - ${marginLeft}px)`,
-            transition: 'margin-left 0.3s ease, width 0.3s ease'
-        }}>
-            {/* Menu button - chỉ hiển thị trên mobile */}
-            {isMobile && (
-                <MenuOutlined
-                    onClick={handleMenuClick}
-                    style={{ fontSize: 20, color: 'white', cursor: 'pointer' }}
-                />
-            )}
-
+        <>
             <div style={{
+                backgroundColor: '#1E293B',
+                padding: showMenuButton ? '12px 16px' : (isTablet ? '14px 20px' : '16px 24px'),
                 display: 'flex',
+                justifyContent: showMenuButton ? 'space-between' : 'flex-end',
                 alignItems: 'center',
-                gap: isMobile ? 16 : 24,
-                marginLeft: 'auto'
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 999,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginLeft: marginLeft,
+                width: `calc(100% - ${marginLeft}px)`,
+                transition: 'margin-left 0.3s ease, width 0.3s ease'
             }}>
-                {/* Notification */}
-                <div style={{ position: 'relative', cursor: 'pointer' }}>
-                    <BellOutlined style={{ fontSize: isMobile ? 18 : 20, color: 'white' }} />
-                    <div style={{
-                        position: 'absolute',
-                        top: -4,
-                        right: -4,
-                        width: 8,
-                        height: 8,
-                        backgroundColor: '#FF6B6B',
-                        borderRadius: '50%',
-                        border: '2px solid #1E293B'
-                    }} />
-                </div>
+                {/* Menu button - hiển thị trên mobile và tablet */}
+                {showMenuButton && (
+                    <MenuOutlined
+                        onClick={handleMenuClick}
+                        style={{ fontSize: 20, color: 'white', cursor: 'pointer' }}
+                    />
+                )}
 
-                {/* Avatar & User Info */}
-                <Dropdown menu={{ items: headerMenu }} placement="bottomRight" trigger={['click']}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: showMenuButton ? 16 : 24,
+                    marginLeft: showMenuButton ? 0 : 'auto'
+                }}>
+                    {/* Notification */}
+                    <div style={{ position: 'relative', cursor: 'pointer' }}>
+                        <BellOutlined style={{ fontSize: showMenuButton ? 18 : 20, color: 'white' }} />
                         <div style={{
-                            width: isMobile ? 32 : 36,
-                            height: isMobile ? 32 : 36,
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            width: 8,
+                            height: 8,
+                            backgroundColor: '#FF6B6B',
                             borderRadius: '50%',
-                            backgroundColor: '#00D4D4',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: isMobile ? 14 : 16,
-                            border: '2px solid white',
-                            overflow: 'hidden',
-                            color: 'white',
-                            fontWeight: 'bold'
-                        }}>
-                            {userAvatar ? (
-                                <img
-                                    key={avatarCacheKey}
-                                    src={headerAvatarSrc}
-                                    alt="avatar"
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                            ) : (
-                                user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+                            border: '2px solid #1E293B'
+                        }} />
+                    </div>
+
+                    {/* Avatar & User Info */}
+                    <Dropdown menu={{ items: headerMenu }} placement="bottomRight" trigger={['click']}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                            <div style={{
+                                width: showMenuButton ? 32 : 36,
+                                height: showMenuButton ? 32 : 36,
+                                borderRadius: '50%',
+                                backgroundColor: '#00D4D4',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: showMenuButton ? 14 : 16,
+                                border: '2px solid white',
+                                overflow: 'hidden',
+                                color: 'white',
+                                fontWeight: 'bold'
+                            }}>
+                                {userAvatar ? (
+                                    <img
+                                        key={avatarCacheKey}
+                                        src={headerAvatarSrc}
+                                        alt="avatar"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+                                )}
+                            </div>
+
+                            {/* Trên desktop mới hiển thị tên, trên mobile/tablet chỉ hiển thị avatar */}
+                            {!showMenuButton && (
+                                <span
+                                    key={`header-name-${headerNameKey}`}
+                                    style={{
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        color: 'white',
+                                        maxWidth: 150,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {headerName}
+                                </span>
                             )}
                         </div>
-
-                        {!isMobile && (
-                            <span
-                                key={`header-name-${headerNameKey}`}
-                                style={{
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                    color: 'white',
-                                    maxWidth: 150,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                {headerName}
-                            </span>
-                        )}
-                    </div>
-                </Dropdown>
+                    </Dropdown>
+                </div>
             </div>
 
-            {/* Drawer chỉ cho mobile */}
+            {/* Drawer cho mobile và tablet */}
             <Drawer
                 title={
                     <div style={{
@@ -329,7 +346,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                 placement="left"
                 onClose={handleDrawerClose}
                 open={drawerVisible}
-                width="80%"
+                width={isMobile ? "80%" : "320px"}
                 styles={{
                     body: { padding: 0, backgroundColor: '#1E293B' },
                     header: {
@@ -394,7 +411,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                             );
                         }
 
-                        // Thêm section title trước một số nhóm menu (tùy chọn)
+                        // Thêm section title trước một số nhóm menu
                         let showTitle = false;
                         let titleText = '';
 
@@ -428,7 +445,6 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                                         color: 'rgba(255,255,255,0.8)',
                                         transition: 'all 0.2s ease',
                                         borderLeft: '3px solid transparent',
-                                        marginLeft: showTitle ? 0 : 0
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
@@ -466,7 +482,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                     </div>
                 </div>
             </Drawer>
-        </div>
+        </>
     );
 }
 

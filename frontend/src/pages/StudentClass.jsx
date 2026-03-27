@@ -27,7 +27,7 @@ export function StudentClass() {
     const navigate = useNavigate();
     const [classCode, setClassCode] = useState('');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(false);
     const { user } = useUser();
@@ -39,7 +39,7 @@ export function StudentClass() {
     // Handle window resize for mobile detection
     useEffect(() => {
         const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
+            setIsMobile(window.innerWidth < 1024);
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);

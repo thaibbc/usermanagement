@@ -22,7 +22,7 @@ export function ClassManagement() {
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
     // Sử dụng hook để kiểm tra mobile
-    const isMobile = useIsMobile(768);
+    const isMobile = useIsMobile(1024);
 
     const loadClasses = useCallback(async () => {
         try {

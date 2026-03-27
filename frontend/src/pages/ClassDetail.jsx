@@ -70,7 +70,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     // Sử dụng hook useIsMobile để đồng bộ với các trang khác
-    const isMobile = useIsMobile(768);
+    const isMobile = useIsMobile(1024);
     const isTablet = useIsMobile(1024);
 
     // Data states

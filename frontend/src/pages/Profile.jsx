@@ -37,7 +37,7 @@ export function Profile() {
     const [passwordForm] = Form.useForm();
     const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const isMobile = useIsMobile(1350);
+    const isMobile = useIsMobile(1024);
     // password visibility no longer needed
     // const [showNewPassword, setShowNewPassword] = useState(false);
     // const [showConfirmPassword, setShowConfirmPassword] = useState(false);

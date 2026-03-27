@@ -49,7 +49,7 @@ export const QuestionBank = () => {
     const [createDrawerVisible, setCreateDrawerVisible] = useState(false);
     const [showBanner, setShowBanner] = useState(true);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const screens = useBreakpoint();
 
     const loadQuestions = async () => {
@@ -82,7 +82,7 @@ export const QuestionBank = () => {
     // Handle window resize for mobile detection
     useEffect(() => {
         const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
+            setIsMobile(window.innerWidth < 1024);
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);

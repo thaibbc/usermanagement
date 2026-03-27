@@ -353,7 +353,7 @@ export function AdminDashboard() {
 
 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const isMobile = useIsMobile(1350);
+    const isMobile = useIsMobile(1024);
     const isMobileTabs = useIsMobile(768);
 
     const tabItems = [
