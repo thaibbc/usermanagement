@@ -15,15 +15,17 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     const navigate = useNavigate();
     const { user, setUser } = useContext(UserContext);
 
-    // SỬA: Phân biệt mobile và tablet
+    // Phân biệt mobile và tablet
     const isMobile = useIsMobile(768); // Màn hình < 768px
     const isTablet = useIsMobile(1024); // Màn hình < 1024px
 
     const [drawerVisible, setDrawerVisible] = useState(false);
 
     const isAdmin = user?.accountType === 'admin';
+    const isTeacher = user?.accountType === 'teacher';
 
-    const drawerItems = [
+    // Menu items cho tất cả user
+    const commonDrawerItems = [
         {
             icon: <HomeOutlined style={{ fontSize: 18 }} />,
             label: 'Trang chủ',
@@ -58,30 +60,46 @@ function Header({ onMenuClick, sidebarCollapsed }) {
             icon: <SettingOutlined style={{ fontSize: 18 }} />,
             label: 'Cài đặt',
             path: '/settings'
+        }
+    ];
+
+    // Menu items cho giáo viên và admin (quản lý)
+    const managementDrawerItems = [
+        {
+            icon: <ProfileOutlined style={{ fontSize: 18 }} />,
+            label: 'Quản lý lớp học',
+            path: '/classes'
         },
-        ...(isAdmin ? [
-            { type: 'divider' },
-            {
-                icon: <SwitcherOutlined style={{ fontSize: 18 }} />,
-                label: 'Quản lý người dùng',
-                path: '/users'
-            },
-            {
-                icon: <ProfileOutlined style={{ fontSize: 18 }} />,
-                label: 'Quản lý lớp học',
-                path: '/classes'
-            },
-            {
-                icon: <QuestionCircleOutlined style={{ fontSize: 18 }} />,
-                label: 'Ngân hàng câu hỏi',
-                path: '/question-bank'
-            },
-            {
-                icon: <BankOutlined style={{ fontSize: 18 }} />,
-                label: 'Quản lý ngân hàng',
-                path: '/bank-management'
-            }
-        ] : [])
+        {
+            icon: <QuestionCircleOutlined style={{ fontSize: 18 }} />,
+            label: 'Ngân hàng câu hỏi',
+            path: '/question-bank'
+        },
+        {
+            icon: <BankOutlined style={{ fontSize: 18 }} />,
+            label: 'Quản lý ngân hàng',
+            path: '/bank-management'
+        }
+    ];
+
+    // Menu items chỉ cho admin
+    const adminOnlyDrawerItems = [
+        {
+            icon: <SwitcherOutlined style={{ fontSize: 18 }} />,
+            label: 'Quản lý người dùng',
+            path: '/users'
+        }
+    ];
+
+    // Xây dựng drawer items dựa trên role
+    const drawerItems = [
+        ...commonDrawerItems,
+        // Thêm divider nếu có menu quản lý
+        ...((isTeacher || isAdmin) ? [{ type: 'divider' }] : []),
+        // Menu quản lý cho giáo viên và admin
+        ...((isTeacher || isAdmin) ? managementDrawerItems : []),
+        // Menu admin chỉ cho admin
+        ...(isAdmin ? [{ type: 'divider' }, ...adminOnlyDrawerItems] : [])
     ];
 
     const handleLogout = () => {
@@ -168,15 +186,13 @@ function Header({ onMenuClick, sidebarCollapsed }) {
         setDrawerVisible(false);
     };
 
-    // QUAN TRỌNG: Tính toán marginLeft - SỬA LẠI
+    // Tính toán marginLeft
     const getMarginLeft = () => {
         if (isMobile) {
             // Trên mobile: margin-left = 0 (sidebar đã ẩn hoàn toàn)
             return 0;
         }
         // Trên tablet và desktop: margin-left dựa vào trạng thái sidebar
-        // Nếu sidebarCollapsed được truyền từ component cha (ClassDetail), sử dụng giá trị đó
-        // Nếu không, mặc định là 0 (các trang khác)
         if (sidebarCollapsed !== undefined) {
             return sidebarCollapsed ? 80 : 250;
         }
@@ -184,6 +200,22 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     };
 
     const marginLeft = getMarginLeft();
+
+    // Helper để render section title trong drawer
+    const renderSectionTitle = (title) => {
+        return (
+            <div style={{
+                padding: '12px 20px 4px 20px',
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase'
+            }}>
+                {title}
+            </div>
+        );
+    };
 
     return (
         <div style={{
@@ -307,7 +339,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                     }
                 }}
             >
-                <div style={{ backgroundColor: '#1E293B', minHeight: '100%' }}>
+                <div style={{ backgroundColor: '#1E293B', minHeight: '100%', paddingBottom: 60 }}>
                     {/* User info trong drawer */}
                     {user && (
                         <div style={{
@@ -345,7 +377,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                                     {user?.name || 'Người dùng'}
                                 </div>
                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                    {isAdmin ? 'Quản trị viên' : 'Học viên'}
+                                    {isAdmin ? 'Quản trị viên' : isTeacher ? 'Giáo viên' : 'Học viên'}
                                 </div>
                             </div>
                         </div>
@@ -361,34 +393,60 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                                 }} />
                             );
                         }
+
+                        // Thêm section title trước một số nhóm menu (tùy chọn)
+                        let showTitle = false;
+                        let titleText = '';
+
+                        // Kiểm tra nếu là item đầu tiên của menu quản lý
+                        if ((isTeacher || isAdmin) &&
+                            managementDrawerItems.some(mItem => mItem.path === item.path) &&
+                            drawerItems[index - 1]?.type === 'divider') {
+                            showTitle = true;
+                            titleText = 'QUẢN LÝ';
+                        }
+
+                        // Kiểm tra nếu là item đầu tiên của menu admin
+                        if (isAdmin &&
+                            adminOnlyDrawerItems.some(aItem => aItem.path === item.path) &&
+                            drawerItems[index - 1]?.type === 'divider') {
+                            showTitle = true;
+                            titleText = 'HỆ THỐNG';
+                        }
+
                         return (
-                            <div
-                                key={index}
-                                onClick={() => handleDrawerItemClick(item.path)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    padding: '12px 20px',
-                                    cursor: 'pointer',
-                                    color: 'rgba(255,255,255,0.8)',
-                                    transition: 'all 0.2s ease',
-                                    borderLeft: '3px solid transparent'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                                    e.currentTarget.style.color = 'white';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                                }}
-                            >
-                                {item.icon}
-                                <span style={{ fontSize: 14, fontWeight: 500 }}>
-                                    {item.label}
-                                </span>
-                            </div>
+                            <React.Fragment key={index}>
+                                {showTitle && renderSectionTitle(titleText)}
+                                <div
+                                    onClick={() => handleDrawerItemClick(item.path)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        padding: '12px 20px',
+                                        cursor: 'pointer',
+                                        color: 'rgba(255,255,255,0.8)',
+                                        transition: 'all 0.2s ease',
+                                        borderLeft: '3px solid transparent',
+                                        marginLeft: showTitle ? 0 : 0
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                                        e.currentTarget.style.color = 'white';
+                                        e.currentTarget.style.borderLeftColor = '#00D4D4';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                        e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                                        e.currentTarget.style.borderLeftColor = 'transparent';
+                                    }}
+                                >
+                                    {item.icon}
+                                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                                        {item.label}
+                                    </span>
+                                </div>
+                            </React.Fragment>
                         );
                     })}
 
