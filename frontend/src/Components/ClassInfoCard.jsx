@@ -6,12 +6,22 @@ import { CopyOutlined, MoreOutlined, ArrowLeftOutlined, EditOutlined, SwapOutlin
 const { Text } = Typography;
 const { confirm } = Modal;
 
-const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBack, onUpdateStatus, isMobile, isTestMode = false }) => {
+const ClassInfoCard = ({
+    classData,
+    teacherInfo,
+    totalStudents,
+    onCopyCode,
+    onBack,
+    onUpdateStatus,
+    onEdit, // Thêm prop onEdit
+    isMobile,
+    isTestMode = false
+}) => {
     const handleDeleteClass = () => {
         confirm({
             title: 'Xác nhận xóa lớp',
             icon: <ExclamationCircleOutlined />,
-            content: `Bạn có chắc chắn muốn xóa lớp "${classData.name}"?`,
+            content: `Bạn có chắc chắn muốn xóa lớp "${classData.name}"? Hành động này sẽ xóa tất cả dữ liệu liên quan.`,
             okText: 'Xóa',
             okType: 'danger',
             cancelText: 'Hủy',
@@ -24,15 +34,37 @@ const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBa
 
     // Trong chế độ test, không hiển thị menu quản lý
     const menuItems = isTestMode ? [] : [
-        { key: 'edit', label: 'Chỉnh sửa lớp', icon: <EditOutlined />, onClick: () => message.info('Tính năng đang phát triển') },
-        { key: 'status', label: classData.status === 'active' ? 'Đóng lớp' : 'Mở lớp', icon: <SwapOutlined />, onClick: () => onUpdateStatus(classData.status === 'active' ? 'inactive' : 'active') },
-        { key: 'delete', label: 'Xóa lớp', icon: <DeleteOutlined />, danger: true, onClick: handleDeleteClass }
+        {
+            key: 'edit',
+            label: 'Chỉnh sửa lớp',
+            icon: <EditOutlined />,
+            onClick: onEdit // Gọi hàm onEdit từ prop
+        },
+        // {
+        //     key: 'status',
+        //     label: classData.status === 'active' ? 'Đóng lớp' : 'Mở lớp',
+        //     icon: <SwapOutlined />,
+        //     onClick: () => onUpdateStatus(classData.status === 'active' ? 'inactive' : 'active')
+        // },
+        {
+            key: 'delete',
+            label: 'Xóa lớp',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: handleDeleteClass
+        }
     ];
 
     return (
         <Card
             title={
-                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : 0 }}>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between',
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    gap: isMobile ? '12px' : 0
+                }}>
                     <Space>
                         <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, textTransform: 'uppercase' }}>
                             Thông tin lớp học: {classData.name}
@@ -45,11 +77,26 @@ const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBa
                     </Space>
                     <Space>
                         {!isTestMode && menuItems.length > 0 && (
-                            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                                <Button type="text" icon={<MoreOutlined />} size={isMobile ? 'small' : 'middle'} />
+                            <Dropdown
+                                menu={{ items: menuItems }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                            >
+                                <Button
+                                    type="text"
+                                    icon={<MoreOutlined />}
+                                    size={isMobile ? 'small' : 'middle'}
+                                />
                             </Dropdown>
                         )}
-                        <Button type="text" icon={<ArrowLeftOutlined />} onClick={onBack} size={isMobile ? 'small' : 'middle'}>Quay lại</Button>
+                        <Button
+                            type="text"
+                            icon={<ArrowLeftOutlined />}
+                            onClick={onBack}
+                            size={isMobile ? 'small' : 'middle'}
+                        >
+                            Quay lại
+                        </Button>
                     </Space>
                 </div>
             }
@@ -59,15 +106,30 @@ const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBa
             <Row gutter={[isMobile ? 16 : 24, isMobile ? 12 : 16]} style={{ marginBottom: isMobile ? 24 : 32 }}>
                 <Col xs={24} sm={12} md={8}>
                     <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Mã lớp học</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Mã lớp học
+                        </Text>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.code}</Text>
-                            <CopyOutlined style={{ cursor: 'pointer', color: '#00bcd4', fontSize: isMobile ? '14px' : '16px' }} onClick={onCopyCode} />
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                                {classData.code}
+                            </Text>
+                            <CopyOutlined
+                                style={{
+                                    cursor: 'pointer',
+                                    color: '#00bcd4',
+                                    fontSize: isMobile ? '14px' : '16px'
+                                }}
+                                onClick={onCopyCode}
+                            />
                         </div>
                     </div>
                     <div>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Giáo viên</Text>
-                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.name}</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Giáo viên
+                        </Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                            {teacherInfo.name}
+                        </Text>
                     </div>
                     <div style={{ marginTop: 8 }}>
                         <Tag color={classData.status === 'active' ? 'green' : classData.status === 'pending' ? 'orange' : 'red'}>
@@ -77,27 +139,89 @@ const ClassInfoCard = ({ classData, teacherInfo, totalStudents, onCopyCode, onBa
                 </Col>
                 <Col xs={24} sm={12} md={8}>
                     <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Tên lớp học</Text>
-                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{classData.name}</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Tên lớp học
+                        </Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                            {classData.name}
+                        </Text>
                     </div>
                     <div>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Điện thoại</Text>
-                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.phone}</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Điện thoại
+                        </Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                            {teacherInfo.phone}
+                        </Text>
                     </div>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
                     <div style={{ marginBottom: isMobile ? 12 : 16 }}>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Sĩ số</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Sĩ số
+                        </Text>
                         <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
                             {totalStudents} học sinh
                         </Text>
                     </div>
                     <div>
-                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>Email</Text>
-                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>{teacherInfo.email}</Text>
+                        <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                            Email
+                        </Text>
+                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                            {teacherInfo.email}
+                        </Text>
                     </div>
                 </Col>
             </Row>
+
+            {/* Hiển thị thêm thông tin nếu có */}
+            {(classData.subject || classData.grade || classData.schoolYear) && (
+                <Row gutter={[isMobile ? 16 : 24, isMobile ? 12 : 16]} style={{ marginTop: 8, marginBottom: 16 }}>
+                    {classData.subject && (
+                        <Col xs={24} sm={12} md={8}>
+                            <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                                Môn học
+                            </Text>
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                                {classData.subject}
+                            </Text>
+                        </Col>
+                    )}
+                    {classData.grade && (
+                        <Col xs={24} sm={12} md={8}>
+                            <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                                Khối lớp
+                            </Text>
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                                {classData.grade}
+                            </Text>
+                        </Col>
+                    )}
+                    {classData.schoolYear && (
+                        <Col xs={24} sm={12} md={8}>
+                            <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                                Năm học
+                            </Text>
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                                {classData.schoolYear}
+                            </Text>
+                        </Col>
+                    )}
+                </Row>
+            )}
+
+            {/* Hiển thị mô tả nếu có */}
+            {classData.description && (
+                <div style={{ marginTop: 8, marginBottom: 16 }}>
+                    <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
+                        Mô tả
+                    </Text>
+                    <Text style={{ fontSize: isMobile ? '13px' : '14px' }}>
+                        {classData.description}
+                    </Text>
+                </div>
+            )}
 
             {/* Thêm thông báo chế độ test nếu cần */}
             {isTestMode && (

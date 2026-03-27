@@ -21,6 +21,42 @@ export async function fetchUsers(filters = {}, page = 1, limit = 10) {
     return handleResponse(res);
 }
 
+// Get users by account type (student, teacher, admin)
+export async function getUsersByType(accountType, params = {}) {
+    const queryParams = new URLSearchParams();
+
+    // Add account type filter
+    queryParams.append('accountType', accountType);
+
+    // Add search params if provided
+    if (params.search) {
+        queryParams.append('search', params.search);
+    }
+
+    // Add pagination
+    if (params.page) {
+        queryParams.append('page', params.page);
+    }
+    if (params.limit) {
+        queryParams.append('limit', params.limit);
+    }
+
+    const url = `${API_URLS.USERS}?${queryParams}`;
+    const res = await fetch(url, { headers: getAuthHeaders() });
+
+    return handleResponse(res);
+}
+
+// Get students specifically (alias for getUsersByType)
+export async function getStudents(params = {}) {
+    return getUsersByType('student', params);
+}
+
+// Get teachers specifically
+export async function getTeachers(params = {}) {
+    return getUsersByType('teacher', params);
+}
+
 // Create new user
 export async function createUser(user) {
     const payload = { ...user };

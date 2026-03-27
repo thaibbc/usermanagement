@@ -3,6 +3,7 @@ import React from 'react';
 import { Table, Button, Tag, Space, Spin, Typography, Tooltip, Modal, message } from 'antd';
 import { PlusOutlined, BookOutlined, EditOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined, UploadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import SubmitAssignmentModal from './SubmitAssignmentModal';
+import CreateAssignmentDrawer from './CreateAssignmentDrawer';
 
 const { Text } = Typography;
 const { confirm } = Modal;
@@ -14,6 +15,7 @@ const AssignmentList = ({
     onCreateAssignment,
     onViewAssignment,
     onDeleteAssignment,
+    onEditAssignment, // Thêm prop mới
     isMobileOrTablet = false,
     isAdmin = false,
     isTeacher = false,
@@ -24,13 +26,20 @@ const AssignmentList = ({
     onAssignmentSubmitted,
     isTestMode = false,
     onViewResult = null,
-    onViewSubmission = null
+    onViewSubmission = null,
+    // Props cho CreateAssignmentDrawer
+    colors = [],
+    studentData = [],
+    onSubmitEdit // Thêm prop cho việc submit chỉnh sửa
 }) => {
     const [submitModalVisible, setSubmitModalVisible] = React.useState(false);
     const [selectedAssignment, setSelectedAssignment] = React.useState(null);
     const [viewResultModalVisible, setViewResultModalVisible] = React.useState(false);
     const [viewSubmissionModalVisible, setViewSubmissionModalVisible] = React.useState(false);
     const [selectedSubmission, setSelectedSubmission] = React.useState(null);
+    const [editDrawerVisible, setEditDrawerVisible] = React.useState(false);
+    const [editFormData, setEditFormData] = React.useState(null);
+    const [editLoading, setEditLoading] = React.useState(false);
 
     const getSubmissionStats = (assignmentId) => {
         if (!assignmentId || !Array.isArray(submissions)) {
@@ -75,6 +84,46 @@ const AssignmentList = ({
         setSelectedAssignment(null);
         if (onAssignmentSubmitted) {
             onAssignmentSubmitted();
+        }
+    };
+
+    // Xử lý chỉnh sửa bài tập
+    const handleEditAssignment = (assignment) => {
+        // Chuẩn bị dữ liệu cho form edit
+        const editData = {
+            _id: assignment._id,
+            title: assignment.title || '',
+            type: assignment.type || 'normal',
+            points: assignment.points || 10,
+            requirements: assignment.requirements || '',
+            color: assignment.color || '#00bcd4',
+            openTime: assignment.openTime ? dayjs(assignment.openTime) : null,
+            closeTime: assignment.closeTime ? dayjs(assignment.closeTime) : null,
+            selectedStudents: assignment.selectedStudents || assignment.assignedTo || [],
+            questions: assignment.questions || [],
+            useLibrary: assignment.questions && assignment.questions.length > 0
+        };
+        setEditFormData(editData);
+        setEditDrawerVisible(true);
+    };
+
+    // Xử lý submit chỉnh sửa
+    const handleEditSubmit = async () => {
+        if (onSubmitEdit) {
+            setEditLoading(true);
+            try {
+                await onSubmitEdit(editFormData);
+                setEditDrawerVisible(false);
+                setEditFormData(null);
+                if (onAssignmentSubmitted) {
+                    onAssignmentSubmitted();
+                }
+            } catch (error) {
+                console.error('Edit assignment error:', error);
+                message.error('Có lỗi xảy ra khi cập nhật bài tập');
+            } finally {
+                setEditLoading(false);
+            }
         }
     };
 
@@ -212,22 +261,12 @@ const AssignmentList = ({
                                     onClick={() => onViewAssignment(record)}
                                 />
                             </Tooltip>
-                            <Tooltip title="Xem bài nộp">
-                                <Button
-                                    type="text"
-                                    icon={<UploadOutlined />}
-                                    size="small"
-                                    onClick={() => {
-                                        message.info(`Xem bài nộp của bài tập: ${record.title}`);
-                                    }}
-                                />
-                            </Tooltip>
                             <Tooltip title="Chỉnh sửa">
                                 <Button
                                     type="text"
                                     icon={<EditOutlined />}
                                     size="small"
-                                    onClick={() => message.info(`Chỉnh sửa: ${record.title}`)}
+                                    onClick={() => handleEditAssignment(record)} // Sửa ở đây
                                 />
                             </Tooltip>
                             <Tooltip title="Xóa">
@@ -449,6 +488,25 @@ const AssignmentList = ({
                 isViewMode={true}
                 existingSubmission={selectedSubmission}
             />
+
+            {/* Drawer chỉnh sửa bài tập */}
+            {editFormData && (
+                <CreateAssignmentDrawer
+                    visible={editDrawerVisible}
+                    onClose={() => {
+                        setEditDrawerVisible(false);
+                        setEditFormData(null);
+                    }}
+                    onSubmit={handleEditSubmit}
+                    loading={editLoading}
+                    formData={editFormData}
+                    setFormData={setEditFormData}
+                    studentData={studentData}
+                    colors={colors}
+                    isMobile={isMobileOrTablet}
+                    isMobileOrTablet={isMobileOrTablet}
+                />
+            )}
         </div>
     );
 };

@@ -11,14 +11,16 @@ import {
     Space,
     Tag,
     Modal,
-    Result
+    Result,
+    Card
 } from 'antd';
 import {
     HomeOutlined,
     ExclamationCircleOutlined,
     ClockCircleOutlined,
     CheckCircleOutlined,
-    InfoCircleOutlined
+    InfoCircleOutlined,
+    EditOutlined
 } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
 import Sidebar from '../Components/Sidebar';
@@ -31,6 +33,7 @@ import NotificationList from '../Components/NotificationList';
 import StudentResultTab from '../Components/StudentResultTab';
 import EbookTab from '../Components/EbookTab';
 import SubmitAssignmentModal from '../Components/SubmitAssignmentModal';
+import EditClassModal from '../Components/EditClassModal';
 import {
     AddStudentModal,
     ImportStudentModal,
@@ -50,7 +53,8 @@ import {
     fetchAssignments,
     fetchSubmissions,
     createAssignment,
-    deleteAssignment
+    deleteAssignment,
+    updateClass
 } from '../api/classes';
 import { getUser } from '../api/users';
 import useIsMobile from '../hooks/useIsMobile';
@@ -68,6 +72,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [activeTab, setActiveTab] = useState('baitap');
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
 
     // Sử dụng hook useIsMobile để đồng bộ với các trang khác
     const isMobile = useIsMobile(1024);
@@ -464,6 +469,16 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         });
     };
 
+    // ==================== EDIT CLASS HANDLER ====================
+    const handleEditClass = () => {
+        setEditModalVisible(true);
+    };
+
+    const handleClassUpdated = async () => {
+        await loadClassData(classData.code);
+        message.success('Đã cập nhật thông tin lớp học');
+    };
+
     // ==================== STUDENT MANAGEMENT HANDLERS ====================
     const handleApproveStudent = async (pendingStudent) => {
         if (!canManageStudents) return;
@@ -576,6 +591,43 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         } finally {
             setActionLoading(false);
         }
+    };
+
+    const handleAddSelectedStudents = async (selectedStudents) => {
+        if (!canManageStudents) return;
+        
+        setActionLoading(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const student of selectedStudents) {
+            try {
+                await addStudentToClass(classData._id, {
+                    email: student.email,
+                    name: student.name,
+                    phone: student.phone || '',
+                    note: ''
+                });
+                successCount++;
+            } catch (err) {
+                console.error(`Failed to add student ${student.name}:`, err);
+                errorCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            message.success(`Đã thêm ${successCount} học sinh thành công`);
+            if (errorCount > 0) {
+                message.warning(`Không thể thêm ${errorCount} học sinh`);
+            }
+            setAddStudentModalVisible(false);
+            resetAddStudentForm();
+            await loadClassData(classData.code);
+            setSelectedRowKeys([]); // Reset selection if needed
+        } else {
+            message.error('Không thể thêm học sinh nào');
+        }
+        setActionLoading(false);
     };
 
     const resetAddStudentForm = () => {
@@ -966,7 +1018,6 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             }}>
                 <Header
                     onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                // sidebarCollapsed={isSidebarCollapsed}
                 />
 
                 <div style={{
@@ -974,13 +1025,16 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     padding: isMobile ? '12px 16px' : '16px 24px',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '12px',
                     flexWrap: 'wrap'
                 }}>
-                    <HomeOutlined style={{ fontSize: isMobile ? '18px' : '20px', color: 'white' }} />
-                    <Text style={{ color: 'white', fontSize: isMobile ? '13px' : '14px' }}>
-                        {isClassOwner ? 'Quản lý' : 'Học sinh'} - Lớp học - {classData.name}
-                    </Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <HomeOutlined style={{ fontSize: isMobile ? '18px' : '20px', color: 'white' }} />
+                        <Text style={{ color: 'white', fontSize: isMobile ? '13px' : '14px' }}>
+                            {isClassOwner ? 'Quản lý' : 'Học sinh'} - Lớp học - {classData.name}
+                        </Text>
+                    </div>
                 </div>
 
                 <Content style={{ padding: isMobile ? '16px' : '24px' }}>
@@ -991,19 +1045,34 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         onCopyCode={handleCopyCode}
                         onBack={handleBack}
                         onUpdateStatus={handleUpdateStatus}
+                        onEdit={canManageStudents ? handleEditClass : null}
                         isMobile={isMobile}
                         isTestMode={false}
                     />
-                    <Tabs
-                        activeKey={activeTab}
-                        onChange={setActiveTab}
-                        items={tabItems}
-                        size={isMobile ? 'small' : 'middle'}
-                        tabBarGutter={isMobile ? 8 : 16}
-                        tabBarStyle={{ fontSize: isMobile ? '12px' : '14px' }}
-                    />
+
+                    {/* Card bao bọc các tab */}
+                    <Card
+                        style={{
+                            marginTop: 24,
+                            borderRadius: 12,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                            backgroundColor: 'white'
+                        }}
+                        bodyStyle={{ padding: isMobile ? '16px' : '24px' }}
+                        variant="borderless"
+                    >
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            items={tabItems}
+                            size={isMobile ? 'small' : 'middle'}
+                            tabBarGutter={isMobile ? 8 : 16}
+                            tabBarStyle={{ fontSize: isMobile ? '12px' : '14px' }}
+                        />
+                    </Card>
                 </Content>
 
+                {/* Create Assignment Drawer */}
                 {canCreateAssignment && (
                     <CreateAssignmentDrawer
                         visible={drawerVisible}
@@ -1019,6 +1088,16 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     />
                 )}
 
+                {/* Edit Class Modal */}
+                {canManageStudents && (
+                    <EditClassModal
+                        visible={editModalVisible}
+                        onCancel={() => setEditModalVisible(false)}
+                        classData={classData}
+                        onSuccess={handleClassUpdated}
+                    />
+                )}
+
                 {/* Modals - chỉ hiển thị khi có quyền quản lý */}
                 {canManageStudents && (
                     <>
@@ -1029,6 +1108,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                                 resetAddStudentForm();
                             }}
                             onSubmit={handleAddStudent}
+                            onAddSelected={handleAddSelectedStudents}
                             loading={actionLoading}
                             email={newStudentEmail}
                             setEmail={setNewStudentEmail}
