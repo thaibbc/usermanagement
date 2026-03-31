@@ -26,7 +26,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
             form.setFieldsValue({
                 name: classData.name,
                 grade: classData.grade || '',
-                description: classData.description || '',
+                note: classData.note || '',
                 status: classData.status === 'active',
                 completed: classData.completed || false,
             });
@@ -41,7 +41,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
             const updateData = {
                 name: values.name,
                 grade: values.grade,
-                description: values.description,
+                note: values.note,
                 status: values.status ? 'active' : 'inactive',
                 completed: values.completed || false,
             };
@@ -111,7 +111,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                 initialValues={{
                     name: '',
                     grade: '',
-                    description: '',
+                    note: '',
                     status: true,
                     completed: false,
                 }}
@@ -168,7 +168,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     </Form.Item>
 
                     <Form.Item
-                        name="description"
+                        name="note"
                         label="Ghi chú"
                     >
                         <TextArea
