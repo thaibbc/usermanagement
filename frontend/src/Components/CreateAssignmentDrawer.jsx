@@ -522,12 +522,12 @@ const CreateAssignmentDrawer = ({
                             <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
                                 Chọn học sinh giao bài
                             </Text>
-                            <Tag color="blue">Đã chọn: {formData.selectedStudents.length}/{studentData.length}</Tag>
+                            <Tag color="blue">Đã chọn: {(formData.selectedStudents || []).length}/{(studentData || []).length}</Tag>
                         </div>
                         <Table
                             rowSelection={{
                                 type: 'checkbox',
-                                selectedRowKeys: formData.selectedStudents,
+                                selectedRowKeys: (formData.selectedStudents || []).map(s => typeof s === 'object' && s !== null ? (s._id || s.id) : s),
                                 onChange: (selectedRowKeys) => setFormData({ ...formData, selectedStudents: selectedRowKeys }),
                                 getCheckboxProps: () => ({ disabled: loading })
                             }}

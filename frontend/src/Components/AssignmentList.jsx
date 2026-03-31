@@ -130,7 +130,7 @@ const AssignmentList = ({
             color: assignment.color || '#00bcd4',
             openTime: assignment.openTime ? dayjs(assignment.openTime) : null,
             closeTime: assignment.closeTime ? dayjs(assignment.closeTime) : null,
-            selectedStudents: assignment.selectedStudents || assignment.assignedTo || [],
+            selectedStudents: (assignment.selectedStudents || assignment.assignedTo || []).map(s => typeof s === 'object' && s !== null ? (s._id || s.id) : s),
             questions: assignment.questions || [],
             useLibrary: assignment.questions && assignment.questions.length > 0
         };
