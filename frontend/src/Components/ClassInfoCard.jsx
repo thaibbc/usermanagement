@@ -13,9 +13,10 @@ const ClassInfoCard = ({
     onCopyCode,
     onBack,
     onUpdateStatus,
-    onEdit, // Thêm prop onEdit
+    onEdit,
     isMobile,
-    isTestMode = false
+    isTestMode = false,
+    hideMenu = false // Thêm prop hideMenu mặc định là false
 }) => {
     const handleDeleteClass = () => {
         confirm({
@@ -38,14 +39,8 @@ const ClassInfoCard = ({
             key: 'edit',
             label: 'Chỉnh sửa lớp',
             icon: <EditOutlined />,
-            onClick: onEdit // Gọi hàm onEdit từ prop
+            onClick: onEdit
         },
-        // {
-        //     key: 'status',
-        //     label: classData.status === 'active' ? 'Đóng lớp' : 'Mở lớp',
-        //     icon: <SwapOutlined />,
-        //     onClick: () => onUpdateStatus(classData.status === 'active' ? 'inactive' : 'active')
-        // },
         {
             key: 'delete',
             label: 'Xóa lớp',
@@ -76,7 +71,8 @@ const ClassInfoCard = ({
                         )}
                     </Space>
                     <Space>
-                        {!isTestMode && menuItems.length > 0 && (
+                        {/* Chỉ hiển thị menu khi không phải chế độ test, không phải hideMenu, và có menu items */}
+                        {!isTestMode && !hideMenu && menuItems.length > 0 && (
                             <Dropdown
                                 menu={{ items: menuItems }}
                                 trigger={['click']}

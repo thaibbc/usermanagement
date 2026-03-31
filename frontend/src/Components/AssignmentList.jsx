@@ -1,9 +1,11 @@
 // Components/AssignmentList.jsx
 import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom'; // Thêm useParams
 import { Table, Button, Tag, Space, Spin, Typography, Tooltip, Modal, message } from 'antd';
 import { PlusOutlined, BookOutlined, EditOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined, UploadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import SubmitAssignmentModal from './SubmitAssignmentModal';
 import CreateAssignmentDrawer from './CreateAssignmentDrawer';
+import dayjs from 'dayjs';
 
 const { Text } = Typography;
 const { confirm } = Modal;
@@ -15,7 +17,7 @@ const AssignmentList = ({
     onCreateAssignment,
     onViewAssignment,
     onDeleteAssignment,
-    onEditAssignment, // Thêm prop mới
+    onEditAssignment,
     isMobileOrTablet = false,
     isAdmin = false,
     isTeacher = false,
@@ -27,11 +29,24 @@ const AssignmentList = ({
     isTestMode = false,
     onViewResult = null,
     onViewSubmission = null,
-    // Props cho CreateAssignmentDrawer
     colors = [],
     studentData = [],
-    onSubmitEdit // Thêm prop cho việc submit chỉnh sửa
+    onSubmitEdit,
+    classCode: propClassCode // Đổi tên để tránh nhầm lẫn
 }) => {
+    const navigate = useNavigate();
+    const { classCode: paramClassCode } = useParams(); // Lấy classCode từ URL
+
+    // Ưu tiên sử dụng classCode từ URL, nếu không có thì dùng từ props
+    const classCode = paramClassCode || propClassCode;
+
+    // Debug: log giá trị classCode
+    React.useEffect(() => {
+        console.log('AssignmentList - classCode from URL:', paramClassCode);
+        console.log('AssignmentList - classCode from props:', propClassCode);
+        console.log('AssignmentList - final classCode:', classCode);
+    }, [paramClassCode, propClassCode, classCode]);
+
     const [submitModalVisible, setSubmitModalVisible] = React.useState(false);
     const [selectedAssignment, setSelectedAssignment] = React.useState(null);
     const [viewResultModalVisible, setViewResultModalVisible] = React.useState(false);
@@ -79,6 +94,23 @@ const AssignmentList = ({
         setViewSubmissionModalVisible(true);
     };
 
+    // SỬA HÀM NÀY - Chuyển sang trang mới thay vì mở modal
+    const handleViewDetail = (assignment) => {
+        console.log('handleViewDetail called');
+        console.log('classCode value:', classCode);
+        console.log('assignment:', assignment);
+        console.log('assignment._id:', assignment?._id);
+
+        if (classCode && assignment?._id) {
+            const path = `/classes/${classCode}/assignments/${assignment._id}`;
+            console.log('Navigating to:', path);
+            navigate(path);
+        } else {
+            console.error('Missing data:', { classCode, assignmentId: assignment?._id });
+            message.error('Không thể mở chi tiết bài tập');
+        }
+    };
+
     const handleSubmitSuccess = () => {
         setSubmitModalVisible(false);
         setSelectedAssignment(null);
@@ -89,7 +121,6 @@ const AssignmentList = ({
 
     // Xử lý chỉnh sửa bài tập
     const handleEditAssignment = (assignment) => {
-        // Chuẩn bị dữ liệu cho form edit
         const editData = {
             _id: assignment._id,
             title: assignment.title || '',
@@ -258,7 +289,7 @@ const AssignmentList = ({
                                     type="text"
                                     icon={<EyeOutlined />}
                                     size="small"
-                                    onClick={() => onViewAssignment(record)}
+                                    onClick={() => handleViewDetail(record)}
                                 />
                             </Tooltip>
                             <Tooltip title="Chỉnh sửa">
@@ -266,7 +297,7 @@ const AssignmentList = ({
                                     type="text"
                                     icon={<EditOutlined />}
                                     size="small"
-                                    onClick={() => handleEditAssignment(record)} // Sửa ở đây
+                                    onClick={() => handleEditAssignment(record)}
                                 />
                             </Tooltip>
                             <Tooltip title="Xóa">

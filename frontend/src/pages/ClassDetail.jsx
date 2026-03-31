@@ -595,7 +595,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     const handleAddSelectedStudents = async (selectedStudents) => {
         if (!canManageStudents) return;
-        
+
         setActionLoading(true);
         let successCount = 0;
         let errorCount = 0;
@@ -852,6 +852,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         setSelectedSubmission(submission);
                         setViewSubmissionModalVisible(true);
                     }}
+                    classCode={classData?.code || classData?.code}  // Đảm bảo classCode được truyền
                 />
             )
         },
@@ -957,7 +958,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 }}>
                     <Header
                         onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        sidebarCollapsed={isSidebarCollapsed}
+                    // sidebarCollapsed={isSidebarCollapsed}
                     />
                     <Content style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                         <Spin size="large" description="Đang tải thông tin lớp học..." />

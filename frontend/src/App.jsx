@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
 import ClassManagement from './pages/ClassManagement'
 import { ClassDetail } from './pages/ClassDetail'
+import AssignmentDetail from './pages/AssignmentDetail'
 import { UserProvider } from "./context/UserContext";
 import QuestionBank from './pages/QuestionBank'
 import ProtectedRoute from './Components/ProtectedRoute'
@@ -73,6 +74,13 @@ function App() {
         <Route path="/classes/:classCode" element={
           <ProtectedRoute>
             <ClassDetail />
+          </ProtectedRoute>
+        } />
+
+        {/* AssignmentDetail - chi tiết bài tập */}
+        <Route path="/classes/:classCode/assignments/:assignmentId" element={
+          <ProtectedRoute>
+            <AssignmentDetail />
           </ProtectedRoute>
         } />
 
