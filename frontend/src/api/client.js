@@ -28,6 +28,16 @@ export function getAuthHeaders() {
 export async function handleResponse(res) {
     // Nếu response không ok
     if (!res.ok) {
+        // Xử lý chung lỗi 401 Unauthorized (Invalid token)
+        if (res.status === 401) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
+            }
+        }
         let errorMessage = `HTTP error! status: ${res.status}`;
         try {
             const errorData = await res.json();

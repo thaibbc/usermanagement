@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Question = require('../models/Question');
 const ActionLog = require('../models/ActionLog');
 
 router.get('/', async (req, res) => {
     try {
-        const { page = 1, limit = 20, khoiLop, unit, kyNang, loaiCauHoi, mucDoNhanThuc, search } = req.query;
+        const { page = 1, limit = 20, khoiLop, unit, kyNang, loaiCauHoi, mucDoNhanThuc, search, folderId } = req.query;
         const criteria = {};
         if (khoiLop) criteria.khoiLop = khoiLop;
         if (unit) criteria.unit = unit;
@@ -13,6 +14,7 @@ router.get('/', async (req, res) => {
         if (loaiCauHoi) criteria.loaiCauHoi = loaiCauHoi;
         if (mucDoNhanThuc) criteria.mucDoNhanThuc = mucDoNhanThuc;
         if (search) criteria.cauHoi = { $regex: search, $options: 'i' };
+        if (folderId) criteria.folderId = new mongoose.Types.ObjectId(folderId);
 
         const total = await Question.countDocuments(criteria);
         const questions = await Question.find(criteria)

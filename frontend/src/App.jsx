@@ -10,11 +10,10 @@ import ClassManagement from './pages/ClassManagement'
 import { ClassDetail } from './pages/ClassDetail'
 import AssignmentDetail from './pages/AssignmentDetail'
 import { UserProvider } from "./context/UserContext";
-import QuestionBank from './pages/QuestionBank'
+import QuestionBank, { QuestionBank as BankManagement } from './pages/QuestionBank'
 import ProtectedRoute from './Components/ProtectedRoute'
 import { StudentClass } from './pages/StudentClass';
 import { MyLibrary } from './pages/MyLibrary';
-import BankManagement from './pages/QuestionBank';
 
 function App() {
   return (

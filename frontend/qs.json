@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "_id": "69d473b94e840f314b28ac2a",
+      "khoiLop": "Lớp 4",
+      "unit": "Unit 5",
+      "kyNang": "",
+      "cauHoi": "What does this sign mean?",
+      "answer": "C",
+      "dapAnA": "",
+      "dapAnB": "",
+      "dapAnC": "",
+      "dapAnD": "",
+      "loaiCauHoi": "multiple",
+      "mucDoNhanThuc": "Nhận biết",
+      "yeuCauDeBai": "Listen, read and tick the correct answer.",
+      "noiDungBaiDoc": "",
+      "createdAt": "2026-04-07T03:02:17.532Z",
+      "updatedAt": "2026-04-07T03:02:17.536Z",
+      "__v": 0
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 25
+}

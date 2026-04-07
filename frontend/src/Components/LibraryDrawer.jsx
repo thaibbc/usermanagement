@@ -191,12 +191,12 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
         try {
             let testWithDetails = selectedTest;
 
-            // Nếu bài tập có câu hỏi nhưng chưa có chi tiết, fetch thêm
+            // Nếu bài tập có câu hỏi nhưng chưa có chi tiết đầy đủ (do API list chỉ trả về vài field cơ bản), fetch chi tiết
             if (selectedTest.questions && selectedTest.questions.length > 0) {
-                // Kiểm tra xem câu hỏi đã có chi tiết chưa
+                // Kiểm tra xem câu hỏi đã có chi tiết đầy đủ chưa (ví dụ: trường cauHoi)
                 const firstQuestion = selectedTest.questions[0];
-                if (firstQuestion && typeof firstQuestion === 'string') {
-                    // Chỉ có ID, cần fetch chi tiết
+                if (typeof firstQuestion === 'string' || !firstQuestion.cauHoi) {
+                    // Chỉ có ID hoặc thiếu các trường quan trọng, cần fetch chi tiết toàn phần
                     testWithDetails = await fetchTestDetails(selectedTest._id);
                 }
             }
@@ -373,9 +373,9 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
             placement="right"
             onClose={onClose}
             open={visible}
-            width="100%"
+            size="large"
             closable={false}
-            maskClosable={false}
+            mask={{ closable: false }}
             footer={
                 <div style={{
                     display: 'flex',

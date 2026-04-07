@@ -14,9 +14,9 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
         if (visible && classData) {
             form.setFieldsValue({
                 name: classData.name,
-                grade: classData.grade || '',
+                grade: classData.grade ? Number(classData.grade) : '',
                 note: classData.note || '',
-                status: classData.status === 'active',
+                status: classData.status === 'active' ? 'active' : 'inactive',
                 completed: classData.completed || false,
             });
         }
@@ -29,9 +29,9 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
 
             const updateData = {
                 name: values.name,
-                grade: values.grade,
+                grade: Number(values.grade),
                 note: values.note,
-                status: values.status ? 'active' : 'inactive',
+                status: values.status,
                 completed: values.completed || false,
             };
 
@@ -66,7 +66,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     name: '',
                     grade: '',
                     note: '',
-                    status: true,
+                    status: 'active',
                     completed: false,
                 }}
             >
@@ -84,9 +84,9 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     rules={[{ required: true, message: 'Vui lòng chọn khối lớp' }]}
                 >
                     <Select placeholder="Chọn khối lớp">
-                        <Option value="10">Khối 10</Option>
-                        <Option value="11">Khối 11</Option>
-                        <Option value="12">Khối 12</Option>
+                        <Option value={10}>Khối 10</Option>
+                        <Option value={11}>Khối 11</Option>
+                        <Option value={12}>Khối 12</Option>
                     </Select>
                 </Form.Item>
 
@@ -105,24 +105,22 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                 <Form.Item
                     name="status"
                     label="Trạng thái hoạt động"
-                    valuePropName="checked"
                 >
-                    <Switch
-                        checkedChildren="Đang hoạt động"
-                        unCheckedChildren="Ngừng hoạt động"
-                    />
+                    <Select placeholder="Chọn trạng thái">
+                        <Option value="active">Đang hoạt động</Option>
+                        <Option value="inactive">Ngừng hoạt động</Option>
+                    </Select>
                 </Form.Item>
 
                 <Form.Item
                     name="completed"
                     label="Trạng thái hoàn thành"
-                    valuePropName="checked"
                     tooltip="Đánh dấu lớp học đã hoàn thành chương trình"
                 >
-                    <Switch
-                        checkedChildren="Đã hoàn thành"
-                        unCheckedChildren="Chưa hoàn thành"
-                    />
+                    <Select placeholder="Chọn trạng thái">
+                        <Option value={true}>Đã hoàn thành</Option>
+                        <Option value={false}>Chưa hoàn thành</Option>
+                    </Select>
                 </Form.Item>
 
 

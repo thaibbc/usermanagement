@@ -1,12 +1,25 @@
 // Components/SubmitAssignmentModal.jsx
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Input, Radio, Space, Typography, Divider, message, Spin, Tag, Card, Alert, Progress, Select, Checkbox } from 'antd';
+import { Modal, Form, Button, Input, Radio, Space, Typography, Divider, message, Spin, Tag, Card, Alert, Progress, Select, Checkbox, Image } from 'antd';
 import { submitAssignment } from '../api/classes';
-import { EyeOutlined, CheckCircleOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined, LinkOutlined } from '@ant-design/icons';
+import { EyeOutlined, CheckCircleOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined, LinkOutlined, SoundOutlined } from '@ant-design/icons';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+// Helper kiểm tra đường dẫn hình ảnh
+const isImageUrl = (text) => {
+    if (typeof text !== 'string') return false;
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i;
+    return text.startsWith('http') && imageExtensions.test(text);
+};
+
+// Helper kiểm tra đường dẫn chung
+const isUrl = (text) => {
+    if (typeof text !== 'string') return false;
+    return text.startsWith('http://') || text.startsWith('https://');
+};
 
 const SubmitAssignmentModal = ({
     visible,
@@ -424,7 +437,57 @@ const SubmitAssignmentModal = ({
                     )}
                 </div>
 
-                {/* Nội dung câu hỏi */}
+                {/* Yêu cầu đề bài (nếu có) */}
+                {currentQuestion.yeuCauDeBai && (
+                    <div style={{ marginBottom: 12 }}>
+                        <Text type="secondary" style={{ fontSize: '13px' }}>Yêu cầu: </Text>
+                        <Text strong style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{currentQuestion.yeuCauDeBai}</Text>
+                    </div>
+                )}
+
+                {/* Hình ảnh & Âm thanh */}
+                {(currentQuestion.linkHinhAnh || currentQuestion.linkAudio) && (
+                    <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                        {currentQuestion.linkHinhAnh && (
+                            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+                                {isImageUrl(currentQuestion.linkHinhAnh) ? (
+                                    <Image
+                                        src={currentQuestion.linkHinhAnh}
+                                        alt="Hình ảnh câu hỏi"
+                                        style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain' }}
+                                        fallback="https://via.placeholder.com/300?text=Lỗi+tải+ảnh"
+                                        preview={{ mask: 'Xem ảnh' }}
+                                    />
+                                ) : isUrl(currentQuestion.linkHinhAnh) ? (
+                                    <div style={{ padding: '16px', border: '1px dashed #d9d9d9', borderRadius: '8px', background: '#fafafa', width: '100%' }}>
+                                        <a href={currentQuestion.linkHinhAnh} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                            🔗 Mở link Hình ảnh / Tài liệu
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <span>{currentQuestion.linkHinhAnh}</span>
+                                )}
+                            </div>
+                        )}
+                        {currentQuestion.linkAudio && (
+                            <div style={{ textAlign: 'center' }}>
+                                <SoundOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                                <audio controls src={currentQuestion.linkAudio} style={{ width: '100%', maxWidth: 400, marginTop: 8 }}>
+                                    Trình duyệt của bạn không hỗ trợ audio.
+                                </audio>
+                                {isUrl(currentQuestion.linkAudio) && (
+                                    <div style={{ marginTop: 8, fontSize: '13px' }}>
+                                        <a href={currentQuestion.linkAudio} target="_blank" rel="noopener noreferrer">
+                                            🔗 Click vào đây để mở Audio (Nếu trình duyệt lỗi)
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Nội dung câu hỏi chính */}
                 <div style={{ marginBottom: 12 }}>
                     <Text strong style={{ fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                         {currentQuestion.cauHoi || currentQuestion.question || currentQuestion.title || currentQuestion.questionContent || 'Không có nội dung'}

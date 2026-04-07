@@ -109,7 +109,7 @@ export function Dashboard() {
                         {stats.map((stat, index) => (
                             <Col key={index} xs={24} sm={12} lg={6}>
                                 <Card
-                                    bodyStyle={{ padding: 24 }}
+                                    styles={{ body: { padding: 24 } }}
                                     style={{
                                         borderRadius: 12,
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',

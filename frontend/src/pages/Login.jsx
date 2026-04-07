@@ -156,7 +156,7 @@ export function Login() {
                             </h1>
 
                             <Card
-                                bordered={false}
+                                variant="borderless"
                                 style={{
                                     borderRadius: 10,
                                     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',

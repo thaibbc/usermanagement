@@ -1,11 +1,11 @@
 // Components/CreateTestModal.jsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Modal, Input, Select, Button, Table, Form, Row, Col, Space, Grid, message, Spin, Tag, Typography, Checkbox } from 'antd';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Modal, Input, Select, Button, Table, Form, Row, Col, Space, Grid, message, Spin, Tag, Checkbox } from 'antd';
 import { PlusOutlined, RightOutlined, LeftOutlined, CloseOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { fetchQuestions, deleteQuestion } from '../api/questions';
 import CreateQuestionModal from './CreateQuestionModal';
+import QuestionPreviewModal from './QuestionPreviewModal';
 
-const { Text, Paragraph } = Typography;
 const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { confirm } = Modal;
@@ -27,6 +27,15 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [searchId, setSearchId] = useState('');
     const screens = useBreakpoint();
+
+    const [filters, setFilters] = useState({
+        grade: '',
+        unit: '',
+        skill: '',
+        questionType: '',
+        requirement: '',
+        level: ''
+    });
 
     // Ref để lưu folderId hiện tại
     const currentFolderIdRef = useRef(null);
@@ -85,7 +94,14 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         }
     }, [selectedQuestions.length]);
 
-    // Hàm chuẩn hóa dữ liệu câu hỏi từ API
+    // Map tên loại câu hỏi để hiển thị đẹp hơn
+    const typeLabelMap = {
+        'multiple': 'Multiple Choice',
+        'truefalse': 'True/False',
+        'cloze': 'Cloze',
+        'order': 'order'
+    };
+
     const normalizeQuestionData = (questions) => {
         if (!questions || !Array.isArray(questions)) return [];
 
@@ -105,10 +121,27 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         }));
     };
 
-    const loadQuestions = useCallback(async () => {
+    const loadQuestions = useCallback(async (searchParams = {}) => {
         setIsLoadingQuestions(true);
         try {
-            const response = await fetchQuestions({ page: 1, limit: 200 });
+            const params = {
+                page: 1,
+                limit: 100,
+                ...searchParams
+            };
+
+            // Map UI filters to API params
+            if (filters.grade) params.khoiLop = filters.grade;
+            if (filters.unit) params.unit = filters.unit;
+            if (filters.skill) params.kyNang = filters.skill;
+            if (filters.questionType) params.loaiCauHoi = filters.questionType;
+            if (filters.level) params.mucDoNhanThuc = filters.level;
+
+            // Add search keyword if provided
+            if (searchKeyword) params.search = searchKeyword;
+
+            console.log('Loading questions with params:', params);
+            const response = await fetchQuestions(params);
             console.log('Raw questions response:', response);
 
             let rawQuestions = [];
@@ -121,9 +154,13 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             }
 
             const normalizedQuestions = normalizeQuestionData(rawQuestions);
-            console.log('Normalized questions:', normalizedQuestions);
+            console.log(`Loaded ${normalizedQuestions.length} questions`);
 
-            setAvailableQuestions(normalizedQuestions);
+            // Lọc bỏ những câu đã được chọn
+            const selectedIds = new Set(selectedQuestions.map(q => q.id));
+            const availableOnly = normalizedQuestions.filter(q => !selectedIds.has(q.id));
+
+            setAvailableQuestions(availableOnly);
 
         } catch (err) {
             console.error('Failed to fetch questions', err);
@@ -131,22 +168,16 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         } finally {
             setIsLoadingQuestions(false);
         }
-    }, []);
+    }, [filters, searchKeyword]);
 
     useEffect(() => {
         if (visible) {
             loadQuestions();
         }
-    }, [visible, loadQuestions]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visible]);
 
-    const [filters, setFilters] = useState({
-        grade: '',
-        unit: '',
-        skill: '',
-        questionType: '',
-        requirement: '',
-        level: ''
-    });
+
 
     const handleSubmit = async () => {
         // Validate tiêu đề
@@ -372,7 +403,12 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
 
     // Hàm xem chi tiết câu hỏi
     const handleViewQuestion = (question, fromSelected = false) => {
-        setCurrentQuestion({ ...question, fromSelected });
+        // Merge originalData with current UI state like stt
+        const displayData = {
+            ...question.originalData,
+            stt: question.stt
+        };
+        setCurrentQuestion({ ...displayData, fromSelected });
         setViewQuestionModalVisible(true);
     };
 
@@ -411,14 +447,32 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         });
     };
 
+    // Hàm tìm kiếm - gọi lại loadQuestions với search params
     const handleSearch = () => {
-        setFilters({ ...filters });
+        loadQuestions();
     };
+
+    // Tính toán danh sách câu hỏi sau khi lọc (để dùng cho checkbox chọn tất cả)
+    const filteredAvailableQuestions = useMemo(() =>
+        getFilteredQuestions(availableQuestions),
+        [availableQuestions, filters, searchKeyword, searchId]);
 
     // Columns for the question list table (left side)
     const availableColumns = [
         {
-            title: '',
+            title: (
+                <Checkbox
+                    checked={filteredAvailableQuestions.length > 0 && selectedAvailableKeys.length === filteredAvailableQuestions.length}
+                    indeterminate={selectedAvailableKeys.length > 0 && selectedAvailableKeys.length < filteredAvailableQuestions.length}
+                    onChange={(e) => {
+                        if (e.target.checked) {
+                            setSelectedAvailableKeys(filteredAvailableQuestions.map(q => q.id));
+                        } else {
+                            setSelectedAvailableKeys([]);
+                        }
+                    }}
+                />
+            ),
             key: 'checkbox',
             width: 50,
             render: (_, record) => (
@@ -437,21 +491,22 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         {
             title: 'STT',
             dataIndex: 'stt',
-            width: 60,
-            render: (stt) => stt || 'N/A'
+            width: 50,
+            render: (stt, record, index) => stt || index + 1
         },
         {
             title: 'Câu hỏi',
             dataIndex: 'question',
-            flex: 1,
+            width: screens.xs ? 150 : 280,
+            ellipsis: true,
             render: (text, record) => (
                 <Button
                     type="link"
-                    style={{ padding: 0, textAlign: 'left', height: 'auto' }}
+                    style={{ padding: 0, textAlign: 'left', height: 'auto', maxWidth: '100%' }}
                     onClick={() => handleViewQuestion(record, false)}
+                    title={text || 'Không có tiêu đề'}
                 >
                     <div style={{
-                        maxWidth: screens.xs ? '150px' : '300px',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -467,7 +522,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             dataIndex: 'type',
             width: screens.xs ? 80 : 120,
             render: (type) => (
-                <span style={{ color: '#333' }}>{type || 'Đề thi'}</span>
+                <span style={{ color: '#333' }}>{typeLabelMap[type] || type || 'Đề thi'}</span>
             )
         },
         {
@@ -500,32 +555,12 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         },
         {
             title: 'Thao tác',
-            width: screens.xs ? 100 : 150,
+            width: 100,
             align: 'center',
+            fixed: 'right',
             render: (_, record) => (
                 <Space size="small">
-                    <Button
-                        type="text"
-                        icon={<EyeOutlined />}
-                        size="small"
-                        onClick={() => handleViewQuestion(record, false)}
-                        title="Xem chi tiết"
-                    />
-                    <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        size="small"
-                        onClick={() => handleEditQuestion(record)}
-                        title="Chỉnh sửa"
-                    />
-                    <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        size="small"
-                        onClick={() => handleDeleteQuestion(record, false)}
-                        title="Xóa"
-                    />
+                    <Button type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewQuestion(record, false)} title="Xem chi tiết" />
                 </Space>
             )
         }
@@ -534,7 +569,19 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     // Columns for selected questions table (right side)
     const selectedColumns = [
         {
-            title: '',
+            title: (
+                <Checkbox
+                    checked={selectedQuestions.length > 0 && selectedSelectedKeys.length === selectedQuestions.length}
+                    indeterminate={selectedSelectedKeys.length > 0 && selectedSelectedKeys.length < selectedQuestions.length}
+                    onChange={(e) => {
+                        if (e.target.checked) {
+                            setSelectedSelectedKeys(selectedQuestions.map(q => q.id));
+                        } else {
+                            setSelectedSelectedKeys([]);
+                        }
+                    }}
+                />
+            ),
             key: 'checkbox',
             width: 50,
             render: (_, record) => (
@@ -553,21 +600,22 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         {
             title: 'STT',
             dataIndex: 'stt',
-            width: 60,
-            render: (stt) => stt || 'N/A'
+            width: 50,
+            render: (stt, record, index) => stt || index + 1
         },
         {
             title: 'Câu hỏi',
             dataIndex: 'question',
-            flex: 1,
+            width: screens.xs ? 150 : 280,
+            ellipsis: true,
             render: (text, record) => (
                 <Button
                     type="link"
-                    style={{ padding: 0, textAlign: 'left', height: 'auto' }}
+                    style={{ padding: 0, textAlign: 'left', height: 'auto', maxWidth: '100%' }}
                     onClick={() => handleViewQuestion(record, true)}
+                    title={text || 'Không có tiêu đề'}
                 >
                     <div style={{
-                        maxWidth: screens.xs ? '150px' : '300px',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -583,7 +631,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             dataIndex: 'type',
             width: screens.xs ? 80 : 120,
             render: (type) => (
-                <span style={{ color: '#333' }}>{type || 'Đề thi'}</span>
+                <span style={{ color: '#333' }}>{typeLabelMap[type] || type || 'Đề thi'}</span>
             )
         },
         {
@@ -616,39 +664,18 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
         },
         {
             title: 'Thao tác',
-            width: screens.xs ? 100 : 150,
+            width: 100,
             align: 'center',
+            fixed: 'right',
             render: (_, record) => (
                 <Space size="small">
-                    <Button
-                        type="text"
-                        icon={<EyeOutlined />}
-                        size="small"
-                        onClick={() => handleViewQuestion(record, true)}
-                        title="Xem chi tiết"
-                    />
-                    <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        size="small"
-                        onClick={() => handleEditQuestion(record)}
-                        title="Chỉnh sửa"
-                    />
-                    <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        size="small"
-                        onClick={() => handleDeleteQuestion(record, true)}
-                        title="Xóa"
-                    />
+                    <Button type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewQuestion(record, true)} title="Xem chi tiết" />
                 </Space>
             )
         }
     ];
 
-    // Lọc dữ liệu cho bảng bên trái
-    const filteredAvailableQuestions = getFilteredQuestions(availableQuestions);
+
 
     return (
         <>
@@ -670,7 +697,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                 open={visible}
                 onCancel={handleClose}
                 width={getModalWidth()}
-                maskClosable={!submitLoading}
+                mask={{ closable: !submitLoading }}
                 closable={!submitLoading}
                 footer={[
                     <Button
@@ -854,13 +881,11 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                                         size={screens.xs ? 'middle' : 'default'}
                                         disabled={submitLoading || isLoadingQuestions}
                                     >
-                                        <Option value="Lớp 6">Lớp 6</Option>
-                                        <Option value="Lớp 7">Lớp 7</Option>
-                                        <Option value="Lớp 8">Lớp 8</Option>
-                                        <Option value="Lớp 9">Lớp 9</Option>
-                                        <Option value="Lớp 10">Lớp 10</Option>
-                                        <Option value="Lớp 11">Lớp 11</Option>
-                                        <Option value="Lớp 12">Lớp 12</Option>
+                                        <Option value="Lớp 1">Lớp 1</Option>
+                                        <Option value="Lớp 2">Lớp 2</Option>
+                                        <Option value="Lớp 3">Lớp 3</Option>
+                                        <Option value="Lớp 4">Lớp 4</Option>
+                                        <Option value="Lớp 5">Lớp 5</Option>
                                     </Select>
                                 </Col>
                                 <Col xs={12} sm={8} md={8} lg={4}>
@@ -902,13 +927,10 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                                         size={screens.xs ? 'middle' : 'default'}
                                         disabled={submitLoading || isLoadingQuestions}
                                     >
-                                        <Option value="multiple">Multiple Choice (Trắc nghiệm)</Option>
-                                        <Option value="cloze">Fill in the Blank (Điền vào chỗ trống)</Option>
-                                        <Option value="truefalse">True / False / Not Given</Option>
-                                        <Option value="matching">Matching (Nối)</Option>
-                                        <Option value="transformation">Sentence Transformation (Viết lại câu)</Option>
-                                        <Option value="reading">Reading Comprehension (Đọc hiểu)</Option>
-                                        <Option value="essay">Writing / Speaking (Tự luận)</Option>
+                                        <Option value="truefalse">True/False</Option>
+                                        <Option value="cloze">Cloze</Option>
+                                        <Option value="order">order</Option>
+                                        <Option value="multiple">Multiple Choice</Option>
                                     </Select>
                                 </Col>
                                 <Col xs={12} sm={8} md={8} lg={4}>
@@ -990,10 +1012,10 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                                         columns={availableColumns}
                                         dataSource={filteredAvailableQuestions}
                                         loading={isLoadingQuestions}
-                                        pagination={false}
-                                        scroll={{ x: 'max-content', y: screens.xs ? 200 : 300 }}
+                                        pagination={{ pageSize: 15, size: 'small' }}
+                                        scroll={{ x: 800, y: 400 }}
                                         locale={{ emptyText: 'Không có câu hỏi' }}
-                                        size={screens.xs ? 'small' : 'small'}
+                                        size="small"
                                         bordered
                                         rowKey="id"
                                     />
@@ -1027,10 +1049,10 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                                     <Table
                                         columns={selectedColumns}
                                         dataSource={selectedQuestions}
-                                        pagination={false}
-                                        scroll={{ x: 'max-content', y: screens.xs ? 200 : 300 }}
+                                        pagination={{ pageSize: 15, size: 'small' }}
+                                        scroll={{ x: 800, y: 400 }}
                                         locale={{ emptyText: 'Chưa chọn câu hỏi' }}
-                                        size={screens.xs ? 'small' : 'small'}
+                                        size="small"
                                         bordered
                                         rowKey="id"
                                     />
@@ -1068,119 +1090,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                 </Spin>
             </Modal>
 
-            {/* Modal xem chi tiết câu hỏi */}
-            <Modal
-                title={
-                    <div style={{
-                        fontSize: screens.xs ? '14px' : '16px',
-                        fontWeight: 600,
-                        color: '#00BCD4',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}>
-                        <EyeOutlined />
-                        <span>CHI TIẾT CÂU HỎI</span>
-                    </div>
-                }
-                open={viewQuestionModalVisible}
-                onCancel={() => {
-                    setViewQuestionModalVisible(false);
-                    setCurrentQuestion(null);
-                }}
-                width={screens.xs ? '95%' : 800}
-                footer={[
-                    <Button key="close" onClick={() => {
-                        setViewQuestionModalVisible(false);
-                        setCurrentQuestion(null);
-                    }}>
-                        Đóng
-                    </Button>,
-                    currentQuestion && (
-                        <Button
-                            key="edit"
-                            type="primary"
-                            icon={<EditOutlined />}
-                            onClick={() => handleEditQuestion(currentQuestion)}
-                            style={{ background: '#00BCD4' }}
-                        >
-                            Chỉnh sửa
-                        </Button>
-                    )
-                ]}
-            >
-                {currentQuestion && (
-                    <div style={{ padding: '8px 0' }}>
-                        <Row gutter={[16, 16]}>
-                            <Col span={24}>
-                                <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px' }}>
-                                    <Text strong style={{ color: '#00BCD4', display: 'block', marginBottom: '8px' }}>
-                                        Nội dung câu hỏi:
-                                    </Text>
-                                    <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                                        {currentQuestion.question}
-                                    </Paragraph>
-                                </div>
-                            </Col>
 
-                            <Col xs={24} sm={12}>
-                                <div style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
-                                    <Text type="secondary">Khối lớp:</Text>
-                                    <div><Tag color="blue">{currentQuestion.khoiLop || 'Chưa có'}</Tag></div>
-                                </div>
-                            </Col>
-
-                            <Col xs={24} sm={12}>
-                                <div style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
-                                    <Text type="secondary">Unit:</Text>
-                                    <div><Tag color="cyan">{currentQuestion.unit || 'Chưa có'}</Tag></div>
-                                </div>
-                            </Col>
-
-                            <Col xs={24} sm={12}>
-                                <div style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
-                                    <Text type="secondary">Kỹ năng:</Text>
-                                    <div><Tag color="green">{currentQuestion.kyNang || 'Chưa có'}</Tag></div>
-                                </div>
-                            </Col>
-
-                            <Col xs={24} sm={12}>
-                                <div style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
-                                    <Text type="secondary">Loại câu hỏi:</Text>
-                                    <div><Tag color="purple">{currentQuestion.type || 'Chưa có'}</Tag></div>
-                                </div>
-                            </Col>
-
-                            <Col xs={24} sm={12}>
-                                <div style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
-                                    <Text type="secondary">Mức độ nhận thức:</Text>
-                                    <div>
-                                        <Tag color={
-                                            currentQuestion.level === 'Nhận biết' ? 'green' :
-                                                currentQuestion.level === 'Thông hiểu' ? 'orange' :
-                                                    currentQuestion.level === 'Vận dụng' ? 'red' :
-                                                        currentQuestion.level === 'Vận dụng cao' ? 'purple' : 'blue'
-                                        }>
-                                            {currentQuestion.level || 'Chưa có'}
-                                        </Tag>
-                                    </div>
-                                </div>
-                            </Col>
-
-                            <Col span={24}>
-                                <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px' }}>
-                                    <Text strong style={{ color: '#00BCD4', display: 'block', marginBottom: '8px' }}>
-                                        Đáp án:
-                                    </Text>
-                                    <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                                        {currentQuestion.answer || 'Chưa có đáp án'}
-                                    </Paragraph>
-                                </div>
-                            </Col>
-                        </Row>
-                    </div>
-                )}
-            </Modal>
 
             {/* Modal tạo/cập nhật câu hỏi */}
             <CreateQuestionModal
@@ -1191,6 +1101,14 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                 }}
                 onSubmit={editingQuestion ? handleQuestionUpdated : handleQuestionCreated}
                 initialValues={editingQuestion}
+            />
+            {/* Modal xem chi tiết câu hỏi */}
+            <QuestionPreviewModal
+                question={viewQuestionModalVisible ? currentQuestion : null}
+                onClose={() => {
+                    setViewQuestionModalVisible(false);
+                    setCurrentQuestion(null);
+                }}
             />
         </>
     );

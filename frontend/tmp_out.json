@@ -1,0 +1,45 @@
+[
+  [
+    "(0) ID",
+    "(1) STT",
+    "(2) Khối lớp",
+    "(3) Đơn vị bài học",
+    "(4) Yêu cầu đề bài",
+    "(5) Mức độ nhận thức",
+    "(6) Nội dung bài đọc (nếu có)",
+    "(7) Link hình ảnh (nếu có)",
+    "(8) Link âm thanh (nếu có)",
+    "(9) Nội dung câu hỏi",
+    "(10) Đáp án lựa chọn",
+    null,
+    "Ghi chú"
+  ],
+  [
+    null,
+    1,
+    "Lớp 4",
+    "Unit 5",
+    "Listen, read and tick the correct answer.",
+    "Nhận biết",
+    null,
+    "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/03f8c664-197b-45fc-8d17-098bb06eb5cb/Picture1.png",
+    null,
+    "What does this sign mean?",
+    "You don’t have to carry your dog on the escalator.",
+    null,
+    "(2) - Khối lớp: từ \"Lớp 1\" đến \"Lớp 5\".\r\n(3) - Unit: từ \"Unit 1\" đến \"Unit 12\".\r\n(4) - Yêu cầu của đề bài: chọn 1 trong các đề được liệt kê sẵn.\r\n(5) - Mức độ nhận thức:\r\n+ Nhận biết \r\n+ Thông hiểu \r\n+ Vận dụng \r\n(6) - Nội dung bài đọc nếu có: Căn giữa tiêu đề bằng cách thêm 2 dấu \"*\" ở đầu và cuối, vd: \"**Đây là tiêu đề**\", có thể chọn in đậm, in nghiêng nếu cần\r\n(7) - Link hình ảnh nếu có\r\n(8) - Link âm thanh nếu có\r\n(9) - Nội dung câu hỏi\r\n(10) - Các đáp án lựa chọn:\r\n+ Hệ thống sẽ tự gắn tiền tố A. B. C. D. khi làm bài. \r\n+ Nhấn phím Enter để nhập đáp án tiếp theo.\r\n+ Thêm dấu * vào trước đáp án để đánh dấu đáp án đúng (Hệ thống sẽ xoá dấu * này khi đã đọc dữ liệu từ excel xong)."
+  ],
+  [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "If you want, you can ride the escalator with your dog"
+  ]
+]

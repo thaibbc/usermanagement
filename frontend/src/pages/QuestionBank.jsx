@@ -1,5 +1,6 @@
 // pages/QuestionBank.jsx
 import React, { useState, useEffect } from 'react';
+import { useUser } from '../context/UserContext';
 import {
     Layout,
     Tabs,
@@ -12,7 +13,8 @@ import {
     message,
     Row,
     Col,
-    Grid
+    Grid,
+    Modal,
 } from 'antd';
 import {
     PlusOutlined,
@@ -21,11 +23,13 @@ import {
     DeleteOutlined,
     EyeOutlined,
     EditOutlined,
-    CloseOutlined
+    CloseOutlined,
 } from '@ant-design/icons';
 import Sidebar from '../Components/Sidebar';
 import Header from '../Components/Header';
 import CreateQuestionDrawer from '../Components/CreateQuestionModal';
+import ImportExcelModal from '../Components/ImportExcelModal';
+import QuestionPreviewModal from '../Components/QuestionPreviewModal';
 import { fetchQuestions, createQuestion, deleteQuestion } from '../api/questions';
 
 const { Content } = Layout;
@@ -33,9 +37,11 @@ const { Option } = Select;
 const { useBreakpoint } = Grid;
 
 export const QuestionBank = () => {
+    const { isAdmin } = useUser();
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [filters, setFilters] = useState({
         khoiLop: null,
         unit: null,
@@ -47,9 +53,12 @@ export const QuestionBank = () => {
         id: ''
     });
     const [createDrawerVisible, setCreateDrawerVisible] = useState(false);
+    const [importExcelVisible, setImportExcelVisible] = useState(false);
+    const [previewQuestion, setPreviewQuestion] = useState(null);
     const [showBanner, setShowBanner] = useState(true);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [totalQuestions, setTotalQuestions] = useState(0);
     const screens = useBreakpoint();
 
     const loadQuestions = async () => {
@@ -61,11 +70,24 @@ export const QuestionBank = () => {
                 kyNang: filters.kyNang,
                 loaiCauHoi: filters.dangCauHoi,
                 mucDoNhanThuc: filters.mucDoNhanThuc,
-                search: filters.cauHoi || undefined
+                ...(filters.cauHoi && { search: filters.cauHoi })
             };
-            const data = await fetchQuestions(params);
-            const questionItems = data.questions ? data.questions.map(q => ({ ...q, key: q._id || q.id })) : [];
+            // Filter out null values
+            const filteredParams = Object.fromEntries(
+                Object.entries(params).filter(([, value]) => value != null && value !== '')
+            );
+            console.log('loadQuestions params:', filteredParams);
+            const data = await fetchQuestions(filteredParams);
+            console.log('loadQuestions data:', data);
+            const questionItems = data.questions ? data.questions.map(q => ({
+                ...q,
+                key: q._id || q.id,
+                ngayTao: q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : '',
+                ngaySua: q.updatedAt ? new Date(q.updatedAt).toLocaleDateString('vi-VN') : ''
+            })) : [];
+            console.log('loadQuestions questionItems:', questionItems);
             setQuestions(questionItems);
+            setTotalQuestions(data.total || 0);
         } catch (err) {
             console.error('loadQuestions error', err);
             message.error('Không thể tải câu hỏi');
@@ -77,7 +99,7 @@ export const QuestionBank = () => {
     useEffect(() => {
         loadQuestions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [filters]);
 
     // Handle window resize for mobile detection
     useEffect(() => {
@@ -91,14 +113,10 @@ export const QuestionBank = () => {
 
     const columns = [
         {
-            title: '#',
-            dataIndex: 'key',
-            width: 60,
-        },
-        {
             title: 'ID',
-            dataIndex: 'id',
+            dataIndex: '_id',
             width: 80,
+            render: (text, record, index) => String(index + 1).padStart(4, '0'), // Hiển thị số thứ tự dạng 0001, 0002...
         },
         {
             title: 'Khối lớp',
@@ -134,6 +152,15 @@ export const QuestionBank = () => {
             title: 'Loại câu hỏi',
             dataIndex: 'loaiCauHoi',
             width: 180,
+            render: (text) => {
+                const typeMap = {
+                    multiple: 'Multiple Choice',
+                    cloze: 'Cloze',
+                    truefalse: 'True/False',
+                    order: 'order'
+                };
+                return typeMap[text] || text;
+            }
         },
         {
             title: 'Mức độ nhận thức',
@@ -156,31 +183,84 @@ export const QuestionBank = () => {
             key: 'actions',
             width: 120,
             fixed: 'right',
-            render: (_, record) => (
+            render: (_, record, index) => (
                 <Space size="small">
                     <Button
                         type="text"
                         icon={<EyeOutlined />}
-                        onClick={() => message.info('Xem chi tiết câu hỏi #' + record.id)}
+                        onClick={() => {
+                            const previewData = {
+                                ...record,
+                                stt: String(index + 1).padStart(4, '0'),
+                                yeuCauDeBai: record.yeuCauDeBai || '',
+                                readingContent: record.noiDungBaiDoc || '',
+                                imageLink: record.linkHinhAnh || '',
+                                audioLink: record.linkAudio || '',
+                                options: record.loaiCauHoi === 'multiple' ? {
+                                    A: record.dapAnA,
+                                    B: record.dapAnB,
+                                    C: record.dapAnC,
+                                    D: record.dapAnD
+                                } : undefined,
+                            };
+
+                            if (record.loaiCauHoi === 'truefalse' && record.cauHoi) {
+                                const stmts = record.cauHoi.split('\n');
+                                const ans = record.answer ? record.answer.split(' ; ') : [];
+                                previewData.statements = stmts.map((s, idx) => ({
+                                    statement: s,
+                                    answer: ans[idx] || ''
+                                }));
+                                previewData.cauHoi = '';
+                            }
+
+                            if (record.loaiCauHoi === 'cloze' && record.answer) {
+                                previewData.answer = record.answer.split(' ; ').join(' | ');
+                            }
+
+                            setPreviewQuestion(previewData);
+                        }}
                     />
-                    <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        onClick={() => message.info('Chỉnh sửa câu hỏi #' + record.id)}
-                    />
-                    <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => message.warning('Xóa câu hỏi #' + record.id)}
-                    />
+                    {isAdmin && (
+                        <>
+                            <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                onClick={() => message.info('Chỉnh sửa câu hỏi #' + record.id)}
+                            />
+                            <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => {
+                                    Modal.confirm({
+                                        title: 'Xác nhận xóa',
+                                        content: `Bạn có chắc chắn muốn xóa câu hỏi này không?`,
+                                        okText: 'Xóa',
+                                        okType: 'danger',
+                                        cancelText: 'Hủy',
+                                        onOk: async () => {
+                                            try {
+                                                await deleteQuestion(record.key);
+                                                message.success('Đã xóa câu hỏi thành công');
+                                                loadQuestions();
+                                            } catch (error) {
+                                                console.warn(`Ignored delete error for ${record.key}:`, error);
+                                                message.error('Xóa câu hỏi thất bại');
+                                            }
+                                        }
+                                    });
+                                }}
+                            />
+                        </>
+                    )}
                 </Space>
             )
         }
     ];
 
     const handleFilterChange = (field, value) => {
-        setFilters({ ...filters, [field]: value });
+        setFilters(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSearch = async () => {
@@ -194,14 +274,23 @@ export const QuestionBank = () => {
             return;
         }
 
+        setDeleting(true);
         try {
-            await Promise.all(selectedRowKeys.map(key => deleteQuestion(key)));
-            message.success(`Đã xóa ${selectedRowKeys.length} câu hỏi`);
+            await Promise.all(
+                selectedRowKeys.map(key =>
+                    deleteQuestion(key).catch(err => {
+                        console.warn(`Ignored delete error for ${key}:`, err);
+                    })
+                )
+            );
+            message.success(`Đã xóa câu hỏi thành công`);
             setSelectedRowKeys([]);
             await loadQuestions();
         } catch (err) {
             console.error('delete selected error', err);
             message.error('Xóa câu hỏi thất bại');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -213,43 +302,57 @@ export const QuestionBank = () => {
         setCreateDrawerVisible(false);
     };
 
-    const handleQuestionSubmit = async (values) => {
-        try {
-            await createQuestion(values);
-            message.success('Tạo câu hỏi thành công!');
-            handleDrawerClose();
-            setSelectedRowKeys([]);
-            await loadQuestions();
-        } catch (err) {
-            console.error('handleQuestionSubmit error', err);
-            message.error('Tạo câu hỏi thất bại');
-        }
+    const handleQuestionSubmit = async () => {
+        console.log('handleQuestionSubmit called');
+        // CreateQuestionModal đã gọi API tạo câu hỏi thành công
+        handleDrawerClose();
+        setSelectedRowKeys([]);
+        // Reset filters để hiển thị tất cả câu hỏi bao gồm câu hỏi mới
+        setFilters({
+            khoiLop: null,
+            unit: null,
+            kyNang: null,
+            dangCauHoi: null,
+            yeuCauDeBai: null,
+            mucDoNhanThuc: null,
+            cauHoi: '',
+            id: ''
+        });
+        console.log('filters reset, calling loadQuestions');
+        await loadQuestions();
+        console.log('loadQuestions completed');
     };
+
 
     const filterFields = [
         {
             label: 'Khối lớp',
             field: 'khoiLop',
             placeholder: 'Tất cả',
-            options: ['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12']
+            options: ['Lớp 1', 'Lớp 2', 'Lớp 3', 'Lớp 4', 'Lớp 5']
         },
         {
             label: 'Unit',
             field: 'unit',
             placeholder: 'Tất cả',
-            options: ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6', 'Unit 7']
+            options: ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10', 'Unit 11', 'Unit 12']
         },
         {
             label: 'Kỹ năng',
             field: 'kyNang',
             placeholder: 'Tất cả',
-            options: ['R - Reading', 'W - Writing', 'L - Listening', 'S - Speaking', 'P - Pronunciation']
+            options: ['Reading', 'Writing', 'Listening', 'Speaking', 'Pronunciation']
         },
         {
             label: 'Dạng câu hỏi',
             field: 'dangCauHoi',
             placeholder: 'Tất cả',
-            options: ['Multiple choice', 'Cloze', 'Reading comprehension', 'True/False', 'Matching']
+            options: [
+                { label: 'True/False', value: 'truefalse' },
+                { label: 'Cloze', value: 'cloze' },
+                { label: 'order', value: 'order' },
+                { label: 'Multiple Choice', value: 'multiple' }
+            ]
         },
         {
             label: 'Yêu cầu đề bài',
@@ -281,9 +384,14 @@ export const QuestionBank = () => {
                                     style={{ width: '100%' }}
                                     allowClear
                                 >
-                                    {options.map(option => (
-                                        <Option key={option} value={option}>{option}</Option>
-                                    ))}
+                                    {Array.isArray(options) && options[0]?.value
+                                        ? options.map(option => (
+                                            <Option key={option.value} value={option.value}>{option.label}</Option>
+                                        ))
+                                        : options.map(option => (
+                                            <Option key={option} value={option}>{option}</Option>
+                                        ))
+                                    }
                                 </Select>
                             </Col>
                         ))}
@@ -314,7 +422,7 @@ export const QuestionBank = () => {
                         </Col>
                         <Col span={24}>
                             <div style={{ textAlign: 'center', color: '#666', padding: '8px 0' }}>
-                                Tổng số: <strong>193</strong> câu hỏi
+                                Tổng số: <strong>{totalQuestions}</strong> câu hỏi
                             </div>
                         </Col>
                     </Row>
@@ -339,9 +447,14 @@ export const QuestionBank = () => {
                                     style={{ width: '100%' }}
                                     allowClear
                                 >
-                                    {options.map(option => (
-                                        <Option key={option} value={option}>{option}</Option>
-                                    ))}
+                                    {Array.isArray(options) && options[0]?.value
+                                        ? options.map(option => (
+                                            <Option key={option.value} value={option.value}>{option.label}</Option>
+                                        ))
+                                        : options.map(option => (
+                                            <Option key={option} value={option}>{option}</Option>
+                                        ))
+                                    }
                                 </Select>
                             </Col>
                         ))}
@@ -384,7 +497,7 @@ export const QuestionBank = () => {
                     </Row>
 
                     <div style={{ marginTop: 16, textAlign: 'right', color: '#666' }}>
-                        Tổng số: <strong>193</strong> câu hỏi
+                        Tổng số: <strong>{totalQuestions}</strong> câu hỏi
                     </div>
                 </div>
             );
@@ -406,9 +519,14 @@ export const QuestionBank = () => {
                                 style={{ width: '100%' }}
                                 allowClear
                             >
-                                {options.map(option => (
-                                    <Option key={option} value={option}>{option}</Option>
-                                ))}
+                                {Array.isArray(options) && options[0]?.value
+                                    ? options.map(option => (
+                                        <Option key={option.value} value={option.value}>{option.label}</Option>
+                                    ))
+                                    : options.map(option => (
+                                        <Option key={option} value={option}>{option}</Option>
+                                    ))
+                                }
                             </Select>
                         </Col>
                     ))}
@@ -450,7 +568,7 @@ export const QuestionBank = () => {
                     </Col>
                     <Col span={8} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                         <div style={{ color: '#666', lineHeight: '40px' }}>
-                            Tổng số: <strong>193</strong> câu hỏi
+                            Tổng số: <strong>{totalQuestions}</strong> câu hỏi
                         </div>
                     </Col>
                 </Row>
@@ -468,20 +586,23 @@ export const QuestionBank = () => {
                     {renderFilterSection()}
 
                     {/* Action Buttons */}
-                    <div style={{
-                        marginBottom: 16,
-                        display: 'flex',
-                        justifyContent: screens.xs ? 'center' : 'flex-start'
-                    }}>
-                        <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={handleDeleteSelected}
-                            disabled={selectedRowKeys.length === 0}
-                        >
-                            Xóa câu hỏi đã chọn ({selectedRowKeys.length})
-                        </Button>
-                    </div>
+                    {isAdmin && (
+                        <div style={{
+                            marginBottom: 16,
+                            display: 'flex',
+                            justifyContent: screens.xs ? 'center' : 'flex-start'
+                        }}>
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={handleDeleteSelected}
+                                disabled={selectedRowKeys.length === 0}
+                                loading={deleting}
+                            >
+                                Xóa câu hỏi đã chọn ({selectedRowKeys.length})
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Table */}
                     <Table
@@ -496,11 +617,11 @@ export const QuestionBank = () => {
                             size: screens.xs ? 'small' : 'default'
                         }}
                         bordered
-                        rowSelection={{
+                        rowSelection={isAdmin ? {
                             selectedRowKeys,
                             onChange: setSelectedRowKeys,
                             type: 'checkbox'
-                        }}
+                        } : undefined}
                         size={screens.xs ? 'small' : 'middle'}
                         style={{ background: '#fff' }}
                     />
@@ -589,31 +710,34 @@ export const QuestionBank = () => {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}>
                         {/* Header with buttons */}
-                        <div style={{
-                            padding: screens.xs ? '12px 16px' : '16px 24px',
-                            display: 'flex',
-                            justifyContent: screens.xs ? 'center' : 'flex-end',
-                            gap: '12px',
-                            borderBottom: '1px solid #f0f0f0',
-                            flexWrap: screens.xs ? 'wrap' : 'nowrap'
-                        }}>
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={handleCreateQuestion}
-                                size={screens.xs ? 'middle' : 'large'}
-                                block={screens.xs}
-                            >
-                                Tạo câu hỏi
-                            </Button>
-                            <Button
-                                icon={<DownloadOutlined />}
-                                size={screens.xs ? 'middle' : 'large'}
-                                block={screens.xs}
-                            >
-                                Nhập từ Excel
-                            </Button>
-                        </div>
+                        {isAdmin && (
+                            <div style={{
+                                padding: screens.xs ? '12px 16px' : '16px 24px',
+                                display: 'flex',
+                                justifyContent: screens.xs ? 'center' : 'flex-end',
+                                gap: '12px',
+                                borderBottom: '1px solid #f0f0f0',
+                                flexWrap: screens.xs ? 'wrap' : 'nowrap'
+                            }}>
+                                <Button
+                                    type="primary"
+                                    icon={<PlusOutlined />}
+                                    onClick={handleCreateQuestion}
+                                    size={screens.xs ? 'middle' : 'large'}
+                                    block={screens.xs}
+                                >
+                                    Tạo câu hỏi
+                                </Button>
+                                <Button
+                                    icon={<DownloadOutlined />}
+                                    size={screens.xs ? 'middle' : 'large'}
+                                    block={screens.xs}
+                                    onClick={() => setImportExcelVisible(true)}
+                                >
+                                    Nhập từ Excel
+                                </Button>
+                            </div>
+                        )}
 
                         {/* Tabs */}
                         <Tabs
@@ -626,11 +750,22 @@ export const QuestionBank = () => {
                 </Content>
             </Layout>
 
-            {/* Create Question Drawer */}
+            {/* Import Excel Modal */}
+            <ImportExcelModal
+                open={importExcelVisible}
+                onClose={() => setImportExcelVisible(false)}
+                onSave={() => loadQuestions()}
+            />
+
             <CreateQuestionDrawer
                 visible={createDrawerVisible}
                 onClose={handleDrawerClose}
                 onSubmit={handleQuestionSubmit}
+            />
+
+            <QuestionPreviewModal
+                question={previewQuestion}
+                onClose={() => setPreviewQuestion(null)}
             />
         </Layout>
     );

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "",
+    "stt": 1,
+    "khoiLop": "Lớp 4",
+    "unit": "Unit 5",
+    "yeuCauDeBai": "Listen, read and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/03f8c664-197b-45fc-8d17-098bb06eb5cb/Picture1.png",
+    "loaiCauHoi": "multiple",
+    "cauHoi": "What does this sign mean?",
+    "options": {
+      "A": "You don’t have to carry your dog on the escalator.",
+      "B": "If you want, you can ride the escalator with your dog",
+      "C": "When using the escalator, you should carry your dog in your arms.",
+      "D": "If you have a dog, you can't use the escalator"
+    },
+    "answer": "C",
+    "trangThai": "Thêm mới",
+    "key": 0
+  },
+  {
+    "id": "",
+    "stt": 2,
+    "khoiLop": "Lớp 3",
+    "unit": "Unit 7",
+    "yeuCauDeBai": "Listen and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "",
+    "loaiCauHoi": "https://www.youtube.com/watch?v=0zqj7LNxEqM&list=PLKvXIM6IY3KYQgAUSku4Qc70kTtUYf3um&ab_channel=MeomunWithEnglish",
+    "cauHoi": "",
+    "options": {
+      "A": "Give them to the administration manager",
+      "B": "Give them to the patient",
+      "C": "Put them in a box",
+      "D": ""
+    },
+    "answer": "A",
+    "trangThai": "Thêm mới",
+    "key": 1
+  },
+  {
+    "id": "",
+    "stt": 3,
+    "khoiLop": "Lớp 2",
+    "unit": "Unit 8",
+    "yeuCauDeBai": "Listen and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "",
+    "loaiCauHoi": "multiple",
+    "cauHoi": "Identify the underlines letters that are pronounced differently from the others.",
+    "options": {
+      "A": "sleep<s>",
+      "B": "want<s>",
+      "C": "say<s>",
+      "D": "start<s>"
+    },
+    "answer": "D",
+    "trangThai": "Thêm mới",
+    "key": 2
+  },
+  {
+    "id": "",
+    "stt": 4,
+    "khoiLop": "Lớp 4",
+    "unit": "Unit 12",
+    "yeuCauDeBai": "Listen and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "",
+    "loaiCauHoi": "multiple",
+    "cauHoi": "Identify the words whose main stresses are different from the others.",
+    "options": {
+      "A": "triangle",
+      "B": "area",
+      "C": "reception",
+      "D": "souvenir"
+    },
+    "answer": "B",
+    "trangThai": "Thêm mới",
+    "key": 3
+  },
+  {
+    "id": "",
+    "stt": 5,
+    "khoiLop": "Lớp 4",
+    "unit": "Unit 10",
+    "yeuCauDeBai": "Listen, read and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "",
+    "loaiCauHoi": "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/166b2486-07a9-4614-8b3c-59d4d504f216/UNIT-1_CÂU-2.wav",
+    "cauHoi": "What does Rosy’s dad do?",
+    "options": {
+      "A": "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/cfadb900-9a43-452f-a9f6-9802df0b8163/1farmer.png",
+      "B": "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/1da0284b-8efc-4a45-98b6-d4c89cb881ec/2doctor.png",
+      "C": "https://cloud.softech.vn/storage/SACHSO/t_SACHSO_RESOURCES_Questions/46d30c13-3555-4395-8b83-4b9b2f7402ae/264639b3-0c37-4cb0-8a85-d3cf99e1aa60/3teacher.png",
+      "D": ""
+    },
+    "answer": "A",
+    "trangThai": "Thêm mới",
+    "key": 4
+  },
+  {
+    "id": "",
+    "stt": 6,
+    "khoiLop": "Lớp 5",
+    "unit": "Unit 2",
+    "yeuCauDeBai": "Read and tick the correct answer.",
+    "mucDo": "Nhận biết",
+    "kyNang": "",
+    "loaiCauHoi": "multiple",
+    "cauHoi": "______ a school in the city?",
+    "options": {
+      "A": "Is there",
+      "B": "Are there",
+      "C": "Is",
+      "D": "Are"
+    },
+    "answer": "A",
+    "trangThai": "Thêm mới",
+    "key": 5
+  }
+]

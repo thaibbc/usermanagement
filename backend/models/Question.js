@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
+    folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder' },
     khoiLop: { type: String, required: true },
     unit: { type: String, default: '' },
     kyNang: { type: String, default: '' },
@@ -14,6 +15,8 @@ const questionSchema = new mongoose.Schema({
     mucDoNhanThuc: { type: String, default: '' },
     yeuCauDeBai: { type: String, default: '' },
     noiDungBaiDoc: { type: String, default: '' },
+    linkHinhAnh: { type: String, default: '' },
+    linkAudio: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

@@ -54,6 +54,7 @@ import {
     fetchSubmissions,
     createAssignment,
     deleteAssignment,
+    updateAssignment,
     updateClass
 } from '../api/classes';
 import { getUser } from '../api/users';
@@ -262,6 +263,46 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         }
     };
 
+    // Cập nhật bài tập (từ drawer chỉnh sửa trong AssignmentList)
+    const handleUpdateAssignment = async (editFormData) => {
+        if (!classData?._id || !editFormData?._id) {
+            message.error('Thiếu thông tin cần thiết để cập nhật bài tập');
+            throw new Error('Missing classId or assignmentId');
+        }
+
+        const questionsToSave = (editFormData.questions || []).map(q => ({
+            _id: q._id || q.id,
+            cauHoi: q.cauHoi,
+            loaiCauHoi: q.loaiCauHoi,
+            mucDoNhanThuc: q.mucDoNhanThuc,
+            answer: q.answer,
+            yeuCauDeBai: q.yeuCauDeBai,
+            noiDungBaiDoc: q.noiDungBaiDoc,
+            linkHinhAnh: q.linkHinhAnh,
+            linkAudio: q.linkAudio,
+            dapAnA: q.dapAnA,
+            dapAnB: q.dapAnB,
+            dapAnC: q.dapAnC,
+            dapAnD: q.dapAnD
+        }));
+
+        await updateAssignment(classData._id, editFormData._id, {
+            title: editFormData.title?.trim(),
+            type: editFormData.type,
+            points: editFormData.points,
+            color: editFormData.color,
+            requirements: editFormData.requirements,
+            questions: questionsToSave,
+            selectedStudents: editFormData.selectedStudents,
+            openTime: editFormData.openTime,
+            closeTime: editFormData.closeTime
+        });
+
+        message.success('Cập nhật bài tập thành công!');
+        await loadAssignments();
+        await loadSubmissions();
+    };
+
     const handleDeleteAssignment = async (assignment) => {
         if (!canCreateAssignment) return;
 
@@ -354,10 +395,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     }, [classData?.teacherName]);
 
     // ==================== CLASS DATA FUNCTIONS ====================
-    const loadClassData = useCallback(async (code) => {
+    const loadClassData = useCallback(async (code, showLoading = true) => {
         if (!code) return;
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             const response = await getClassByCode(code);
             setClassData({
                 ...response,
@@ -383,7 +424,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             message.error('Không thể tải thông tin lớp học');
             navigate('/student-class');
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     }, [navigate, fetchTeacherInfo]);
 
@@ -475,7 +516,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     };
 
     const handleClassUpdated = async () => {
-        await loadClassData(classData.code);
+        await loadClassData(classData.code, false);
         message.success('Đã cập nhật thông tin lớp học');
     };
 
@@ -852,7 +893,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         setSelectedSubmission(submission);
                         setViewSubmissionModalVisible(true);
                     }}
-                    classCode={classData?.code || classData?.code}  // Đảm bảo classCode được truyền
+                    classCode={classData?.code}
+                    onSubmitEdit={handleUpdateAssignment}
+                    studentData={studentData.filter(s => s.status === 'Đã duyệt')}
+                    colors={colors}
                 />
             )
         },

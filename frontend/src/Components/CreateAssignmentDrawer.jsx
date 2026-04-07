@@ -19,7 +19,8 @@ import {
     Divider,
     Card,
     Alert,
-    Empty
+    Empty,
+    Image
 } from 'antd';
 import {
     CloseOutlined,
@@ -46,6 +47,19 @@ import dayjs from 'dayjs';
 const { Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+// Helper kiểm tra đường dẫn hình ảnh
+const isImageUrl = (text) => {
+    if (typeof text !== 'string') return false;
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i;
+    return text.startsWith('http') && imageExtensions.test(text);
+};
+
+// Helper kiểm tra đường dẫn chung
+const isUrl = (text) => {
+    if (typeof text !== 'string') return false;
+    return text.startsWith('http://') || text.startsWith('https://');
+};
 
 const CreateAssignmentDrawer = ({
     visible,
@@ -148,6 +162,7 @@ const CreateAssignmentDrawer = ({
 
         // Chuẩn hóa dữ liệu câu hỏi
         const normalizedQuestions = questionsFromLibrary.map(q => ({
+            ...q,
             _id: q._id || q.id,
             cauHoi: q.cauHoi || q.question || q.title || 'Không có nội dung',
             loaiCauHoi: q.loaiCauHoi || q.type || 'multiple_choice',
@@ -167,7 +182,7 @@ const CreateAssignmentDrawer = ({
             type: selectedTest.type?.toLowerCase() === 'quiz' ? 'quiz' : 'normal',
             points: selectedTest.points || 10,
             requirements: selectedTest.requirements || selectedTest.description || '',
-            selectedStudents: [],
+            // Giữ lại danh sách học sinh đã chọn trước đó, không reset về []
             useLibrary: true,
             openTime: selectedTest.openTime ? dayjs(selectedTest.openTime) : null,
             closeTime: selectedTest.closeTime ? dayjs(selectedTest.closeTime) : null,
@@ -256,6 +271,45 @@ const CreateAssignmentDrawer = ({
                         </div>
                         {isExpanded && (
                             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #f0f0f0' }}>
+                                {/* Hình ảnh và Video/Audio */}
+                                {(question.linkHinhAnh || question.linkAudio) && (
+                                    <div style={{ marginBottom: 16 }}>
+                                        {question.linkHinhAnh && (
+                                            <div style={{ marginBottom: 12, textAlign: 'center' }}>
+                                                {isImageUrl(question.linkHinhAnh) ? (
+                                                    <Image
+                                                        src={question.linkHinhAnh}
+                                                        alt="Hình ảnh Câu hỏi"
+                                                        style={{ maxWidth: '100%', maxHeight: 250, objectFit: 'contain' }}
+                                                        fallback="https://via.placeholder.com/250?text=Lỗi+Hình+Ảnh"
+                                                    />
+                                                ) : isUrl(question.linkHinhAnh) ? (
+                                                    <div style={{ padding: '16px', border: '1px dashed #d9d9d9', borderRadius: '8px', background: '#fafafa' }}>
+                                                        <a href={question.linkHinhAnh} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                                            🔗 Mở link Hình ảnh / Tài liệu
+                                                        </a>
+                                                    </div>
+                                                ) : (
+                                                    <span>{question.linkHinhAnh}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {question.linkAudio && (
+                                            <div style={{ textAlign: 'center' }}>
+                                                <audio controls src={question.linkAudio} style={{ width: '100%', maxWidth: 350, marginTop: 8 }}>
+                                                    Trình duyệt không hỗ trợ.
+                                                </audio>
+                                                {isUrl(question.linkAudio) && (
+                                                    <div style={{ marginTop: 8, fontSize: '13px' }}>
+                                                        <a href={question.linkAudio} target="_blank" rel="noopener noreferrer">
+                                                            🔗 File Audio (Nếu trình nghe bị lỗi)
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {question.yeuCauDeBai && (
                                     <div style={{ marginBottom: 8 }}>
                                         <Text type="secondary">Yêu cầu đề bài: </Text>
@@ -339,9 +393,9 @@ const CreateAssignmentDrawer = ({
                 open={visible}
                 onClose={onClose}
                 size={getDrawerWidth() === '100%' ? 'large' : undefined}
-                width={getDrawerWidth() !== '100%' ? getDrawerWidth() : undefined}
+                width={getDrawerWidth() === '100%' ? undefined : getDrawerWidth()}
                 closable={false}
-                maskClosable={!loading}
+                mask={{ closable: !loading }}
                 styles={{
                     body: {
                         padding: isMobile ? '16px' : '24px',

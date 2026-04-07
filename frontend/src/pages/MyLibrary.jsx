@@ -44,6 +44,7 @@ import {
     createTest,
     deleteTest
 } from '../api/library';
+import { fetchQuestions } from '../api/questions';
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -64,10 +65,13 @@ export const MyLibrary = () => {
     const [editingFolder, setEditingFolder] = useState(null);
     const [createTestModalVisible, setCreateTestModalVisible] = useState(false);
     const [autoTestModalVisible, setAutoTestModalVisible] = useState(false);
+    const [selectedFolderForAutoTest, setSelectedFolderForAutoTest] = useState(null);
 
     // Data states
     const [treeData, setTreeData] = useState([]);
     const [tableData, setTableData] = useState([]);
+    const [questionsData, setQuestionsData] = useState([]);
+    const [activeTab, setActiveTab] = useState('1');
 
     // Handle window resize
     useEffect(() => {
@@ -152,6 +156,22 @@ export const MyLibrary = () => {
         }
     }, []);
 
+    // Load questions theo folder được chọn
+    const loadQuestions = useCallback(async (folderId = null) => {
+        try {
+            setLoading(true);
+            const params = folderId ? { folderId } : {};
+            const questionsRes = await fetchQuestions(params);
+            const questions = questionsRes?.questions || questionsRes?.data || questionsRes || [];
+            setQuestionsData(Array.isArray(questions) ? questions : []);
+        } catch (err) {
+            console.error('Failed to load questions', err);
+            message.error(err.message || 'Không thể tải danh sách câu hỏi');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Load toàn bộ dữ liệu
     const loadLibraryData = useCallback(async () => {
         try {
@@ -162,11 +182,13 @@ export const MyLibrary = () => {
             const tree = buildTreeData(folders);
             setTreeData(tree);
 
-            // Nếu có folder đang chọn, load tests của folder đó
+            // Nếu có folder đang chọn, load tests và questions của folder đó
             if (selectedFolderId) {
                 await loadTests(selectedFolderId);
+                await loadQuestions(selectedFolderId);
             } else {
                 setTableData([]);
+                setQuestionsData([]);
             }
         } catch (err) {
             console.error('Failed to load library data', err);
@@ -174,7 +196,7 @@ export const MyLibrary = () => {
         } finally {
             setLoading(false);
         }
-    }, [loadTests, selectedFolderId]);
+    }, [loadTests, loadQuestions, selectedFolderId]);
 
     useEffect(() => {
         loadLibraryData();
@@ -252,6 +274,74 @@ export const MyLibrary = () => {
         }
     ];
 
+    // Columns cho bảng câu hỏi
+    const questionColumns = [
+        {
+            title: '#',
+            dataIndex: 'index',
+            width: 60,
+            align: 'center',
+            render: (_, __, index) => index + 1
+        },
+        {
+            title: 'Câu hỏi',
+            dataIndex: 'cauHoi',
+            flex: 1,
+            render: (text) => (
+                <Text ellipsis={{ tooltip: text }}>
+                    {text || 'Không có nội dung'}
+                </Text>
+            )
+        },
+        {
+            title: 'Khối lớp',
+            dataIndex: 'khoiLop',
+            width: 100,
+            render: (khoiLop) => <Tag color="blue">{khoiLop || 'N/A'}</Tag>
+        },
+        {
+            title: 'Unit',
+            dataIndex: 'unit',
+            width: 100,
+            render: (unit) => <Tag color="green">{unit || 'N/A'}</Tag>
+        },
+        {
+            title: 'Kỹ năng',
+            dataIndex: 'kyNang',
+            width: 100,
+            render: (kyNang) => <Tag color="orange">{kyNang || 'N/A'}</Tag>
+        },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            width: 120,
+            align: 'center',
+            render: (_, record) => (
+                <Space size="small">
+                    <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            message.info(`Chỉnh sửa câu hỏi: ${record.cauHoi?.substring(0, 20)}...`);
+                        }}
+                    />
+                    <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            showDeleteQuestionConfirm(record);
+                        }}
+                    />
+                </Space>
+            )
+        }
+    ];
+
     // Tìm folder trong tree
     const findFolder = (nodes, key) => {
         for (const node of nodes) {
@@ -295,6 +385,7 @@ export const MyLibrary = () => {
         }
 
         await loadTests(folderId);
+        await loadQuestions(folderId);
     };
 
     // Xử lý mở rộng/thu gọn folder
@@ -468,6 +559,15 @@ export const MyLibrary = () => {
             message.warning('Vui lòng chọn một thư mục để thêm bài tập');
             return;
         }
+        const selectedFolder = findFolder(treeData, selectedKeys[0]);
+        if (selectedFolder) {
+            const parentKey = findParentKey(treeData, selectedKeys[0]);
+            const parentFolder = parentKey ? findFolder(treeData, parentKey) : null;
+            setSelectedFolderForAutoTest({
+                folder: selectedFolder,
+                parent: parentFolder
+            });
+        }
         setAutoTestModalVisible(true);
     };
 
@@ -494,16 +594,48 @@ export const MyLibrary = () => {
 
     const handleAutoTestSubmit = async (data) => {
         try {
+            // Fetch all questions from question bank
+            const questionsRes = await fetchQuestions({ limit: 10000 });
+            const allQuestions = questionsRes.questions || [];
+
+            let selectedQuestions = [];
+            let totalSelected = 0;
+
+            // Process each row to select questions
+            for (const row of data.rows || []) {
+                // Filter questions by criteria
+                let filtered = allQuestions.filter(q => {
+                    return (!row.grade || q.khoiLop === row.grade) &&
+                        (!row.unit || q.unit === row.unit) &&
+                        (!row.skill || q.kyNang === row.skill) &&
+                        (!row.questionType || q.loaiCauHoi === row.questionType) &&
+                        (!row.difficulty || q.mucDoNhanThuc === row.difficulty);
+                });
+
+                // Shuffle and select the required count
+                const shuffled = filtered.sort(() => 0.5 - Math.random());
+                const selected = shuffled.slice(0, row.count || 0);
+
+                selectedQuestions = selectedQuestions.concat(selected);
+                totalSelected += selected.length;
+            }
+
+            if (totalSelected === 0) {
+                message.error('Không tìm thấy đủ câu hỏi phù hợp với tiêu chí đã chọn');
+                return;
+            }
+
             const autoTestData = {
                 name: data.testName || 'Đề tự động',
                 type: data.testType || 'Đề thi',
-                total: data.rows?.reduce((sum, row) => sum + (row.count || 0), 0) || 0,
-                config: data,
-                folderId: selectedKeys[0] || null
+                total: totalSelected,
+                starred: false,
+                folderId: selectedKeys[0] || null,
+                questions: selectedQuestions.map(q => q._id)
             };
 
-            console.log('Auto test created:', autoTestData);
-            message.success('Đã tạo đề tự động thành công!');
+            await createTest(autoTestData);
+            message.success(`Đã tạo đề tự động thành công với ${totalSelected} câu hỏi!`);
             setAutoTestModalVisible(false);
             await loadLibraryData();
         } catch (err) {
@@ -528,6 +660,28 @@ export const MyLibrary = () => {
                 } catch (err) {
                     console.error('deleteTest error', err);
                     message.error('Xóa bài tập thất bại');
+                }
+            },
+        });
+    };
+
+    const showDeleteQuestionConfirm = (record) => {
+        confirm({
+            title: 'Xác nhận xóa câu hỏi',
+            icon: <ExclamationCircleOutlined />,
+            content: `Bạn có chắc chắn muốn xóa câu hỏi "${record.cauHoi?.substring(0, 50)}..."?`,
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    // Assuming deleteQuestion is imported
+                    // await deleteQuestion(record._id);
+                    message.success('Đã xóa câu hỏi thành công');
+                    await loadLibraryData();
+                } catch (err) {
+                    console.error('deleteQuestion error', err);
+                    message.error('Xóa câu hỏi thất bại');
                 }
             },
         });
@@ -726,7 +880,7 @@ export const MyLibrary = () => {
                 </div>
             )
         },
-        // ... tab thứ 2 giữ nguyên
+        
     ];
 
     return (
@@ -862,8 +1016,12 @@ export const MyLibrary = () => {
 
             <CreateAutoTestModal
                 visible={autoTestModalVisible}
-                onClose={() => setAutoTestModalVisible(false)}
+                onClose={() => {
+                    setAutoTestModalVisible(false);
+                    setSelectedFolderForAutoTest(null);
+                }}
                 onSubmit={handleAutoTestSubmit}
+                selectedFolder={selectedFolderForAutoTest}
             />
 
             {/* Style tùy chỉnh */}

@@ -33,22 +33,39 @@ const ClassInfoCard = ({
         });
     };
 
-    // Trong chế độ test, không hiển thị menu quản lý
-    const menuItems = isTestMode ? [] : [
+    // Các menu items chính
+    let menuItems = [
         {
-            key: 'edit',
-            label: 'Chỉnh sửa lớp',
-            icon: <EditOutlined />,
-            onClick: onEdit
-        },
-        {
-            key: 'delete',
-            label: 'Xóa lớp',
-            icon: <DeleteOutlined />,
-            danger: true,
-            onClick: handleDeleteClass
+            key: 'back',
+            label: 'Quay lại',
+            icon: <ArrowLeftOutlined />,
+            onClick: onBack
         }
     ];
+
+    // Nếu không phải chế độ test, thêm các mục quản lý
+    if (!isTestMode) {
+        menuItems.push(
+            {
+                key: 'edit',
+                label: 'Chỉnh sửa lớp',
+                icon: <EditOutlined />,
+                onClick: onEdit
+            },
+            {
+                key: 'delete',
+                label: 'Xóa lớp',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: handleDeleteClass
+            }
+        );
+    }
+
+    // Nếu hideMenu = true thì không hiển thị menu gì cả
+    if (hideMenu) {
+        menuItems = [];
+    }
 
     return (
         <Card
@@ -70,30 +87,21 @@ const ClassInfoCard = ({
                             </Tag>
                         )}
                     </Space>
-                    <Space>
-                        {/* Chỉ hiển thị menu khi không phải chế độ test, không phải hideMenu, và có menu items */}
-                        {!isTestMode && !hideMenu && menuItems.length > 0 && (
-                            <Dropdown
-                                menu={{ items: menuItems }}
-                                trigger={['click']}
-                                placement="bottomRight"
-                            >
-                                <Button
-                                    type="text"
-                                    icon={<MoreOutlined />}
-                                    size={isMobile ? 'small' : 'middle'}
-                                />
-                            </Dropdown>
-                        )}
-                        <Button
-                            type="text"
-                            icon={<ArrowLeftOutlined />}
-                            onClick={onBack}
-                            size={isMobile ? 'small' : 'middle'}
+
+                    {/* Chỉ hiển thị dropdown khi có menu items */}
+                    {menuItems.length > 0 && (
+                        <Dropdown
+                            menu={{ items: menuItems }}
+                            trigger={['click']}
+                            placement="bottomRight"
                         >
-                            Quay lại
-                        </Button>
-                    </Space>
+                            <Button
+                                type="text"
+                                icon={<MoreOutlined />}
+                                size={isMobile ? 'small' : 'middle'}
+                            />
+                        </Dropdown>
+                    )}
                 </div>
             }
             style={{ backgroundColor: 'white' }}

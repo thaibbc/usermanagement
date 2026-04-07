@@ -36,6 +36,7 @@ import {
     BookOutlined
 } from '@ant-design/icons';
 import { createQuestion, updateQuestion } from '../api/questions';
+import { fetchFolders } from '../api/library/folders';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -48,8 +49,42 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
     const [submitLoading, setSubmitLoading] = useState(false);
     const [selectedQuestionType, setSelectedQuestionType] = useState('');
     const [questions, setQuestions] = useState([]);
+    const [folders, setFolders] = useState([]);
+    const [classOptions, setClassOptions] = useState([]);
+    const [unitOptions, setUnitOptions] = useState([]);
+    const [selectedClassId, setSelectedClassId] = useState(null);
+    const [selectedUnitId, setSelectedUnitId] = useState(null);
 
     const isEditMode = !!initialValues;
+
+    // Load folders khi component mount
+    useEffect(() => {
+        const loadFolders = async () => {
+            try {
+                const folderData = await fetchFolders();
+                setFolders(folderData);
+                // Lọc folders cha (parentId = null) làm options cho KHỐI LỚP
+                const parentFolders = folderData.filter(f => !f.parentId);
+                setClassOptions(parentFolders.map(f => ({ label: f.title, value: f._id })));
+            } catch (error) {
+                console.error('Failed to load folders:', error);
+            }
+        };
+
+        if (visible) {
+            loadFolders();
+        }
+    }, [visible]);
+
+    // Update unit options khi chọn class
+    useEffect(() => {
+        if (selectedClassId) {
+            const childFolders = folders.filter(f => f.parentId === selectedClassId);
+            setUnitOptions(childFolders.map(f => ({ label: f.title, value: f._id })));
+        } else {
+            setUnitOptions([]);
+        }
+    }, [selectedClassId, folders]);
 
     // Định nghĩa các dạng câu hỏi
     const questionTypes = {
@@ -74,13 +109,13 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             hasSubQuestions: true,
             description: 'Xác định câu đúng/sai/không có thông tin'
         },
-        // matching: {
-        //     name: 'Matching (Nối)',
-        //     icon: <LinkOutlined />,
-        //     hasOptions: true,
-        //     hasSubQuestions: true,
-        //     description: 'Nối cột A với cột B'
-        // },
+        order: {
+            name: 'Order (Sắp xếp câu)',
+            icon: <LinkOutlined />,
+            hasOptions: false,
+            hasSubQuestions: true,
+            description: 'Sắp xếp các từ để hoàn thành câu'
+        },
         transformation: {
             name: 'Sentence Transformation (Viết lại câu)',
             icon: <EditOutlined />,
@@ -170,6 +205,12 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                     correctAnswer: '',
                     options: ['A', 'B', 'C', 'D'],
                     explanation: ''
+                };
+            case 'order':
+                return {
+                    id: baseId,
+                    questionContent: 'Sắp xếp các từ để hoàn thành câu',
+                    correctAnswer: '',
                 };
             default:
                 return null;
@@ -295,7 +336,7 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
         return {
             khoiLop: data.khoiLop || '',
             unit: data.unit || '',
-            kyNang: data.kyNang || '',
+            kyNang: typeof data.kyNang === 'string' ? data.kyNang.split(',').map(s => s.trim()).filter(Boolean) : (data.kyNang || []),
             dangCauHoi: data.loaiCauHoi || '',
             yeuCauDeBai: data.yeuCauDeBai || '',
             mucDoNhanThuc: data.mucDoNhanThuc || '',
@@ -435,9 +476,10 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             }
 
             let payload = {
-                khoiLop: values.khoiLop,
-                unit: values.unit,
-                kyNang: values.kyNang,
+                folderId: selectedUnitId || selectedClassId, // Lưu vào folder unit nếu có, nếu không thì folder class
+                khoiLop: classOptions.find(opt => opt.value === selectedClassId)?.label || '',
+                unit: unitOptions.find(opt => opt.value === selectedUnitId)?.label || '',
+                kyNang: Array.isArray(values.kyNang) ? values.kyNang.join(', ') : values.kyNang,
                 loaiCauHoi: selectedQuestionType,
                 mucDoNhanThuc: values.mucDoNhanThuc,
                 yeuCauDeBai: values.yeuCauDeBai || '',
@@ -474,7 +516,7 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                         payload.dapAnC = values[`dapAn_${q.id}_C`];
                         payload.dapAnD = values[`dapAn_${q.id}_D`];
                     }
-                    else if (selectedQuestionType === 'cloze') {
+                    else if (selectedQuestionType === 'cloze' || selectedQuestionType === 'order') {
                         dapAnArray.push(values[`dapAnDung_${q.id}`]);
                     }
                     else if (selectedQuestionType === 'truefalse') {
@@ -515,9 +557,11 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             if (isEditMode && initialValues?._id) {
                 response = await updateQuestion(initialValues._id, payload);
                 message.success('Cập nhật câu hỏi thành công!');
+                console.log('Cập nhật câu hỏi thành công:', response);
             } else {
                 response = await createQuestion(payload);
                 message.success('Tạo câu hỏi thành công!');
+                console.log('Tạo câu hỏi thành công:', response);
             }
 
             if (onSubmit) {
@@ -538,6 +582,8 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
         form.resetFields();
         setQuestions([]);
         setSelectedQuestionType('');
+        setSelectedClassId(null);
+        setSelectedUnitId(null);
         if (onClose) onClose();
     };
 
@@ -757,6 +803,67 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                             initialValue={question.hint}
                         >
                             <TextArea rows={2} disabled={submitLoading} placeholder="Gợi ý giúp học sinh trả lời..." />
+                        </Form.Item>
+                    </Card>
+                ))}
+            </div>
+        );
+    };
+
+    // Order Form
+    const renderOrderForm = () => {
+        return (
+            <div>
+                {questions.map((question, idx) => (
+                    <Card
+                        key={question.id}
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                        title={
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                <Space>
+                                    <Tag color="#00bcd4">Câu hỏi {idx + 1}</Tag>
+                                    {questions.length > 1 && (
+                                        <Button
+                                            type="text"
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            onClick={() => handleRemoveQuestion(question.id)}
+                                            size="small"
+                                        />
+                                    )}
+                                </Space>
+                                {idx === questions.length - 1 && (
+                                    <Button
+                                        type="dashed"
+                                        icon={<PlusOutlined />}
+                                        onClick={handleAddQuestion}
+                                        size="small"
+                                        disabled={submitLoading}
+                                        style={{ borderColor: '#00bcd4', color: '#00bcd4' }}
+                                    >
+                                        Thêm câu hỏi
+                                    </Button>
+                                )}
+                            </div>
+                        }
+                    >
+                        <Form.Item
+                            label="Yêu cầu (mặc định: Sắp xếp các từ để hoàn thành câu)"
+                            name={`noiDungCauHoi_${question.id}`}
+                            initialValue={question.questionContent}
+                            rules={[{ required: true, message: 'Vui lòng nhập yêu cầu' }]}
+                        >
+                            <Input disabled={submitLoading} />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Câu trả lời đúng (nguyên câu hoàn chỉnh)"
+                            name={`dapAnDung_${question.id}`}
+                            initialValue={question.correctAnswer}
+                            rules={[{ required: true, message: 'Vui lòng nhập câu hoàn chỉnh' }]}
+                            extra="Hệ thống sẽ tự động tách câu này thành các từ để học sinh sắp xếp"
+                        >
+                            <TextArea rows={3} disabled={submitLoading} placeholder="Ví dụ: She goes to school every day." />
                         </Form.Item>
                     </Card>
                 ))}
@@ -1205,6 +1312,8 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                 return renderClozeForm();
             case 'truefalse':
                 return renderTrueFalseForm();
+            case 'order':
+                return renderOrderForm();
             case 'matching':
                 return renderMatchingForm();
             case 'transformation':
@@ -1251,7 +1360,7 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             open={visible}
             onCancel={handleClose}
             width={getModalWidth()}
-            maskClosable={!submitLoading}
+            mask={{ closable: !submitLoading }}
             closable={!submitLoading}
             footer={[
                 <Button
@@ -1312,9 +1421,19 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                                 name="khoiLop"
                                 rules={[{ required: true, message: 'Vui lòng chọn khối lớp' }]}
                             >
-                                <Select placeholder="Chọn khối lớp" disabled={submitLoading}>
-                                    {[6, 7, 8, 9, 10, 11, 12].map(level => (
-                                        <Option key={level} value={`Lớp ${level}`}>Lớp {level}</Option>
+                                <Select
+                                    placeholder="Chọn khối lớp"
+                                    disabled={submitLoading}
+                                    onChange={(value) => {
+                                        setSelectedClassId(value);
+                                        setSelectedUnitId(null); // Reset unit khi đổi class
+                                        form.setFieldsValue({ unit: undefined }); // Reset form field
+                                    }}
+                                >
+                                    {classOptions.map(option => (
+                                        <Option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Option>
                                     ))}
                                 </Select>
                             </Form.Item>
@@ -1324,9 +1443,15 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                                 name="unit"
                                 rules={[{ required: true, message: 'Vui lòng chọn unit' }]}
                             >
-                                <Select placeholder="Chọn unit" disabled={submitLoading}>
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
-                                        <Option key={num} value={`Unit ${num}`}>Unit {num}</Option>
+                                <Select
+                                    placeholder="Chọn unit"
+                                    disabled={submitLoading || !selectedClassId}
+                                    onChange={(value) => setSelectedUnitId(value)}
+                                >
+                                    {unitOptions.map(option => (
+                                        <Option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Option>
                                     ))}
                                 </Select>
                             </Form.Item>
@@ -1336,12 +1461,16 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                                 name="kyNang"
                                 rules={[{ required: true, message: 'Vui lòng chọn kỹ năng' }]}
                             >
-                                <Select placeholder="Chọn kỹ năng" disabled={submitLoading}>
+                                <Select 
+                                    mode="multiple" 
+                                    placeholder="Chọn kỹ năng" 
+                                    disabled={submitLoading}
+                                    allowClear
+                                >
                                     <Option value="Reading">Reading - Đọc</Option>
                                     <Option value="Writing">Writing - Viết</Option>
                                     <Option value="Listening">Listening - Nghe</Option>
                                     <Option value="Speaking">Speaking - Nói</Option>
-
                                 </Select>
                             </Form.Item>
 
@@ -1351,14 +1480,16 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                                 rules={[{ required: true, message: 'Vui lòng chọn dạng câu hỏi' }]}
                             >
                                 <Select placeholder="Chọn dạng câu hỏi" disabled={submitLoading}>
-                                    {Object.entries(questionTypes).map(([key, type]) => (
-                                        <Option key={key} value={key}>
-                                            <Space>
-                                                {type.icon}
-                                                {type.name}
-                                            </Space>
-                                        </Option>
-                                    ))}
+                                    {Object.entries(questionTypes)
+                                        .filter(([key]) => ['multiple', 'cloze', 'truefalse', 'order'].includes(key))
+                                        .map(([key, type]) => (
+                                            <Option key={key} value={key}>
+                                                <Space>
+                                                    {type.icon}
+                                                    {type.name}
+                                                </Space>
+                                            </Option>
+                                        ))}
                                 </Select>
                             </Form.Item>
 
