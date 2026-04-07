@@ -373,7 +373,7 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
             placement="right"
             onClose={onClose}
             open={visible}
-            size="large"
+            width="100%"
             closable={false}
             mask={{ closable: false }}
             footer={
