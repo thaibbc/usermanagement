@@ -28,22 +28,15 @@ const isUrl = (text) => {
 
 // Component hiển thị nội dung (text hoặc hình ảnh)
 const RenderContent = ({ content }) => {
-    if (isImageUrl(content)) {
+    if (isUrl(content)) {
         return (
             <Image
                 src={content}
-                alt="Hình ảnh đáp án"
-                style={{ maxWidth: '100%', maxHeight: 150, objectFit: 'contain' }}
-                fallback="https://via.placeholder.com/150?text=Không+thể+tải+ảnh"
+                alt="Hình ảnh nội dung"
+                style={{ maxWidth: '100%', maxHeight: 150, objectFit: 'contain', borderRadius: '4px' }}
+                fallback="https://via.placeholder.com/150?text=Link"
                 preview={{ mask: 'Xem ảnh' }}
             />
-        );
-    }
-    if (isUrl(content)) {
-        return (
-            <a href={content} target="_blank" rel="noopener noreferrer" style={{ wordBreak: 'break-all' }}>
-                {content}
-            </a>
         );
     }
     return <span>{content}</span>;
@@ -201,20 +194,14 @@ const QuestionPreviewModal = ({ question, onClose }) => {
                                 <div style={{ marginTop: 12 }}>
                                     {question.imageLink && (
                                         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-                                            {isImageUrl(question.imageLink) ? (
+                                            {isUrl(question.imageLink) ? (
                                                 <Image
                                                     src={question.imageLink}
                                                     alt="Hình ảnh câu hỏi"
-                                                    style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain' }}
-                                                    fallback="https://via.placeholder.com/300?text=Không+thể+tải+ảnh"
+                                                    style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: '8px' }}
+                                                    fallback="https://via.placeholder.com/300?text=Lỗi+tải+ảnh+hoặc+Link+không+phải+ảnh"
                                                     preview={{ mask: 'Xem ảnh' }}
                                                 />
-                                            ) : isUrl(question.imageLink) ? (
-                                                <div style={{ padding: '16px', border: '1px dashed #d9d9d9', borderRadius: '8px', background: '#fafafa' }}>
-                                                    <a href={question.imageLink} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        🔗 Mở link Hình ảnh / Tài liệu
-                                                    </a>
-                                                </div>
                                             ) : (
                                                 <span>{question.imageLink}</span>
                                             )}

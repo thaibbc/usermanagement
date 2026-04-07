@@ -276,21 +276,16 @@ const CreateAssignmentDrawer = ({
                                     <div style={{ marginBottom: 16 }}>
                                         {question.linkHinhAnh && (
                                             <div style={{ marginBottom: 12, textAlign: 'center' }}>
-                                                {isImageUrl(question.linkHinhAnh) ? (
+                                                {isUrl(question.linkHinhAnh) ? (
                                                     <Image
                                                         src={question.linkHinhAnh}
                                                         alt="Hình ảnh Câu hỏi"
-                                                        style={{ maxWidth: '100%', maxHeight: 250, objectFit: 'contain' }}
-                                                        fallback="https://via.placeholder.com/250?text=Lỗi+Hình+Ảnh"
+                                                        style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: '8px' }}
+                                                        fallback="https://via.placeholder.com/300?text=Lỗi+tải+ảnh+hoặc+Link+không+phải+ảnh"
+                                                        preview={{ mask: 'Xem ảnh' }}
                                                     />
-                                                ) : isUrl(question.linkHinhAnh) ? (
-                                                    <div style={{ padding: '16px', border: '1px dashed #d9d9d9', borderRadius: '8px', background: '#fafafa' }}>
-                                                        <a href={question.linkHinhAnh} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                                            🔗 Mở link Hình ảnh / Tài liệu
-                                                        </a>
-                                                    </div>
                                                 ) : (
-                                                    <span>{question.linkHinhAnh}</span>
+                                                    <Text type="secondary">{question.linkHinhAnh}</Text>
                                                 )}
                                             </div>
                                         )}

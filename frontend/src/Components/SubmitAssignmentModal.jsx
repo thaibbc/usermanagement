@@ -21,6 +21,22 @@ const isUrl = (text) => {
     return text.startsWith('http://') || text.startsWith('https://');
 };
 
+// Helper hiển thị nội dung (text hoặc hình ảnh)
+const RenderContent = ({ content, style = {} }) => {
+    if (isUrl(content)) {
+        return (
+            <Image
+                src={content}
+                alt="Hình ảnh nội dung"
+                style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: '4px', ...style }}
+                fallback="https://via.placeholder.com/150?text=Link"
+                preview={{ mask: 'Xem ảnh' }}
+            />
+        );
+    }
+    return <span>{content}</span>;
+};
+
 const SubmitAssignmentModal = ({
     visible,
     onCancel,
@@ -210,7 +226,7 @@ const SubmitAssignmentModal = ({
                                     }}
                                 >
                                     <Text strong style={{ marginRight: 6, fontSize: '13px' }}>{opt.key}.</Text>
-                                    <span style={{ fontSize: '13px' }}>{opt.content || <Text type="secondary">(Trống)</Text>}</span>
+                                    <RenderContent content={opt.content} style={{ maxHeight: 100 }} />
                                 </Radio>
                             ))}
                         </Space>
@@ -237,14 +253,20 @@ const SubmitAssignmentModal = ({
 
             case 'cloze':
                 return (
-                    <TextArea
-                        placeholder="Nhập đáp án của bạn vào chỗ trống"
-                        value={currentAnswer}
-                        onChange={(e) => !isReadOnly && handleAnswerChange(questionId, e.target.value)}
-                        rows={3}
-                        style={{ marginTop: 4, fontSize: '13px' }}
-                        disabled={isReadOnly}
-                    />
+                    <div style={{ marginTop: 4 }}>
+                        {isReadOnly && isUrl(currentAnswer) ? (
+                            <RenderContent content={currentAnswer} style={{ maxHeight: 150 }} />
+                        ) : (
+                            <TextArea
+                                placeholder="Nhập đáp án của bạn vào chỗ trống"
+                                value={currentAnswer}
+                                onChange={(e) => !isReadOnly && handleAnswerChange(questionId, e.target.value)}
+                                rows={3}
+                                style={{ fontSize: '13px' }}
+                                disabled={isReadOnly}
+                            />
+                        )}
+                    </div>
                 );
 
             case 'matching':
@@ -255,7 +277,7 @@ const SubmitAssignmentModal = ({
                             <div key={match.id} style={{ marginBottom: 16, padding: 12, backgroundColor: '#fafafa', borderRadius: 6 }}>
                                 <div style={{ marginBottom: 8 }}>
                                     <Text strong>{match.id}. </Text>
-                                    <Text>{match.left}</Text>
+                                    <RenderContent content={match.left} style={{ maxHeight: 100 }} />
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <LinkOutlined style={{ color: '#00BCD4' }} />
@@ -298,10 +320,10 @@ const SubmitAssignmentModal = ({
                         style={{ width: '100%' }}
                     >
                         <Space direction="vertical" size="middle">
-                            <Radio value="A">A. {question.dapAnA || question.answerA || 'Option A'}</Radio>
-                            <Radio value="B">B. {question.dapAnB || question.answerB || 'Option B'}</Radio>
-                            <Radio value="C">C. {question.dapAnC || question.answerC || 'Option C'}</Radio>
-                            <Radio value="D">D. {question.dapAnD || question.answerD || 'Option D'}</Radio>
+                            <Radio value="A">A. <RenderContent content={question.dapAnA || question.answerA || 'Option A'} style={{ maxHeight: 100 }} /></Radio>
+                            <Radio value="B">B. <RenderContent content={question.dapAnB || question.answerB || 'Option B'} style={{ maxHeight: 100 }} /></Radio>
+                            <Radio value="C">C. <RenderContent content={question.dapAnC || question.answerC || 'Option C'} style={{ maxHeight: 100 }} /></Radio>
+                            <Radio value="D">D. <RenderContent content={question.dapAnD || question.answerD || 'Option D'} style={{ maxHeight: 100 }} /></Radio>
                         </Space>
                     </Radio.Group>
                 );
@@ -339,30 +361,53 @@ const SubmitAssignmentModal = ({
         const { loaiCauHoi, type, dapAnDung, answer, giaiThich } = question;
         const questionType = loaiCauHoi || type;
 
-        let correctAnswerText = dapAnDung || answer || '';
+        const correctAnswerKey = dapAnDung || answer || '';
+        let correctAnswerContent = correctAnswerKey;
 
-        if (questionType === 'multiple' && correctAnswerText) {
+        if (questionType === 'multiple' && correctAnswerKey) {
             const answerMap = {
                 'A': question.dapAnA,
                 'B': question.dapAnB,
                 'C': question.dapAnC,
                 'D': question.dapAnD
             };
-            correctAnswerText = `${correctAnswerText}. ${answerMap[correctAnswerText] || ''}`;
+            correctAnswerContent = answerMap[correctAnswerKey] || '';
+
+            return (
+                <div style={{
+                    marginTop: 12,
+                    padding: 10,
+                    backgroundColor: '#f6ffed',
+                    borderRadius: 8,
+                    border: '1px solid #b7eb8f'
+                }}>
+                    <Text strong style={{ fontSize: '13px', color: '#52c41a' }}>Đáp án đúng: </Text>
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <Tag color="success" style={{ fontWeight: 'bold' }}>{correctAnswerKey}</Tag>
+                        <RenderContent content={correctAnswerContent} style={{ maxHeight: 200 }} />
+                    </div>
+                    {giaiThich && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #b7eb8f' }}>
+                            <Text strong style={{ fontSize: '12px' }}>Giải thích: </Text>
+                            <Text style={{ fontSize: '12px' }}>{giaiThich}</Text>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
         return (
             <div style={{
                 marginTop: 12,
-                padding: 8,
+                padding: 10,
                 backgroundColor: '#f6ffed',
-                borderRadius: 6,
+                borderRadius: 8,
                 border: '1px solid #b7eb8f'
             }}>
                 <Text strong style={{ fontSize: '12px', color: '#52c41a' }}>Đáp án đúng: </Text>
-                <Tag color="success" style={{ marginLeft: 6, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
-                    {correctAnswerText || 'Chưa có đáp án'}
-                </Tag>
+                <div style={{ marginTop: 6 }}>
+                    <RenderContent content={correctAnswerContent} style={{ maxHeight: 200 }} />
+                </div>
                 {giaiThich && (
                     <div style={{ marginTop: 6 }}>
                         <Text strong style={{ fontSize: '12px' }}>Giải thích: </Text>
@@ -450,22 +495,16 @@ const SubmitAssignmentModal = ({
                     <div style={{ marginBottom: 16, textAlign: 'center' }}>
                         {currentQuestion.linkHinhAnh && (
                             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-                                {isImageUrl(currentQuestion.linkHinhAnh) ? (
+                                {isUrl(currentQuestion.linkHinhAnh) ? (
                                     <Image
                                         src={currentQuestion.linkHinhAnh}
                                         alt="Hình ảnh câu hỏi"
-                                        style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain' }}
-                                        fallback="https://via.placeholder.com/300?text=Lỗi+tải+ảnh"
+                                        style={{ maxWidth: '100%', maxHeight: 400, objectFit: 'contain', borderRadius: '8px' }}
+                                        fallback="https://via.placeholder.com/400?text=Lỗi+tải+ảnh+hoặc+Link+không+phải+ảnh"
                                         preview={{ mask: 'Xem ảnh' }}
                                     />
-                                ) : isUrl(currentQuestion.linkHinhAnh) ? (
-                                    <div style={{ padding: '16px', border: '1px dashed #d9d9d9', borderRadius: '8px', background: '#fafafa', width: '100%' }}>
-                                        <a href={currentQuestion.linkHinhAnh} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                            🔗 Mở link Hình ảnh / Tài liệu
-                                        </a>
-                                    </div>
                                 ) : (
-                                    <span>{currentQuestion.linkHinhAnh}</span>
+                                    <Text type="secondary">{currentQuestion.linkHinhAnh}</Text>
                                 )}
                             </div>
                         )}
@@ -489,9 +528,9 @@ const SubmitAssignmentModal = ({
 
                 {/* Nội dung câu hỏi chính */}
                 <div style={{ marginBottom: 12 }}>
-                    <Text strong style={{ fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                        {currentQuestion.cauHoi || currentQuestion.question || currentQuestion.title || currentQuestion.questionContent || 'Không có nội dung'}
-                    </Text>
+                    <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.5 }}>
+                        <RenderContent content={currentQuestion.cauHoi || currentQuestion.question || currentQuestion.title || currentQuestion.questionContent || 'Không có nội dung'} />
+                    </div>
                 </div>
 
                 {/* Bài đọc nếu có */}
