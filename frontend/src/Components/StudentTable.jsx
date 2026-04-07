@@ -65,8 +65,6 @@ const StudentTable = ({
                 }
                 return (
                     <Space size="small">
-                        <Button size="small" icon={<EyeOutlined />} onClick={() => onViewStudent(record)}>Xem</Button>
-                        <Button size="small" icon={<EditOutlined />} onClick={() => onEditStudent(record)}>Sửa</Button>
                         <Button size="small" danger icon={<DeleteOutlined />} onClick={() => {
                             confirm({
                                 title: 'Xác nhận xóa',
