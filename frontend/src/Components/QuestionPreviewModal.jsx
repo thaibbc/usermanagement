@@ -139,10 +139,12 @@ const QuestionPreviewModal = ({ question, onClose }) => {
             footer={[<Button key="close" onClick={onClose}>Đóng</Button>]}
             width="90vw"  // Chiều rộng chiếm 90% viewport width
             style={{ top: 20 }}  // Khoảng cách từ đỉnh màn hình
-            bodyStyle={{
-                maxHeight: 'calc(100vh - 150px)',  // Chiều cao tối đa trừ đi header + footer + margin
-                overflowY: 'auto',                 // Thêm thanh cuộn dọc khi nội dung vượt quá
-                padding: '20px 24px'
+            styles={{
+                body: {
+                    maxHeight: 'calc(100vh - 150px)',  // Chiều cao tối đa trừ đi header + footer + margin
+                    overflowY: 'auto',                 // Thêm thanh cuộn dọc khi nội dung vượt quá
+                    padding: '20px 24px'
+                }
             }}
             centered
         >

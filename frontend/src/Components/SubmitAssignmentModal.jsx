@@ -38,7 +38,7 @@ const RenderContent = ({ content, style = {} }) => {
 };
 
 const SubmitAssignmentModal = ({
-    visible,
+    open,
     onCancel,
     assignment,
     currentUserId,
@@ -53,7 +53,7 @@ const SubmitAssignmentModal = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (visible && assignment) {
+        if (open && assignment) {
             console.log('SubmitAssignmentModal - assignment:', assignment);
 
             // Nếu đang ở chế độ xem kết quả và có submission, hiển thị đáp án đã chọn
@@ -73,7 +73,7 @@ const SubmitAssignmentModal = ({
             // Reset current question index
             setCurrentQuestionIndex(0);
         }
-    }, [visible, assignment, isViewMode, existingSubmission]);
+    }, [open, assignment, isViewMode, existingSubmission]);
 
     const handleAnswerChange = (questionId, answer) => {
         setAnswers(prev => prev.map(a =>
@@ -207,7 +207,7 @@ const SubmitAssignmentModal = ({
                         disabled={isReadOnly}
                         style={{ width: '100%' }}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }} size="small">
+                        <Space orientation="vertical" style={{ width: '100%' }} size="small">
                             {[
                                 { key: 'A', content: question.dapAnA || question.answerA },
                                 { key: 'B', content: question.dapAnB || question.answerB },
@@ -319,7 +319,7 @@ const SubmitAssignmentModal = ({
                         disabled={isReadOnly}
                         style={{ width: '100%' }}
                     >
-                        <Space direction="vertical" size="middle">
+                        <Space orientation="vertical" size="middle">
                             <Radio value="A">A. <RenderContent content={question.dapAnA || question.answerA || 'Option A'} style={{ maxHeight: 100 }} /></Radio>
                             <Radio value="B">B. <RenderContent content={question.dapAnB || question.answerB || 'Option B'} style={{ maxHeight: 100 }} /></Radio>
                             <Radio value="C">C. <RenderContent content={question.dapAnC || question.answerC || 'Option C'} style={{ maxHeight: 100 }} /></Radio>
@@ -445,7 +445,7 @@ const SubmitAssignmentModal = ({
                     backgroundColor: '#fff',
                     boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
                 }}
-                bodyStyle={{ padding: '16px' }}
+                styles={{ body: { padding: '16px' } }}
             >
                 {/* Header với số câu và điểm */}
                 <div style={{
@@ -707,7 +707,7 @@ const SubmitAssignmentModal = ({
                     </span>
                 </Space>
             }
-            open={visible}
+            open={open}
             onCancel={onCancel}
             width={900}
             footer={null}
@@ -727,7 +727,7 @@ const SubmitAssignmentModal = ({
                 {/* Nếu là chế độ xem kết quả, hiển thị điểm và nhận xét */}
                 {isViewMode && existingSubmission && (
                     <Alert
-                        message="Kết quả bài làm"
+                        title="Kết quả bài làm"
                         description={
                             <div>
                                 <div style={{ marginBottom: 6 }}>
@@ -762,7 +762,7 @@ const SubmitAssignmentModal = ({
                 >
                     {assignment?.requirements && (
                         <Alert
-                            message="Yêu cầu bài tập"
+                            title="Yêu cầu bài tập"
                             description={assignment.requirements}
                             type="info"
                             showIcon

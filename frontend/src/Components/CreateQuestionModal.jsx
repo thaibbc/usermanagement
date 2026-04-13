@@ -43,7 +43,7 @@ const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
-const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null }) => {
+const CreateQuestionModal = ({ open, onClose, onSubmit, initialValues = null }) => {
     const [form] = Form.useForm();
     const screens = useBreakpoint();
     const [submitLoading, setSubmitLoading] = useState(false);
@@ -71,10 +71,10 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             }
         };
 
-        if (visible) {
+        if (open) {
             loadFolders();
         }
-    }, [visible]);
+    }, [open]);
 
     // Update unit options khi chọn class
     useEffect(() => {
@@ -349,7 +349,7 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
 
     // Set form values khi có initialValues
     useEffect(() => {
-        if (visible && initialValues) {
+        if (open && initialValues) {
             const parsedData = parseQuestionData(initialValues);
 
             form.setFieldsValue({
@@ -368,16 +368,16 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
             setSelectedQuestionType(parsedData.dangCauHoi);
             setQuestions(parsedData.questions);
         }
-    }, [visible, initialValues, form]);
+    }, [open, initialValues, form]);
 
     // Reset form khi đóng modal
     useEffect(() => {
-        if (!visible) {
+        if (!open) {
             form.resetFields();
             setSelectedQuestionType('');
             setQuestions([]);
         }
-    }, [visible, form]);
+    }, [open, form]);
 
     const handleSubmit = async (values) => {
         setSubmitLoading(true);
@@ -1357,7 +1357,7 @@ const CreateQuestionModal = ({ visible, onClose, onSubmit, initialValues = null 
                     {submitLoading && <LoadingOutlined style={{ color: '#00bcd4' }} />}
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={handleClose}
             width={getModalWidth()}
             mask={{ closable: !submitLoading }}

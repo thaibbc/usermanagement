@@ -25,7 +25,7 @@ const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
-export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder }) => {
+export const CreateAutoTestModal = ({ open, onClose, onSubmit, selectedFolder }) => {
     const [form] = Form.useForm();
     const [testType, setTestType] = useState('');
     const [testCount, setTestCount] = useState(1);
@@ -55,10 +55,10 @@ export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder
 
     // Load question options when modal opens
     useEffect(() => {
-        if (visible) {
+        if (open) {
             loadQuestionOptions();
         }
-    }, [visible]);
+    }, [open]);
 
     // Pre-fill first row when selectedFolder changes
     useEffect(() => {
@@ -291,7 +291,7 @@ export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder
     return (
         <Modal
             title="Tạo đề tự động"
-            open={visible}
+            open={open}
             onCancel={handleClose}
             width={getModalWidth()}
             mask={{ closable: !loading }}
@@ -312,7 +312,7 @@ export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder
                 }
             }}
         >
-            <Spin spinning={loading} tip="Đang xử lý...">
+            <Spin spinning={loading} description="Đang xử lý...">
                 <Form form={form} layout="vertical">
                     <Row gutter={[screens.xs ? 8 : 16, 12]}>
                         <Col xs={24} md={12}>
@@ -543,7 +543,7 @@ export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder
                                         </Col>
                                     </Row>
                                 ) : (
-                                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                                    <Space orientation="vertical" style={{ width: '100%' }} size="small">
                                         <Select
                                             placeholder="Chọn khối lớp"
                                             style={{ width: '100%' }}
@@ -740,7 +740,7 @@ export const CreateAutoTestModal = ({ visible, onClose, onSubmit, selectedFolder
                     }}>
                         <Row justify="space-between" align="middle">
                             <Col xs={24} md={16}>
-                                <Space size={screens.xs ? 4 : 8} direction={screens.xs ? 'vertical' : 'horizontal'}>
+                                <Space size={screens.xs ? 4 : 8} orientation={screens.xs ? 'vertical' : 'horizontal'}>
                                     <Text strong>Tổng số câu hỏi:</Text>
                                     <Tag color="blue">
                                         {rows.reduce((sum, row) => sum + (row.count || 0), 0)}

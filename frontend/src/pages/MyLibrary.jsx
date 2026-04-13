@@ -61,10 +61,10 @@ export const MyLibrary = () => {
     const [selectedFolderId, setSelectedFolderId] = useState(null);
 
     // Modal states
-    const [folderModalVisible, setFolderModalVisible] = useState(false);
+    const [folderModalOpen, setFolderModalOpen] = useState(false);
     const [editingFolder, setEditingFolder] = useState(null);
-    const [createTestModalVisible, setCreateTestModalVisible] = useState(false);
-    const [autoTestModalVisible, setAutoTestModalVisible] = useState(false);
+    const [createTestModalOpen, setCreateTestModalOpen] = useState(false);
+    const [autoTestModalOpen, setAutoTestModalOpen] = useState(false);
     const [selectedFolderForAutoTest, setSelectedFolderForAutoTest] = useState(null);
 
     // Data states
@@ -396,7 +396,7 @@ export const MyLibrary = () => {
     // Xử lý click ra ngoài để bỏ chọn folder
     const handleClickOutside = useCallback((e) => {
         // Không auto clear khi đang mở modal
-        if (folderModalVisible || createTestModalVisible || autoTestModalVisible) return;
+        if (folderModalOpen || createTestModalOpen || autoTestModalOpen) return;
 
         const treeElement = document.querySelector('.ant-tree');
         const modalElement = e.target.closest('.ant-modal') || document.querySelector('.ant-modal');
@@ -412,7 +412,7 @@ export const MyLibrary = () => {
             setSelectedFolderId(null);
             setTableData([]);
         }
-    }, [folderModalVisible, createTestModalVisible, autoTestModalVisible]);
+    }, [folderModalOpen, createTestModalOpen, autoTestModalOpen]);
 
     useEffect(() => {
         document.addEventListener('click', handleClickOutside);
@@ -433,7 +433,7 @@ export const MyLibrary = () => {
             }
         }
 
-        setFolderModalVisible(true);
+        setFolderModalOpen(true);
     };
 
     const handleEditFolder = () => {
@@ -455,7 +455,7 @@ export const MyLibrary = () => {
                 createdAt: folder.createdAt || '18/03/2025',
                 updatedAt: folder.updatedAt || '18/03/2025'
             });
-            setFolderModalVisible(true);
+            setFolderModalOpen(true);
         }
     };
 
@@ -520,7 +520,7 @@ export const MyLibrary = () => {
                 message.success(`Đã tạo thư mục "${values.name}" thành công!`);
             }
 
-            setFolderModalVisible(false);
+            setFolderModalOpen(false);
             setEditingFolder(null);
 
             // Load lại dữ liệu
@@ -551,7 +551,7 @@ export const MyLibrary = () => {
             message.warning('Vui lòng chọn một thư mục để thêm bài tập');
             return;
         }
-        setCreateTestModalVisible(true);
+        setCreateTestModalOpen(true);
     };
 
     const handleCreateAutoTest = () => {
@@ -568,7 +568,7 @@ export const MyLibrary = () => {
                 parent: parentFolder
             });
         }
-        setAutoTestModalVisible(true);
+        setAutoTestModalOpen(true);
     };
 
     const handleTestSubmit = async (data) => {
@@ -584,7 +584,7 @@ export const MyLibrary = () => {
 
             await createTest(testData);
             message.success('Đã tạo đề kiểm tra thành công!');
-            setCreateTestModalVisible(false);
+            setCreateTestModalOpen(false);
             await loadLibraryData();
         } catch (err) {
             console.error('handleTestSubmit error', err);
@@ -636,7 +636,7 @@ export const MyLibrary = () => {
 
             await createTest(autoTestData);
             message.success(`Đã tạo đề tự động thành công với ${totalSelected} câu hỏi!`);
-            setAutoTestModalVisible(false);
+            setAutoTestModalOpen(false);
             await loadLibraryData();
         } catch (err) {
             console.error('handleAutoTestSubmit error', err);
@@ -993,9 +993,9 @@ export const MyLibrary = () => {
             {/* Modals */}
             <FolderDrawer
                 key={editingFolder?.id || 'new-folder'}
-                visible={folderModalVisible}
+                open={folderModalOpen}
                 onClose={() => {
-                    setFolderModalVisible(false);
+                    setFolderModalOpen(false);
                     setEditingFolder(null);
                 }}
                 onSubmit={handleFolderSubmit}
@@ -1009,15 +1009,15 @@ export const MyLibrary = () => {
             />
 
             <CreateTestModal
-                visible={createTestModalVisible}
-                onClose={() => setCreateTestModalVisible(false)}
+                open={createTestModalOpen}
+                onClose={() => setCreateTestModalOpen(false)}
                 onSubmit={handleTestSubmit}
             />
 
             <CreateAutoTestModal
-                visible={autoTestModalVisible}
+                open={autoTestModalOpen}
                 onClose={() => {
-                    setAutoTestModalVisible(false);
+                    setAutoTestModalOpen(false);
                     setSelectedFolderForAutoTest(null);
                 }}
                 onSubmit={handleAutoTestSubmit}

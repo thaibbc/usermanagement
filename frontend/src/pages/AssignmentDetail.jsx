@@ -57,7 +57,7 @@ export function AssignmentDetail() {
     const [submissions, setSubmissions] = useState([]);
     const [teacherInfo, setTeacherInfo] = useState(null);
     const [classStats, setClassStats] = useState(null);
-    const [viewSubmissionModalVisible, setViewSubmissionModalVisible] = useState(false);
+    const [viewSubmissionModalOpen, setViewSubmissionModalOpen] = useState(false);
     const [selectedSubmission, setSelectedSubmission] = useState(null);
 
     const isAdmin = user?.accountType === 'admin';
@@ -194,7 +194,7 @@ export function AssignmentDetail() {
                 }}>
                     <Header onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
                     <Content style={{ padding: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Spin size="large" tip="Đang tải thông tin bài tập..." />
+                        <Spin size="large" description="Đang tải thông tin bài tập..." />
                     </Content>
                 </Layout>
             </Layout>
@@ -458,7 +458,7 @@ export function AssignmentDetail() {
                                                             size="small"
                                                             onClick={() => {
                                                                 setSelectedSubmission(record);
-                                                                setViewSubmissionModalVisible(true);
+                                                                setViewSubmissionModalOpen(true);
                                                             }}
                                                             disabled={!record.submittedAt}
                                                         >
@@ -485,9 +485,9 @@ export function AssignmentDetail() {
 
                 {/* Modal xem bài làm chi tiết */}
                 <SubmitAssignmentModal
-                    visible={viewSubmissionModalVisible}
+                    open={viewSubmissionModalOpen}
                     onCancel={() => {
-                        setViewSubmissionModalVisible(false);
+                        setViewSubmissionModalOpen(false);
                         setSelectedSubmission(null);
                     }}
                     assignment={assignment}

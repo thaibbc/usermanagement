@@ -13,11 +13,47 @@ const avatarDir = path.join(__dirname, 'uploads', 'avatars');
 fs.mkdirSync(avatarDir, { recursive: true });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// connect to MongoDB using MONGODB_URI from .env
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-management', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(async () => {
+// connect to MongoDB with fallback logic
+async function connectToMongoDB() {
+    const atlasUri = process.env.MONGODB_URI;
+    const localUri = 'mongodb://localhost:27017/usermanagement';
+
+    // Try Atlas first if available
+    if (atlasUri) {
+        try {
+            console.log('Attempting to connect to MongoDB Atlas...');
+            await mongoose.connect(atlasUri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000, // Timeout after 5s
+            });
+            console.log('✅ Connected to MongoDB Atlas successfully');
+            return;
+        } catch (atlasError) {
+            console.warn('❌ Failed to connect to MongoDB Atlas:', atlasError.message);
+            console.log('🔄 Falling back to local MongoDB...');
+        }
+    }
+
+    // Try local MongoDB as fallback
+    try {
+        await mongoose.connect(localUri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000,
+        });
+        console.log('✅ Connected to local MongoDB successfully');
+    } catch (localError) {
+        console.error('❌ Failed to connect to local MongoDB:', localError.message);
+        console.error('💥 Cannot connect to any MongoDB instance. Please check:');
+        console.error('   1. MongoDB Atlas connection string and whitelist');
+        console.error('   2. Local MongoDB is running on port 27017');
+        process.exit(1);
+    }
+}
+
+// Initialize MongoDB connection
+connectToMongoDB().then(async () => {
     console.log('Connected to MongoDB');
 
     // Ensure at least one admin user exists for first-time use (dev friendly)
@@ -82,8 +118,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/user-mana
             console.error('Error creating default user:', err);
         }
     }
-}).catch(err => {
-    console.error('MongoDB connection error:', err);
 });
 
 // middlewares

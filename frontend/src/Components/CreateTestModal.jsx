@@ -10,7 +10,7 @@ const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { confirm } = Modal;
 
-export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
+export const CreateTestModal = ({ open, onClose, onSubmit, folderId }) => {
     const [form] = Form.useForm();
     const [testName, setTestName] = useState('');
     const [timeLimit, setTimeLimit] = useState('');
@@ -20,8 +20,8 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     const [selectedSelectedKeys, setSelectedSelectedKeys] = useState([]);
     const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
-    const [questionModalVisible, setQuestionModalVisible] = useState(false);
-    const [viewQuestionModalVisible, setViewQuestionModalVisible] = useState(false);
+    const [questionModalOpen, setQuestionModalOpen] = useState(false);
+    const [viewQuestionModalOpen, setViewQuestionModalOpen] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -67,7 +67,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
 
     // Reset state khi folderId thay đổi
     useEffect(() => {
-        if (visible && folderId !== currentFolderIdRef.current) {
+        if (open && folderId !== currentFolderIdRef.current) {
             console.log('Folder changed, resetting questions:', {
                 oldFolder: currentFolderIdRef.current,
                 newFolder: folderId
@@ -85,7 +85,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             // Cập nhật ref
             currentFolderIdRef.current = folderId;
         }
-    }, [folderId, visible]);
+    }, [folderId, open]);
 
     // Cập nhật điểm khi số lượng câu hỏi thay đổi
     useEffect(() => {
@@ -171,11 +171,11 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     }, [filters, searchKeyword]);
 
     useEffect(() => {
-        if (visible) {
+        if (open) {
             loadQuestions();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [visible]);
+    }, [open]);
 
 
 
@@ -321,7 +321,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     const handleQuestionCreated = async (newQuestion) => {
         try {
             message.success('Câu hỏi mới đã được tạo thành công!');
-            setQuestionModalVisible(false);
+            setQuestionModalOpen(false);
             setEditingQuestion(null);
 
             await loadQuestions();
@@ -336,7 +336,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
     const handleQuestionUpdated = async (updatedQuestion) => {
         try {
             message.success('Cập nhật câu hỏi thành công!');
-            setQuestionModalVisible(false);
+            setQuestionModalOpen(false);
             setEditingQuestion(null);
 
             await loadQuestions();
@@ -350,7 +350,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                 );
             }
 
-            setViewQuestionModalVisible(false);
+            setViewQuestionModalOpen(false);
             setCurrentQuestion(null);
         } catch (err) {
             console.error('Failed to update question', err);
@@ -391,7 +391,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                     }
 
                     message.success('Xóa câu hỏi thành công!');
-                    setViewQuestionModalVisible(false);
+                    setViewQuestionModalOpen(false);
                     setCurrentQuestion(null);
                 } catch (error) {
                     console.error('Delete question error:', error);
@@ -409,14 +409,14 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             stt: question.stt
         };
         setCurrentQuestion({ ...displayData, fromSelected });
-        setViewQuestionModalVisible(true);
+        setViewQuestionModalOpen(true);
     };
 
     // Hàm chỉnh sửa câu hỏi
     const handleEditQuestion = (question) => {
         setEditingQuestion(question.originalData);
-        setViewQuestionModalVisible(false);
-        setQuestionModalVisible(true);
+        setViewQuestionModalOpen(false);
+        setQuestionModalOpen(true);
     };
 
     // Tính tổng số câu và tổng điểm
@@ -694,7 +694,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                         {submitLoading && <span style={{ fontSize: '14px', color: '#00BCD4' }}>Đang xử lý...</span>}
                     </div>
                 }
-                open={visible}
+                open={open}
                 onCancel={handleClose}
                 width={getModalWidth()}
                 mask={{ closable: !submitLoading }}
@@ -953,7 +953,7 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
                                         icon={<PlusOutlined />}
                                         onClick={() => {
                                             setEditingQuestion(null);
-                                            setQuestionModalVisible(true);
+                                            setQuestionModalOpen(true);
                                         }}
                                         block
                                         disabled={submitLoading || isLoadingQuestions}
@@ -1094,9 +1094,9 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
 
             {/* Modal tạo/cập nhật câu hỏi */}
             <CreateQuestionModal
-                visible={questionModalVisible}
+                open={questionModalOpen}
                 onClose={() => {
-                    setQuestionModalVisible(false);
+                    setQuestionModalOpen(false);
                     setEditingQuestion(null);
                 }}
                 onSubmit={editingQuestion ? handleQuestionUpdated : handleQuestionCreated}
@@ -1104,9 +1104,9 @@ export const CreateTestModal = ({ visible, onClose, onSubmit, folderId }) => {
             />
             {/* Modal xem chi tiết câu hỏi */}
             <QuestionPreviewModal
-                question={viewQuestionModalVisible ? currentQuestion : null}
+                question={viewQuestionModalOpen ? currentQuestion : null}
                 onClose={() => {
-                    setViewQuestionModalVisible(false);
+                    setViewQuestionModalOpen(false);
                     setCurrentQuestion(null);
                 }}
             />

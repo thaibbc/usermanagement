@@ -7,7 +7,7 @@ import { getStudents } from '../api/users';
 const { TextArea } = Input;
 const { Title, Text } = Typography;
 
-export const AddStudentModal = ({ visible, onCancel, onSubmit, loading, email, setEmail, name, setName, phone, setPhone, note, setNote, onAddSelected }) => {
+export const AddStudentModal = ({ open, onCancel, onSubmit, loading, email, setEmail, name, setName, phone, setPhone, note, setNote, onAddSelected }) => {
     const isMobile = useIsMobile(768);
     const [activeTab, setActiveTab] = useState('list');
     const [students, setStudents] = useState([]);
@@ -19,10 +19,10 @@ export const AddStudentModal = ({ visible, onCancel, onSubmit, loading, email, s
     const [total, setTotal] = useState(0);
 
     useEffect(() => {
-        if (visible && activeTab === 'list') {
+        if (open && activeTab === 'list') {
             fetchStudentList();
         }
-    }, [visible, activeTab, currentPage]);
+    }, [open, activeTab, currentPage]);
 
     const fetchStudentList = async () => {
         setTableLoading(true);
@@ -114,7 +114,7 @@ export const AddStudentModal = ({ visible, onCancel, onSubmit, loading, email, s
                     <span style={{ fontSize: isMobile ? 16 : 18 }}>THÊM HỌC SINH VÀO LỚP</span>
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={() => {
                 setSelectedKeys([]);
                 setSelectedRows([]);
@@ -129,7 +129,7 @@ export const AddStudentModal = ({ visible, onCancel, onSubmit, loading, email, s
             styles={{
                 body: { padding: isMobile ? 16 : 24 }
             }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Tabs
                 activeKey={activeTab}
@@ -227,7 +227,7 @@ export const AddStudentModal = ({ visible, onCancel, onSubmit, loading, email, s
     );
 };
 
-export const ImportStudentModal = ({ visible, onCancel, onSubmit, loading, importFile, setImportFile, onDownloadTemplate }) => {
+export const ImportStudentModal = ({ open, onCancel, onSubmit, loading, importFile, setImportFile, onDownloadTemplate }) => {
     const isMobile = useIsMobile(768);
 
     return (
@@ -238,7 +238,7 @@ export const ImportStudentModal = ({ visible, onCancel, onSubmit, loading, impor
                     <span style={{ fontSize: isMobile ? 16 : 18 }}>NHẬP HỌC SINH TỪ FILE</span>
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={onCancel}
             footer={[
                 <Button key="cancel" onClick={onCancel} style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -261,14 +261,14 @@ export const ImportStudentModal = ({ visible, onCancel, onSubmit, loading, impor
                 top: isMobile ? 20 : undefined
             }}
             styles={{
-                body: { padding: isMobile ? 16 : 24 }
+                body: { padding: isMobile ? 16 : 24 },
+                footer: { display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 8 }
             }}
-            footerStyle={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 8 }}
         >
             <Spin spinning={loading}>
                 <div style={{ padding: isMobile ? '12px 0' : '20px 0' }}>
                     <Alert
-                        message="Yêu cầu file import"
+                        title="Yêu cầu file import"
                         description={
                             <ul style={{ marginTop: 8, paddingLeft: 20, marginBottom: 0 }}>
                                 <li>File định dạng .xlsx, .xls hoặc .csv</li>
@@ -340,7 +340,7 @@ export const ImportStudentModal = ({ visible, onCancel, onSubmit, loading, impor
     );
 };
 
-export const StudentDetailModal = ({ visible, onCancel, student }) => {
+export const StudentDetailModal = ({ open, onCancel, student }) => {
     const isMobile = useIsMobile(768);
 
     return (
@@ -351,7 +351,7 @@ export const StudentDetailModal = ({ visible, onCancel, student }) => {
                     <span style={{ fontSize: isMobile ? 16 : 18 }}>THÔNG TIN HỌC SINH</span>
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={onCancel}
             footer={[
                 <Button key="close" onClick={onCancel} style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -364,9 +364,9 @@ export const StudentDetailModal = ({ visible, onCancel, student }) => {
                 top: isMobile ? 20 : undefined
             }}
             styles={{
-                body: { padding: isMobile ? 16 : 24 }
+                body: { padding: isMobile ? 16 : 24 },
+                footer: { display: 'flex', justifyContent: 'flex-end' }
             }}
-            footerStyle={{ display: 'flex', justifyContent: 'flex-end' }}
         >
             {student && (
                 <div style={{ padding: isMobile ? '12px 0' : '20px 0' }}>
@@ -414,7 +414,7 @@ export const StudentDetailModal = ({ visible, onCancel, student }) => {
     );
 };
 
-export const EditStudentModal = ({ visible, onCancel, onSubmit, loading, name, setName, email, setEmail, phone, setPhone, note, setNote }) => {
+export const EditStudentModal = ({ open, onCancel, onSubmit, loading, name, setName, email, setEmail, phone, setPhone, note, setNote }) => {
     const isMobile = useIsMobile(768);
 
     return (
@@ -425,7 +425,7 @@ export const EditStudentModal = ({ visible, onCancel, onSubmit, loading, name, s
                     <span style={{ fontSize: isMobile ? 16 : 18 }}>CHỈNH SỬA HỌC SINH</span>
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={onCancel}
             footer={[
                 <Button key="cancel" onClick={onCancel} style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -447,9 +447,9 @@ export const EditStudentModal = ({ visible, onCancel, onSubmit, loading, name, s
                 top: isMobile ? 20 : undefined
             }}
             styles={{
-                body: { padding: isMobile ? 16 : 24 }
+                body: { padding: isMobile ? 16 : 24 },
+                footer: { display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 8 }
             }}
-            footerStyle={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 8 }}
         >
             <Spin spinning={loading}>
                 <div style={{ padding: isMobile ? '12px 0' : '20px 0' }}>

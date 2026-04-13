@@ -518,8 +518,8 @@ export function ClassManagement() {
                                     Tạo lớp học
                                 </Title>
 
-                                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                                    <div>
+                                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                                    {/* <div>
                                         <Text style={{ marginBottom: 6, display: 'block', fontSize: '13px', color: '#666' }}>
                                             Khởi lớp :
                                         </Text>
@@ -530,32 +530,25 @@ export function ClassManagement() {
                                             allowClear
                                             disabled={createLoading}
                                         />
-                                    </div>
+                                    </div> */}
 
-                                    {/* Khối lớp - chỉ lưu data, không hiển thị */}
-                                    <div style={{ display: 'none' }}>
+                                    {/* Khối lớp */}
+                                    <div>
                                         <Text style={{ marginBottom: 6, display: 'block', fontSize: '13px', color: '#666' }}>
                                             Khối lớp : <span style={{ color: '#ff4d4f' }}>*</span>
                                         </Text>
                                         <Select
-                                            value={newClass.grade}
+                                            value={newClass.grade || undefined}
                                             onChange={(value) => setNewClass({ ...newClass, grade: value })}
                                             placeholder="Chọn khối lớp"
                                             style={{ width: '100%' }}
                                             disabled={createLoading}
                                         >
-                                            <Option value={1}>Khối 1</Option>
-                                            <Option value={2}>Khối 2</Option>
-                                            <Option value={3}>Khối 3</Option>
-                                            <Option value={4}>Khối 4</Option>
-                                            <Option value={5}>Khối 5</Option>
-                                            <Option value={6}>Khối 6</Option>
-                                            <Option value={7}>Khối 7</Option>
-                                            <Option value={8}>Khối 8</Option>
-                                            <Option value={9}>Khối 9</Option>
-                                            <Option value={10}>Khối 10</Option>
-                                            <Option value={11}>Khối 11</Option>
-                                            <Option value={12}>Khối 12</Option>
+                                            <Option value={1}>Lớp 1</Option>
+                                            <Option value={2}>Lớp 2</Option>
+                                            <Option value={3}>Lớp 3</Option>
+                                            <Option value={4}>Lớp 4</Option>
+                                            <Option value={5}>Lớp 5</Option>
                                         </Select>
                                     </div>
 

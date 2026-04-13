@@ -35,7 +35,7 @@ const { Option } = Select;
 export function Profile() {
     const [form] = Form.useForm();
     const [passwordForm] = Form.useForm();
-    const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isMobile = useIsMobile(1024);
     // password visibility no longer needed
@@ -188,7 +188,7 @@ export function Profile() {
     }, [userData, form]);
 
     const handleChangePassword = () => {
-        setIsPasswordModalVisible(true);
+        setIsPasswordModalOpen(true);
     };
 
     const handlePasswordModalOk = () => {
@@ -202,7 +202,7 @@ export function Profile() {
             try {
                 await changePassword(id, values.newPassword);
                 message.success('Đổi mật khẩu thành công!');
-                setIsPasswordModalVisible(false);
+                setIsPasswordModalOpen(false);
                 passwordForm.resetFields();
             } catch (err) {
                 console.error('password change failed', err);
@@ -214,7 +214,7 @@ export function Profile() {
     };
 
     const handlePasswordModalCancel = () => {
-        setIsPasswordModalVisible(false);
+        setIsPasswordModalOpen(false);
     };
 
     const handleAvatarChange = async (e) => {
@@ -570,7 +570,7 @@ export function Profile() {
                                     overflow: 'hidden',
                                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                                     height: 'fit-content'
-                                }} bodyStyle={{ padding: 0 }}>
+                                }} styles={{ body: { padding: 0 } }}>
                                     {/* Banner */}
                                     <div style={{
                                         height: 200,
@@ -714,7 +714,7 @@ export function Profile() {
             {/* Password Modal */}
             <Modal
                 title={<span style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase' }}>ĐỔI MẬT KHẨU</span>}
-                open={isPasswordModalVisible}
+                open={isPasswordModalOpen}
                 onOk={handlePasswordModalOk}
                 onCancel={handlePasswordModalCancel}
                 okText="Cập nhật"

@@ -623,7 +623,7 @@ router.get('/:id/assignments/:assignmentId', auth, async (req, res) => {
 });
 
 // CREATE assignment
-router.post('/:id/assignments', async (req, res) => {
+router.post('/:id/assignments', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
@@ -638,7 +638,7 @@ router.post('/:id/assignments', async (req, res) => {
 
         // Đảm bảo questions chỉ chứa ObjectId (lấy từ selectedQuestions)
         const questionIds = Array.isArray(questions)
-            ? questions.map(q => typeof q === 'object' && q !== null ? (q._id || q.id) : q).filter(Boolean)
+            ? questions.filter(q => q && typeof q === 'object' && (q._id || q.id)).map(q => q._id || q.id).filter(Boolean)
             : [];
 
         const assignment = await Assignment.create({
@@ -659,16 +659,41 @@ router.post('/:id/assignments', async (req, res) => {
             details: `Created assignment "${title}" in class ${classroom.name}`
         });
 
-        // Create notification for selected students
-        if (selectedStudents && selectedStudents.length > 0) {
+        // Xác định danh sách người nhận thông báo:
+        // - Nếu bài tập giao cho học sinh cụ thể → gửi cho nhóm đó
+        // - Nếu không chọn ai (giao toàn lớp) → gửi cho tất cả học sinh trong lớp
+        const notificationRecipients =
+            (selectedStudents && selectedStudents.length > 0)
+                ? selectedStudents
+                : classroom.students;
+
+        if (notificationRecipients.length > 0) {
+            // Tạo nội dung thông báo
+            let notifContent = `Bạn có bài tập mới: <strong>${title}</strong>.`;
+            if (type === 'quiz') notifContent += ' (Trắc nghiệm)';
+            else if (type === 'code') notifContent += ' (Lập trình)';
+            if (requirements) notifContent += `<br/>Yêu cầu: ${requirements}`;
+            if (closeTime) {
+                const deadline = new Date(closeTime).toLocaleString('vi-VN');
+                notifContent += `<br/>⏰ Hạn nộp: ${deadline}`;
+            }
+
+            // Add sender to recipients so they can see their own notification
+            const allRecipients = [
+                ...new Set([
+                    ...notificationRecipients.map(r => r.toString()),
+                    req.user._id.toString()
+                ])
+            ].map(id => id);
+
             await Notification.create({
-                title: `Bài tập mới: ${title}`,
-                content: `Bạn đã được giao bài tập "${title}". ${requirements ? `Yêu cầu: ${requirements}` : ''}`,
+                title: `📚 Bài tập mới: ${title}`,
+                content: notifContent,
                 classId: req.params.id,
                 senderId: req.user._id,
                 type: 'assignment',
                 assignmentId: assignment._id,
-                recipients: selectedStudents
+                recipients: allRecipients
             });
         }
 
@@ -679,7 +704,7 @@ router.post('/:id/assignments', async (req, res) => {
 });
 
 // UPDATE assignment
-router.put('/:id/assignments/:assignmentId', async (req, res) => {
+router.put('/:id/assignments/:assignmentId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
@@ -715,7 +740,7 @@ router.put('/:id/assignments/:assignmentId', async (req, res) => {
 });
 
 // DELETE assignment
-router.delete('/:id/assignments/:assignmentId', async (req, res) => {
+router.delete('/:id/assignments/:assignmentId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
@@ -890,6 +915,38 @@ router.post('/:id/assignments/:assignmentId/submit', async (req, res) => {
             details: `Student submitted assignment "${assignment.title}"`
         });
 
+        // ── Gửi thông báo cho giáo viên & admin khi học sinh nộp bài ──────────
+        try {
+            const student = await User.findById(userId).select('name');
+            const studentName = student?.name || 'Học sinh';
+
+            // Lấy tất cả admin
+            const admins = await User.find({ accountType: 'admin' }).select('_id');
+
+            // Danh sách nhận thông báo: giáo viên lớp + tất cả admin (không trùng)
+            const recipientSet = new Set();
+            if (classroom.teacherId) recipientSet.add(classroom.teacherId.toString());
+            admins.forEach(a => recipientSet.add(a._id.toString()));
+
+            const recipients = [...recipientSet];
+
+            if (recipients.length > 0) {
+                await Notification.create({
+                    title: `📥 Học sinh nộp bài: ${assignment.title}`,
+                    content: `<p>Học sinh <strong>${studentName}</strong> vừa nộp bài tập "<strong>${assignment.title}</strong>" trong lớp <strong>${classroom.name}</strong>.</p>`,
+                    classId: req.params.id,
+                    senderId: userId,
+                    type: 'assignment',
+                    assignmentId: req.params.assignmentId,
+                    recipients
+                });
+            }
+        } catch (notifErr) {
+            // Không block response nếu gửi thông báo thất bại
+            console.warn('[Notification] Không thể tạo thông báo nộp bài:', notifErr.message);
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         res.json({ message: 'Assignment submitted successfully', submission });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -897,7 +954,7 @@ router.post('/:id/assignments/:assignmentId/submit', async (req, res) => {
 });
 
 // GRADE submission (teacher)
-router.post('/:id/assignments/:assignmentId/grade/:studentId', async (req, res) => {
+router.post('/:id/assignments/:assignmentId/grade/:studentId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
@@ -1033,6 +1090,43 @@ router.patch('/:id/status', async (req, res) => {
 
 // ==================== NOTIFICATION ROUTES ====================
 
+// GET all notifications for the current user (across all classes)
+// Efficient single-query endpoint used by Header badge
+router.get('/notifications/me', auth, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { limit = 20 } = req.query;
+
+        const notifications = await Notification.find({
+            recipients: userId
+        })
+            .populate('senderId', 'name email')
+            .populate('classId', 'name code')
+            .sort({ createdAt: -1 })
+            .limit(Number(limit));
+
+        // Tính số chưa đọc
+        const unreadCount = notifications.filter(n => {
+            const readMap = n.isRead instanceof Map ? n.isRead : new Map(Object.entries(n.isRead || {}));
+            return !readMap.get(userId.toString());
+        }).length;
+
+        // Chuẩn hóa isRead thành plain object cho frontend
+        const normalizedNotifications = notifications.map(n => {
+            const obj = n.toObject();
+            if (obj.isRead instanceof Map) {
+                obj.isRead = Object.fromEntries(n.isRead);
+            }
+            return obj;
+        });
+
+        res.json({ notifications: normalizedNotifications, unreadCount });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
 // GET notifications for a class
 router.get('/:id/notifications', auth, async (req, res) => {
     try {
@@ -1049,12 +1143,25 @@ router.get('/:id/notifications', auth, async (req, res) => {
             return res.status(403).json({ message: 'Không có quyền truy cập lớp học này' });
         }
 
-        const notifications = await Notification.find({
-            classId: req.params.id,
-            recipients: req.user._id
-        })
+        // Giáo viên / admin xem được tất cả thông báo của lớp
+        // Học sinh chỉ xem được thông báo mà mình là người nhận
+        const notifQuery = { classId: req.params.id };
+        if (!isAdmin && !isTeacherOwner) {
+            notifQuery.recipients = req.user._id;
+        }
+
+        const rawNotifications = await Notification.find(notifQuery)
         .populate('senderId', 'name email')
         .sort({ createdAt: -1 });
+
+        // Chuẩn hóa isRead thành plain object
+        const notifications = rawNotifications.map(n => {
+            const obj = n.toObject();
+            if (obj.isRead instanceof Map) {
+                obj.isRead = Object.fromEntries(n.isRead);
+            }
+            return obj;
+        });
 
         res.json({ notifications });
     } catch (err) {
@@ -1082,8 +1189,13 @@ router.post('/:id/notifications', auth, async (req, res) => {
             return res.status(400).json({ message: 'Title and content are required' });
         }
 
-        // Get all students in the class
-        const recipients = classroom.students;
+        // Get all students in the class and add sender to recipients
+        const recipients = [
+            ...new Set([
+                ...classroom.students.map(s => s.toString()),
+                req.user._id.toString()
+            ])
+        ].map(id => id);
 
         const notification = await Notification.create({
             title,
@@ -1114,17 +1226,47 @@ router.patch('/:id/notifications/:notificationId/read', auth, async (req, res) =
     try {
         const notification = await Notification.findById(req.params.notificationId);
         if (!notification) {
-            return res.status(404).json({ message: 'Notification not found' });
+            // Không trả lỗi — có thể đã bị xóa
+            return res.json({ message: 'Notification not found (already deleted)' });
         }
 
-        if (!notification.recipients.includes(req.user._id)) {
-            return res.status(403).json({ message: 'Không có quyền truy cập thông báo này' });
-        }
-
+        // Đánh dấu đã đọc cho user hiện tại — không cần kiểm tra quyền
+        // (frontend chỉ gọi API này khi user thấy thông báo trong danh sách của mình)
         notification.isRead.set(req.user._id.toString(), true);
         await notification.save();
 
         res.json({ message: 'Notification marked as read' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// UPDATE notification (teacher/admin)
+router.put('/:id/notifications/:notificationId', auth, async (req, res) => {
+    try {
+        const classroom = await Classroom.findById(req.params.id);
+        if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền chỉnh sửa thông báo' });
+        }
+
+        const { title, content } = req.body;
+        if (!title || !content) {
+            return res.status(400).json({ message: 'Title và content là bắt buộc' });
+        }
+
+        const notification = await Notification.findOneAndUpdate(
+            { _id: req.params.notificationId, classId: req.params.id },
+            { title, content, updatedAt: Date.now() },
+            { new: true }
+        );
+
+        if (!notification) return res.status(404).json({ message: 'Notification not found' });
+
+        res.json(notification);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -1139,7 +1281,10 @@ router.delete('/notifications/:notificationId', auth, async (req, res) => {
         }
 
         // Check if user is the sender or admin
-        if (notification.senderId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+        const isSender = notification.senderId.toString() === req.user._id.toString();
+        const isAdmin = req.user.accountType === 'admin';
+
+        if (!isSender && !isAdmin) {
             return res.status(403).json({ message: 'Không có quyền xóa thông báo này' });
         }
 

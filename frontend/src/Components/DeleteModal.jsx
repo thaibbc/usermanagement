@@ -1,10 +1,10 @@
 import { Modal } from 'antd';
 
-export default function DeleteModal({ visible, userName, onOk, onCancel }) {
+export default function DeleteModal({ open, userName, onOk, onCancel }) {
     return (
         <Modal
             title="Xác nhận xóa"
-            open={visible}
+            open={open}
             onOk={onOk}
             onCancel={onCancel}
             okText="Xóa"

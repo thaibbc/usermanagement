@@ -6,12 +6,12 @@ import { updateClass } from '../api/classes';
 const { TextArea } = Input;
 const { Option } = Select;
 
-const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
+const EditClassModal = ({ open, onCancel, classData, onSuccess }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (visible && classData) {
+        if (open && classData) {
             form.setFieldsValue({
                 name: classData.name,
                 grade: classData.grade ? Number(classData.grade) : 1,
@@ -20,7 +20,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                 completed: classData.completed || false,
             });
         }
-    }, [visible, classData, form]);
+    }, [open, classData, form]);
 
     const handleSubmit = async () => {
         try {
@@ -50,14 +50,14 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
     return (
         <Modal
             title="Chỉnh sửa thông tin lớp học"
-            open={visible}
+            open={open}
             onCancel={onCancel}
             onOk={handleSubmit}
             confirmLoading={loading}
             okText="Lưu thay đổi"
             cancelText="Hủy"
             width={600}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}
@@ -78,24 +78,17 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     <Input placeholder="Nhập tên lớp học" />
                 </Form.Item>
 
-                {/* Khối lớp - chỉ lưu data, không hiển thị */}
                 <Form.Item
                     name="grade"
-                    style={{ display: 'none' }}
+                    label="Khối lớp"
+                    rules={[{ required: true, message: 'Vui lòng chọn khối lớp' }]}
                 >
-                    <Select>
-                        <Option value={1}>Khối 1</Option>
-                        <Option value={2}>Khối 2</Option>
-                        <Option value={3}>Khối 3</Option>
-                        <Option value={4}>Khối 4</Option>
-                        <Option value={5}>Khối 5</Option>
-                        <Option value={6}>Khối 6</Option>
-                        <Option value={7}>Khối 7</Option>
-                        <Option value={8}>Khối 8</Option>
-                        <Option value={9}>Khối 9</Option>
-                        <Option value={10}>Khối 10</Option>
-                        <Option value={11}>Khối 11</Option>
-                        <Option value={12}>Khối 12</Option>
+                    <Select placeholder="Chọn khối lớp">
+                        <Option value={1}>Lớp 1</Option>
+                        <Option value={2}>Lớp 2</Option>
+                        <Option value={3}>Lớp 3</Option>
+                        <Option value={4}>Lớp 4</Option>
+                        <Option value={5}>Lớp 5</Option>
                     </Select>
                 </Form.Item>
 

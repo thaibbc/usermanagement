@@ -39,15 +39,19 @@ export async function handleResponse(res) {
             }
         }
         let errorMessage = `HTTP error! status: ${res.status}`;
+        let errorDetails = null;
         try {
             const errorData = await res.json();
             errorMessage = errorData.message || errorData.error || errorMessage;
+            errorDetails = errorData;
         } catch (e) {
             // Nếu không parse được JSON, dùng status text
             errorMessage = res.statusText || errorMessage;
         }
         const error = new Error(errorMessage);
         error.status = res.status;
+        error.details = errorDetails;
+        console.error(`API Error (${res.status}):`, errorMessage, errorDetails);
         throw error;
     }
 

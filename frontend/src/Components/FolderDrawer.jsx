@@ -26,7 +26,7 @@ const COLORS = [
 ];
 
 export const FolderDrawer = ({
-    visible,
+    open,
     onClose,
     onSubmit,
     initialValues = null,
@@ -41,7 +41,7 @@ export const FolderDrawer = ({
 
     // Reset form và color khi initialValues thay đổi
     useEffect(() => {
-        if (visible) {
+        if (open) {
             if (initialValues) {
                 form.setFieldsValue({
                     name: initialValues.name,
@@ -54,7 +54,7 @@ export const FolderDrawer = ({
                 setSelectedColor('#2E3A59');
             }
         }
-    }, [visible, initialValues, form]);
+    }, [open, initialValues, form]);
 
     const handleSubmit = async () => {
         try {
@@ -142,7 +142,7 @@ export const FolderDrawer = ({
                     </span>
                 </div>
             }
-            open={visible}
+            open={open}
             onCancel={handleClose}
             width={getModalWidth()}
             mask={{ closable: !loading }}

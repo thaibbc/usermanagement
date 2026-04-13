@@ -62,7 +62,7 @@ const isUrl = (text) => {
 };
 
 const CreateAssignmentDrawer = ({
-    visible,
+    open,
     onClose,
     onSubmit,
     loading,
@@ -73,7 +73,7 @@ const CreateAssignmentDrawer = ({
     isMobile,
     isMobileOrTablet
 }) => {
-    const [libraryDrawerVisible, setLibraryDrawerVisible] = useState(false);
+    const [libraryDrawerOpen, setLibraryDrawerOpen] = useState(false);
     const [selectedQuestions, setSelectedQuestions] = useState([]);
     const [expandedQuestionId, setExpandedQuestionId] = useState(null);
 
@@ -192,7 +192,7 @@ const CreateAssignmentDrawer = ({
         setSelectedQuestions(normalizedQuestions);
 
         message.success(`Đã chọn bài tập: ${selectedTest.name || selectedTest.title} với ${normalizedQuestions.length} câu hỏi`);
-        setLibraryDrawerVisible(false);
+        setLibraryDrawerOpen(false);
     };
 
     // Xóa một câu hỏi
@@ -226,12 +226,6 @@ const CreateAssignmentDrawer = ({
     // Toggle mở rộng câu hỏi
     const toggleExpandQuestion = (questionId) => {
         setExpandedQuestionId(expandedQuestionId === questionId ? null : questionId);
-    };
-
-    const getDrawerWidth = () => {
-        if (isMobile) return '100%';
-        if (isMobileOrTablet) return '100%';
-        return '110%';
     };
 
     // Render câu hỏi chi tiết
@@ -385,10 +379,9 @@ const CreateAssignmentDrawer = ({
                         </Space>
                     </div>
                 }
-                open={visible}
+                open={open}
                 onClose={onClose}
-                size={getDrawerWidth() === '100%' ? 'large' : undefined}
-                width={getDrawerWidth() === '100%' ? undefined : getDrawerWidth()}
+                size="large"
                 closable={false}
                 mask={{ closable: !loading }}
                 styles={{
@@ -601,7 +594,7 @@ const CreateAssignmentDrawer = ({
                         <Button
                             type={formData.useLibrary ? 'primary' : 'default'}
                             icon={<BookOutlined />}
-                            onClick={() => setLibraryDrawerVisible(true)}
+                            onClick={() => setLibraryDrawerOpen(true)}
                             size={isMobile ? 'middle' : 'large'}
                             disabled={loading}
                             block={isMobile}
@@ -661,13 +654,13 @@ const CreateAssignmentDrawer = ({
                     {/* Hiển thị khi chưa chọn câu hỏi */}
                     {formData.useLibrary && selectedQuestions.length === 0 && (
                         <Alert
-                            message="Chưa có câu hỏi"
+                            title="Chưa có câu hỏi"
                             description="Bạn đã chọn bài tập từ thư viện nhưng không có câu hỏi. Vui lòng chọn lại bài tập khác."
                             type="warning"
                             showIcon
                             style={{ marginTop: 16 }}
                             action={
-                                <Button size="small" onClick={() => setLibraryDrawerVisible(true)}>
+                                <Button size="small" onClick={() => setLibraryDrawerOpen(true)}>
                                     Chọn lại
                                 </Button>
                             }
@@ -677,8 +670,8 @@ const CreateAssignmentDrawer = ({
             </Drawer>
 
             <LibraryDrawer
-                visible={libraryDrawerVisible}
-                onClose={() => setLibraryDrawerVisible(false)}
+                open={libraryDrawerOpen}
+                onClose={() => setLibraryDrawerOpen(false)}
                 onSelectTest={handleSelectFromLibrary}
             />
         </>

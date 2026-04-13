@@ -122,7 +122,7 @@ export function Home() {
                 onClose={() => setDrawerOpen(false)}
                 open={drawerOpen}
             >
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Button block type="text" onClick={() => { setDrawerOpen(false); navigate('/'); }}>
                         Trang chủ
                     </Button>

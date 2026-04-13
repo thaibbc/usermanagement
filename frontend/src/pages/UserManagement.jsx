@@ -366,7 +366,7 @@ export function AdminDashboard() {
                         <div style={{ marginBottom: 16 }}>
                             <Alert
                                 type="warning"
-                                message="Không thể tải dữ liệu người dùng - đang hiển thị dữ liệu đã lưu"
+                                title="Không thể tải dữ liệu người dùng - đang hiển thị dữ liệu đã lưu"
                             />
                         </div>
                     )}
@@ -379,7 +379,7 @@ export function AdminDashboard() {
                         <div style={{ marginBottom: 16 }}>
                             <Alert
                                 type="info"
-                                message="Không tìm thấy dữ liệu"
+                                title="Không tìm thấy dữ liệu"
                             />
                         </div>
                     )}
@@ -417,7 +417,7 @@ export function AdminDashboard() {
                         <div style={{ marginBottom: 16 }}>
                             <Alert
                                 type="warning"
-                                message="Không thể tải lịch sử - đang hiển thị dữ liệu đã lưu"
+                                title="Không thể tải lịch sử - đang hiển thị dữ liệu đã lưu"
                             />
                         </div>
                     )}
@@ -551,7 +551,7 @@ export function AdminDashboard() {
 
             {/* Delete Confirmation Modal */}
             <DeleteModal
-                visible={deleteModalOpen}
+                open={deleteModalOpen}
                 userName={selectedUser?.name}
                 onOk={handleDeleteConfirm}
                 onCancel={() => setDeleteModalOpen(false)}
@@ -559,7 +559,7 @@ export function AdminDashboard() {
 
             {/* Add User Modal */}
             <UserModal
-                visible={addModalOpen}
+                open={addModalOpen}
                 title="Thêm người dùng mới"
                 user={newUser}
                 setUser={setNewUser}
@@ -572,7 +572,7 @@ export function AdminDashboard() {
 
             {/* Edit User Modal */}
             <UserModal
-                visible={editModalOpen}
+                open={editModalOpen}
                 title="Sửa thông tin người dùng"
                 user={editingUser || {}}
                 setUser={setEditingUser}

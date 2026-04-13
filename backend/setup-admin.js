@@ -7,7 +7,7 @@ const adminData = require('./data/admin.json');
 async function createAdmin() {
     try {
         // Connect to MongoDB
-        await mongoose.connect('mongodb://localhost:27017/usermanagement', {
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/usermanagement', {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });

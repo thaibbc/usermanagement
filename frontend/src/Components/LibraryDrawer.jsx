@@ -39,7 +39,7 @@ const { Text } = Typography;
 const { confirm } = Modal;
 const { useBreakpoint } = Grid;
 
-const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
+const LibraryDrawer = ({ open, onClose, onSelectTest }) => {
     const screens = useBreakpoint();
     const isMobile = !screens.md;
 
@@ -147,10 +147,10 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
     };
 
     useEffect(() => {
-        if (visible) {
+        if (open) {
             loadFolders();
         }
-    }, [visible]);
+    }, [open]);
 
     useEffect(() => {
         if (selectedFolderId) {
@@ -372,8 +372,15 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
             }
             placement="right"
             onClose={onClose}
-            open={visible}
-            width="100%"
+            open={open}
+            styles={{
+                wrapper: { width: '100%' },
+                body: {
+                    padding: isMobile ? '12px' : '24px',
+                    overflowY: 'auto',
+                    height: 'calc(100vh - 108px)'
+                }
+            }}
             closable={false}
             mask={{ closable: false }}
             footer={
@@ -398,13 +405,6 @@ const LibraryDrawer = ({ visible, onClose, onSelectTest }) => {
                     </Button>
                 </div>
             }
-            styles={{
-                body: {
-                    padding: isMobile ? '12px' : '24px',
-                    overflowY: 'auto',
-                    height: 'calc(100vh - 108px)'
-                }
-            }}
         >
             <div style={{
                 display: 'flex',

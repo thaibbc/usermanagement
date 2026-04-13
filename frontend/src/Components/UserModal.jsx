@@ -8,7 +8,7 @@ import useIsMobile from '../hooks/useIsMobile';
 
 // reusable modal used for both add & edit
 export default function UserModal({
-    visible,
+    open,
     title,
     user,
     setUser,
@@ -22,7 +22,7 @@ export default function UserModal({
 
     // keep form values in sync with prop
     React.useEffect(() => {
-        if (visible) {
+        if (open) {
             // normalize dateOfBirth to a valid dayjs object or remove it entirely
             const values = { ...(user || {}) };
             if (values.dateOfBirth) {
@@ -51,7 +51,7 @@ export default function UserModal({
         } else {
             form.resetFields();
         }
-    }, [user, visible, form]);
+    }, [user, open, form]);
 
     const updateField = (field, value) => {
         // cascade district clearance when city changes
@@ -71,7 +71,7 @@ export default function UserModal({
     return (
         <Modal
             title={title}
-            open={visible}
+            open={open}
             forceRender
             onOk={() => form.submit()}
             onCancel={onCancel}

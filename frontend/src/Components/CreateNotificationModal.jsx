@@ -1,11 +1,11 @@
 // Components/CreateNotificationModal.jsx
 import React, { useState } from 'react';
-import { Modal, Form, Input, Button, message } from 'antd';
+import { Modal, Form, Input, message } from 'antd';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { createNotification } from '../api/classes';
 
-const CreateNotificationModal = ({ visible, onCancel, onSuccess, classId }) => {
+const CreateNotificationModal = ({ open, onCancel, onSuccess, classId }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [content, setContent] = useState('');
@@ -19,19 +19,28 @@ const CreateNotificationModal = ({ visible, onCancel, onSuccess, classId }) => {
             }
 
             setLoading(true);
+            console.log('[CreateNotification] Bắt đầu tạo thông báo, classId:', classId);
 
-            await createNotification(classId, {
+            const result = await createNotification(classId, {
                 title: values.title,
                 content: content
             });
 
+            console.log('[CreateNotification] API trả về:', result);
+
             message.success('Tạo thông báo thành công');
             form.resetFields();
             setContent('');
-            onSuccess();
-            onCancel();
+
+            // Trả về notification vừa tạo để ClassDetail cập nhật bảng ngay
+            console.log('[CreateNotification] Gọi onSuccess với result._id:', result?._id);
+            await onSuccess(result);
+
+            // Dispatch event SAU khi onSuccess hoàn thành (tránh race condition)
+            console.log('[CreateNotification] Dispatch notificationCreated event');
+            window.dispatchEvent(new Event('notificationCreated'));
         } catch (error) {
-            console.error('Create notification error:', error);
+            console.error('[CreateNotification] Lỗi:', error);
             message.error(error?.message || 'Có lỗi xảy ra khi tạo thông báo');
         } finally {
             setLoading(false);
@@ -56,14 +65,14 @@ const CreateNotificationModal = ({ visible, onCancel, onSuccess, classId }) => {
     return (
         <Modal
             title="Tạo thông báo"
-            open={visible}
+            open={open}
             onCancel={onCancel}
             onOk={handleSubmit}
             confirmLoading={loading}
             okText="Tạo thông báo"
             cancelText="Hủy"
             width={800}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}

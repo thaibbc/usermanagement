@@ -505,7 +505,7 @@ const ImportExcelModal = ({ open, onClose, onSave }) => {
                 }
                 width={1400}
                 centered
-                bodyStyle={{ padding: '16px 24px', maxHeight: '70vh', overflow: 'auto' }}
+                styles={{ body: { padding: '16px 24px', maxHeight: '70vh', overflow: 'auto' } }}
             >
                 <div style={{ padding: '10px 0' }}>
                     {/* Upload section */}

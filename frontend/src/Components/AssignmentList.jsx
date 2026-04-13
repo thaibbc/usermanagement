@@ -47,12 +47,12 @@ const AssignmentList = ({
         console.log('AssignmentList - final classCode:', classCode);
     }, [paramClassCode, propClassCode, classCode]);
 
-    const [submitModalVisible, setSubmitModalVisible] = React.useState(false);
+    const [submitModalOpen, setSubmitModalOpen] = React.useState(false);
     const [selectedAssignment, setSelectedAssignment] = React.useState(null);
-    const [viewResultModalVisible, setViewResultModalVisible] = React.useState(false);
-    const [viewSubmissionModalVisible, setViewSubmissionModalVisible] = React.useState(false);
+    const [viewResultModalOpen, setViewResultModalOpen] = React.useState(false);
+    const [viewSubmissionModalOpen, setViewSubmissionModalOpen] = React.useState(false);
     const [selectedSubmission, setSelectedSubmission] = React.useState(null);
-    const [editDrawerVisible, setEditDrawerVisible] = React.useState(false);
+    const [editDrawerOpen, setEditDrawerOpen] = React.useState(false);
     const [editFormData, setEditFormData] = React.useState(null);
     const [editLoading, setEditLoading] = React.useState(false);
 
@@ -79,19 +79,19 @@ const AssignmentList = ({
 
     const handleSubmitAssignment = (assignment) => {
         setSelectedAssignment(assignment);
-        setSubmitModalVisible(true);
+        setSubmitModalOpen(true);
     };
 
     const handleViewResult = (assignment, submission) => {
         setSelectedAssignment(assignment);
         setSelectedSubmission(submission);
-        setViewResultModalVisible(true);
+        setViewResultModalOpen(true);
     };
 
     const handleViewSubmission = (assignment, submission) => {
         setSelectedAssignment(assignment);
         setSelectedSubmission(submission);
-        setViewSubmissionModalVisible(true);
+        setViewSubmissionModalOpen(true);
     };
 
     // SỬA HÀM NÀY - Chuyển sang trang mới thay vì mở modal
@@ -112,7 +112,7 @@ const AssignmentList = ({
     };
 
     const handleSubmitSuccess = () => {
-        setSubmitModalVisible(false);
+        setSubmitModalOpen(false);
         setSelectedAssignment(null);
         if (onAssignmentSubmitted) {
             onAssignmentSubmitted();
@@ -135,7 +135,7 @@ const AssignmentList = ({
             useLibrary: assignment.questions && assignment.questions.length > 0
         };
         setEditFormData(editData);
-        setEditDrawerVisible(true);
+        setEditDrawerOpen(true);
     };
 
     // Xử lý submit chỉnh sửa
@@ -144,7 +144,7 @@ const AssignmentList = ({
             setEditLoading(true);
             try {
                 await onSubmitEdit(editFormData);
-                setEditDrawerVisible(false);
+                setEditDrawerOpen(false);
                 setEditFormData(null);
                 if (onAssignmentSubmitted) {
                     onAssignmentSubmitted();
@@ -244,7 +244,7 @@ const AssignmentList = ({
             render: (_, record) => {
                 if ((isTeacher || isAdmin) && !isTestMode) {
                     return (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
                                 Đã nộp: {getSubmissionStats(record._id).submitted}/{getSubmissionStats(record._id).total}
                             </Text>
@@ -259,7 +259,7 @@ const AssignmentList = ({
                         return <Text type="secondary">Chưa nộp bài</Text>;
                     }
                     return (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
                                 Ngày nộp: {submission.submittedAt ? new Date(submission.submittedAt).toLocaleString('vi-VN') : 'Chưa nộp'}
                             </Text>
@@ -479,9 +479,9 @@ const AssignmentList = ({
 
             {/* Modal nộp bài */}
             <SubmitAssignmentModal
-                visible={submitModalVisible}
+                open={submitModalOpen}
                 onCancel={() => {
-                    setSubmitModalVisible(false);
+                    setSubmitModalOpen(false);
                     setSelectedAssignment(null);
                 }}
                 assignment={selectedAssignment}
@@ -492,9 +492,9 @@ const AssignmentList = ({
 
             {/* Modal xem kết quả */}
             <SubmitAssignmentModal
-                visible={viewResultModalVisible}
+                open={viewResultModalOpen}
                 onCancel={() => {
-                    setViewResultModalVisible(false);
+                    setViewResultModalOpen(false);
                     setSelectedAssignment(null);
                     setSelectedSubmission(null);
                 }}
@@ -507,9 +507,9 @@ const AssignmentList = ({
 
             {/* Modal xem bài nộp (chưa chấm) */}
             <SubmitAssignmentModal
-                visible={viewSubmissionModalVisible}
+                open={viewSubmissionModalOpen}
                 onCancel={() => {
-                    setViewSubmissionModalVisible(false);
+                    setViewSubmissionModalOpen(false);
                     setSelectedAssignment(null);
                     setSelectedSubmission(null);
                 }}
@@ -523,9 +523,9 @@ const AssignmentList = ({
             {/* Drawer chỉnh sửa bài tập */}
             {editFormData && (
                 <CreateAssignmentDrawer
-                    visible={editDrawerVisible}
+                    open={editDrawerOpen}
                     onClose={() => {
-                        setEditDrawerVisible(false);
+                        setEditDrawerOpen(false);
                         setEditFormData(null);
                     }}
                     onSubmit={handleEditSubmit}

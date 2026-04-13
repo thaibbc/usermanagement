@@ -74,10 +74,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const { user } = useUser();
 
     const [activeTab, setActiveTab] = useState('baitap');
-    const [drawerVisible, setDrawerVisible] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [notificationModalOpen, setNotificationModalOpen] = useState(false);
 
     // Sử dụng hook useIsMobile để đồng bộ với các trang khác
     const isMobile = useIsMobile(1024);
@@ -102,17 +102,17 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [submissions, setSubmissions] = useState([]);
 
     // Result view states
-    const [viewResultModalVisible, setViewResultModalVisible] = useState(false);
-    const [viewSubmissionModalVisible, setViewSubmissionModalVisible] = useState(false);
+    const [viewResultModalOpen, setViewResultModalOpen] = useState(false);
+    const [viewSubmissionModalOpen, setViewSubmissionModalOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [selectedSubmission, setSelectedSubmission] = useState(null);
 
     // Student management states
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-    const [addStudentModalVisible, setAddStudentModalVisible] = useState(false);
-    const [importModalVisible, setImportModalVisible] = useState(false);
-    const [studentDetailModalVisible, setStudentDetailModalVisible] = useState(false);
-    const [editStudentModalVisible, setEditStudentModalVisible] = useState(false);
+    const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [studentDetailModalOpen, setStudentDetailModalOpen] = useState(false);
+    const [editStudentModalOpen, setEditStudentModalOpen] = useState(false);
     const [newStudentEmail, setNewStudentEmail] = useState('');
     const [newStudentName, setNewStudentName] = useState('');
     const [newStudentPhone, setNewStudentPhone] = useState('');
@@ -209,15 +209,28 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     }, [classData?._id, isViewingAsStudent, currentUserId]);
 
     const loadNotifications = useCallback(async () => {
-        if (!classData?._id) return;
+        if (!classData?._id) {
+            console.warn('[ClassDetail] loadNotifications bỏ qua — classData._id rỗng');
+            return;
+        }
         setNotificationsLoading(true);
+        console.log('[ClassDetail] loadNotifications gọi với classId:', classData._id);
         try {
             const response = await getNotifications(classData._id);
-            const notificationsData = response?.notifications || response?.data || [];
-            setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
+            console.log('[ClassDetail] loadNotifications response:', response);
+            const allNotifications = response?.notifications || response?.data || [];
+
+            // Bảng NotificationList chỉ hiển thị thông báo được tạo thủ công (type = 'general')
+            // Thông báo bài tập / nộp bài chỉ xuất hiện ở bell icon Header
+            const generalNotifications = Array.isArray(allNotifications)
+                ? allNotifications.filter(n => !n.type || n.type === 'general')
+                : [];
+
+            console.log('[ClassDetail] Thông báo general:', generalNotifications.length, '/ Tổng:', allNotifications.length);
+            setNotifications(generalNotifications);
         } catch (err) {
-            console.error('Failed to load notifications:', err);
-            setNotifications([]);
+            console.error('[ClassDetail] loadNotifications lỗi:', err);
+            // Không reset về [] khi lỗi — giữ optimistic state
         } finally {
             setNotificationsLoading(false);
         }
@@ -249,7 +262,8 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         setSubmitLoading(true);
         try {
             // Chuẩn bị dữ liệu câu hỏi để gửi lên API
-            const questionsToSave = formData.questions.map(q => ({
+            const validQuestions = (formData.questions || []).filter(q => q && typeof q === 'object' && q._id);
+            const questionsToSave = validQuestions.map(q => ({
                 _id: q._id,
                 cauHoi: q.cauHoi,
                 loaiCauHoi: q.loaiCauHoi,
@@ -275,12 +289,16 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 closeTime: formData.closeTime
             });
             message.success('Đã tạo bài tập thành công!');
+            // Kích hoạt cập nhật badge thông báo trên Header cho học sinh nhận bài
+            window.dispatchEvent(new Event('notificationCreated'));
             closeDrawer();
             await loadAssignments();
             await loadSubmissions();
         } catch (err) {
             console.error('handleSaveAssignment error:', err);
-            message.error(err?.message || 'Có lỗi xảy ra khi tạo bài tập');
+            console.error('Error details:', err?.details);
+            const errorMsg = err?.details?.message || err?.message || 'Có lỗi xảy ra khi tạo bài tập';
+            message.error(errorMsg);
         } finally {
             setSubmitLoading(false);
         }
@@ -467,6 +485,17 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         }
     }, [classData?._id, loadAssignments, loadSubmissions, loadNotifications]);
 
+    // Lắng nghe event khi có thông báo mới được tạo → reload bảng NotificationList
+    useEffect(() => {
+        const handleNotificationCreated = () => {
+            if (classData?._id) {
+                loadNotifications();
+            }
+        };
+        window.addEventListener('notificationCreated', handleNotificationCreated);
+        return () => window.removeEventListener('notificationCreated', handleNotificationCreated);
+    }, [classData?._id, loadNotifications]);
+
     // ==================== HANDLERS ====================
     const handleCopyCode = () => {
         if (classData?.code) {
@@ -480,11 +509,11 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             message.warning('Bạn không có quyền tạo bài tập');
             return;
         }
-        setDrawerVisible(true);
+        setDrawerOpen(true);
     };
 
     const closeDrawer = () => {
-        setDrawerVisible(false);
+        setDrawerOpen(false);
         setFormData({
             title: '',
             type: undefined,
@@ -536,7 +565,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     // ==================== EDIT CLASS HANDLER ====================
     const handleEditClass = () => {
-        setEditModalVisible(true);
+        setEditModalOpen(true);
     };
 
     const handleClassUpdated = async () => {
@@ -647,7 +676,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 note: newStudentNote
             });
             message.success('Đã thêm học sinh thành công');
-            setAddStudentModalVisible(false);
+            setAddStudentModalOpen(false);
             resetAddStudentForm();
             await loadClassData(classData.code);
         } catch (err) {
@@ -685,7 +714,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             if (errorCount > 0) {
                 message.warning(`Không thể thêm ${errorCount} học sinh`);
             }
-            setAddStudentModalVisible(false);
+            setAddStudentModalOpen(false);
             resetAddStudentForm();
             await loadClassData(classData.code);
             setSelectedRowKeys([]); // Reset selection if needed
@@ -714,7 +743,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         try {
             await importStudentsToClass(classData._id, importFile);
             message.success('Import học sinh thành công');
-            setImportModalVisible(false);
+            setImportModalOpen(false);
             setImportFile(null);
             await loadClassData(classData.code);
         } catch (err) {
@@ -761,7 +790,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
     const handleViewStudent = (student) => {
         setSelectedStudent(student);
-        setStudentDetailModalVisible(true);
+        setStudentDetailModalOpen(true);
     };
 
     const handleEditStudent = (student) => {
@@ -772,7 +801,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         setNewStudentEmail(student.email);
         setNewStudentPhone(student.phone);
         setNewStudentNote(student.note);
-        setEditStudentModalVisible(true);
+        setEditStudentModalOpen(true);
     };
 
     const downloadTemplate = () => {
@@ -843,7 +872,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         '#795548', '#607d8b'
     ];
 
-    const getNotifications = () => {
+    const getJoinRequestAlerts = () => {
         if (!classData) return [];
         const studentId = user?._id || user?.id;
         const isPendingCheck = (classData.pendingStudents || []).map(s => String(s._id || s)).includes(String(studentId));
@@ -910,12 +939,12 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     onViewResult={(assignment, submission) => {
                         setSelectedAssignment(assignment);
                         setSelectedSubmission(submission);
-                        setViewResultModalVisible(true);
+                        setViewResultModalOpen(true);
                     }}
                     onViewSubmission={(assignment, submission) => {
                         setSelectedAssignment(assignment);
                         setSelectedSubmission(submission);
-                        setViewSubmissionModalVisible(true);
+                        setViewSubmissionModalOpen(true);
                     }}
                     classCode={classData?.code}
                     onSubmitEdit={handleUpdateAssignment}
@@ -959,9 +988,9 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                             onStatusFilterChange={setStatusFilter}
                             onAddStudent={() => {
                                 resetAddStudentForm();
-                                setAddStudentModalVisible(true);
+                                setAddStudentModalOpen(true);
                             }}
-                            onImportStudent={() => setImportModalVisible(true)}
+                            onImportStudent={() => setImportModalOpen(true)}
                             onDeleteSelected={handleDeleteSelectedStudents}
                             onApproveAll={handleApproveAllPending}
                             onApproveStudent={handleApproveStudent}
@@ -984,10 +1013,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             children: (
                 <div style={{ padding: isMobile ? '8px' : '16px' }}>
                     {canManageStudents && (
-                        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+                        <div style={{ marginBottom: 16, textAlign: 'left' }}>
                             <Button
                                 type="primary"
-                                onClick={() => setNotificationModalVisible(true)}
+                                onClick={() => setNotificationModalOpen(true)}
                                 icon={<PlusOutlined />}
                             >
                                 Tạo thông báo
@@ -1000,6 +1029,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         isMobile={isMobile}
                         canManage={canManageStudents}
                         onRefresh={loadNotifications}
+                        classId={classData?._id}
                     />
                 </div>
             )
@@ -1143,7 +1173,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                             backgroundColor: 'white'
                         }}
-                        bodyStyle={{ padding: isMobile ? '16px' : '24px' }}
+                        styles={{ body: { padding: isMobile ? '16px' : '24px' } }}
                         variant="borderless"
                     >
                         <Tabs
@@ -1160,7 +1190,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 {/* Create Assignment Drawer */}
                 {canCreateAssignment && (
                     <CreateAssignmentDrawer
-                        visible={drawerVisible}
+                        open={drawerOpen}
                         onClose={closeDrawer}
                         onSubmit={handleSaveAssignment}
                         loading={submitLoading}
@@ -1176,8 +1206,8 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 {/* Edit Class Modal */}
                 {canManageStudents && (
                     <EditClassModal
-                        visible={editModalVisible}
-                        onCancel={() => setEditModalVisible(false)}
+                        open={editModalOpen}
+                        onCancel={() => setEditModalOpen(false)}
                         classData={classData}
                         onSuccess={handleClassUpdated}
                     />
@@ -1187,9 +1217,9 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 {canManageStudents && (
                     <>
                         <AddStudentModal
-                            visible={addStudentModalVisible}
+                            open={addStudentModalOpen}
                             onCancel={() => {
-                                setAddStudentModalVisible(false);
+                                setAddStudentModalOpen(false);
                                 resetAddStudentForm();
                             }}
                             onSubmit={handleAddStudent}
@@ -1206,9 +1236,9 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         />
 
                         <ImportStudentModal
-                            visible={importModalVisible}
+                            open={importModalOpen}
                             onCancel={() => {
-                                setImportModalVisible(false);
+                                setImportModalOpen(false);
                                 setImportFile(null);
                             }}
                             onSubmit={handleImportStudents}
@@ -1219,14 +1249,14 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                         />
 
                         <EditStudentModal
-                            visible={editStudentModalVisible}
+                            open={editStudentModalOpen}
                             onCancel={() => {
-                                setEditStudentModalVisible(false);
+                                setEditStudentModalOpen(false);
                                 resetAddStudentForm();
                             }}
                             onSubmit={() => {
                                 message.success('Cập nhật thông tin thành công');
-                                setEditStudentModalVisible(false);
+                                setEditStudentModalOpen(false);
                             }}
                             loading={actionLoading}
                             name={newStudentName}
@@ -1241,16 +1271,16 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                 )}
 
                 <StudentDetailModal
-                    visible={studentDetailModalVisible}
-                    onCancel={() => setStudentDetailModalVisible(false)}
+                    open={studentDetailModalOpen}
+                    onCancel={() => setStudentDetailModalOpen(false)}
                     student={selectedStudent}
                 />
 
                 {/* Modal xem kết quả bài tập */}
                 <SubmitAssignmentModal
-                    visible={viewResultModalVisible}
+                    open={viewResultModalOpen}
                     onCancel={() => {
-                        setViewResultModalVisible(false);
+                        setViewResultModalOpen(false);
                         setSelectedAssignment(null);
                         setSelectedSubmission(null);
                     }}
@@ -1263,9 +1293,9 @@ export function ClassDetail({ classData: propClassData, onBack }) {
 
                 {/* Modal xem bài nộp (chưa chấm) */}
                 <SubmitAssignmentModal
-                    visible={viewSubmissionModalVisible}
+                    open={viewSubmissionModalOpen}
                     onCancel={() => {
-                        setViewSubmissionModalVisible(false);
+                        setViewSubmissionModalOpen(false);
                         setSelectedAssignment(null);
                         setSelectedSubmission(null);
                     }}
@@ -1275,6 +1305,27 @@ export function ClassDetail({ classData: propClassData, onBack }) {
                     isViewMode={true}
                     existingSubmission={selectedSubmission}
                 />
+
+                {/* Create Notification Modal */}
+                {canManageStudents && (
+                    <CreateNotificationModal
+                        open={notificationModalOpen}
+                        onCancel={() => setNotificationModalOpen(false)}
+                        onSuccess={async (newNotification) => {
+                            console.log('[ClassDetail] onSuccess gọi, newNotification:', newNotification);
+                            setNotificationModalOpen(false);
+                            // Cập nhật bảng ngay lập tức (optimistic update)
+                            if (newNotification) {
+                                console.log('[ClassDetail] Optimistic update: thêm vào bảng');
+                                setNotifications(prev => [newNotification, ...prev]);
+                            } else {
+                                console.warn('[ClassDetail] newNotification là undefined — bỏ qua optimistic update');
+                            }
+                            // notificationCreated event sẽ trigger loadNotifications() sau
+                        }}
+                        classId={classData?._id}
+                    />
+                )}
             </Layout>
         </Layout>
     );

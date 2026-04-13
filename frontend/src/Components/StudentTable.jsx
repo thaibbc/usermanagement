@@ -33,7 +33,7 @@ const StudentTable = ({
         {
             title: 'Học sinh', key: 'student', width: 280,
             render: (_, record) => (
-                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={2} style={{ width: '100%' }}>
                     <Space><Avatar src={record.avatar} icon={<UserAddOutlined />} size="small" /><Text strong>{record.name}</Text></Space>
                     <Space size={4}><IdcardOutlined style={{ color: '#999', fontSize: 12 }} /><Text type="secondary" style={{ fontSize: 12 }}>{record.code}</Text></Space>
                 </Space>
@@ -42,7 +42,7 @@ const StudentTable = ({
         {
             title: 'Thông tin liên lạc', key: 'contact', width: 280,
             render: (_, record) => (
-                <Space direction="vertical" size={2}>
+                <Space orientation="vertical" size={2}>
                     <Space size={4}><MailOutlined style={{ color: '#999', fontSize: 12 }} /><Text>{record.email}</Text></Space>
                     <Space size={4}><PhoneOutlined style={{ color: '#999', fontSize: 12 }} /><Text>{record.phone || 'Chưa cập nhật'}</Text></Space>
                 </Space>

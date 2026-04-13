@@ -131,14 +131,14 @@ const ClassInfoCard = ({
                         <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
                             Giáo viên
                         </Text>
-                        <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
-                            {teacherInfo.name}
-                        </Text>
-                    </div>
-                    <div style={{ marginTop: 8 }}>
-                        <Tag color={classData.status === 'active' ? 'green' : classData.status === 'pending' ? 'orange' : 'red'}>
-                            {classData.status === 'active' ? 'ĐANG HOẠT ĐỘNG' : classData.status === 'pending' ? 'CHỜ DUYỆT' : 'NGỪNG HOẠT ĐỘNG'}
-                        </Tag>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
+                                {teacherInfo.name}
+                            </Text>
+                            <Tag color={classData.status === 'active' ? 'green' : classData.status === 'pending' ? 'orange' : 'red'} style={{ margin: 0 }}>
+                                {classData.status === 'active' ? 'ĐANG HOẠT ĐỘNG' : classData.status === 'pending' ? 'CHỜ DUYỆT' : 'NGỪNG HOẠT ĐỘNG'}
+                            </Tag>
+                        </div>
                     </div>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
@@ -189,16 +189,6 @@ const ClassInfoCard = ({
                             </Text>
                             <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
                                 {classData.subject}
-                            </Text>
-                        </Col>
-                    )}
-                    {classData.grade && (
-                        <Col xs={24} sm={12} md={8}>
-                            <Text style={{ fontSize: isMobile ? '12px' : '13px', color: '#666', display: 'block', marginBottom: 4 }}>
-                                Khối lớp
-                            </Text>
-                            <Text style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 500 }}>
-                                {classData.grade}
                             </Text>
                         </Col>
                     )}

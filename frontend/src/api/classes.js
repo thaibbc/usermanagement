@@ -316,6 +316,14 @@ export async function getNotifications(classId) {
     return handleResponse(res);
 }
 
+// Get all notifications for the current user (across all classes) — single efficient query
+export async function getUserNotifications(limit = 20) {
+    const res = await fetch(`${API_URLS.CLASSES}/notifications/me?limit=${limit}`, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+}
+
 // Mark notification as read
 export async function markNotificationAsRead(classId, notificationId) {
     const res = await fetch(`${API_URLS.CLASSES}/${classId}/notifications/${notificationId}/read`, {
@@ -330,6 +338,16 @@ export async function deleteNotification(notificationId) {
     const res = await fetch(`${API_URLS.CLASSES}/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+}
+
+// Update notification (teacher/admin)
+export async function updateNotification(classId, notificationId, data) {
+    const res = await fetch(`${API_URLS.CLASSES}/${classId}/notifications/${notificationId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
     });
     return handleResponse(res);
 }

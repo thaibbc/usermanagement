@@ -52,8 +52,8 @@ export const QuestionBank = () => {
         cauHoi: '',
         id: ''
     });
-    const [createDrawerVisible, setCreateDrawerVisible] = useState(false);
-    const [importExcelVisible, setImportExcelVisible] = useState(false);
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [importExcelOpen, setImportExcelOpen] = useState(false);
     const [previewQuestion, setPreviewQuestion] = useState(null);
     const [showBanner, setShowBanner] = useState(true);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -295,11 +295,11 @@ export const QuestionBank = () => {
     };
 
     const handleCreateQuestion = () => {
-        setCreateDrawerVisible(true);
+        setCreateModalOpen(true);
     };
 
     const handleDrawerClose = () => {
-        setCreateDrawerVisible(false);
+        setCreateModalOpen(false);
     };
 
     const handleQuestionSubmit = async () => {
@@ -732,7 +732,7 @@ export const QuestionBank = () => {
                                     icon={<DownloadOutlined />}
                                     size={screens.xs ? 'middle' : 'large'}
                                     block={screens.xs}
-                                    onClick={() => setImportExcelVisible(true)}
+                                    onClick={() => setImportExcelOpen(true)}
                                 >
                                     Nhập từ Excel
                                 </Button>
@@ -752,13 +752,13 @@ export const QuestionBank = () => {
 
             {/* Import Excel Modal */}
             <ImportExcelModal
-                open={importExcelVisible}
-                onClose={() => setImportExcelVisible(false)}
+                open={importExcelOpen}
+                onClose={() => setImportExcelOpen(false)}
                 onSave={() => loadQuestions()}
             />
 
             <CreateQuestionDrawer
-                visible={createDrawerVisible}
+                open={createModalOpen}
                 onClose={handleDrawerClose}
                 onSubmit={handleQuestionSubmit}
             />
