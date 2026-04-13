@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { UserContext } from "../context/UserContext";
 import { getNotifications } from "../api/classes";
+import { fetchClasses } from "../api/classes";
 
 function Header({ onMenuClick, sidebarCollapsed }) {
     const navigate = useNavigate();
@@ -32,13 +33,16 @@ function Header({ onMenuClick, sidebarCollapsed }) {
         if (!user) return;
 
         try {
-            // Get all classes user is in
-            const classesResponse = await fetch('/api/classes', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const classes = await classesResponse.json();
+            // Get all classes user is in (as student or teacher)
+            let classesData;
+            if (user.accountType === 'teacher' || user.accountType === 'admin') {
+                // For teachers/admins, get classes they teach
+                classesData = await fetchClasses({ teacherId: user._id || user.id });
+            } else {
+                // For students, get classes they're enrolled in
+                classesData = await fetchClasses({ studentId: user._id || user.id });
+            }
+            const classes = classesData.classes || [];
 
             let allNotifications = [];
             for (const classData of classes) {
@@ -47,6 +51,7 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                     allNotifications = [...allNotifications, ...notifs.notifications];
                 } catch (error) {
                     // Skip classes that can't be accessed
+                    console.warn(`Could not load notifications for class ${classData._id}:`, error);
                     continue;
                 }
             }
@@ -61,6 +66,9 @@ function Header({ onMenuClick, sidebarCollapsed }) {
             setUnreadCount(unread);
         } catch (error) {
             console.error('Error loading notifications:', error);
+            // Set empty state on error
+            setNotifications([]);
+            setUnreadCount(0);
         }
     };
 
