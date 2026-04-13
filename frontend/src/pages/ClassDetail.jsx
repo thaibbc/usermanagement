@@ -20,7 +20,8 @@ import {
     ClockCircleOutlined,
     CheckCircleOutlined,
     InfoCircleOutlined,
-    EditOutlined
+    EditOutlined,
+    PlusOutlined
 } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
 import Sidebar from '../Components/Sidebar';
