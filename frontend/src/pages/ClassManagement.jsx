@@ -115,9 +115,6 @@ export function ClassManagement() {
         if (!validateClassName(newClass.name)) {
             return;
         }
-        if (!validateGrade(newClass.grade)) {
-            return;
-        }
         if (!validateNote(newClass.note)) {
             return;
         }
@@ -129,7 +126,7 @@ export function ClassManagement() {
             await createClass({
                 code,
                 name: newClass.name.trim(),
-                grade: newClass.grade ? Number(newClass.grade) : null,
+                grade: newClass.grade || 1, // Default grade 1
                 note: newClass.note.trim(),
                 teacherId: user?._id || user?.id || null,
                 teacherName: user?.name || '',
@@ -535,7 +532,8 @@ export function ClassManagement() {
                                         />
                                     </div>
 
-                                    <div>
+                                    {/* Khối lớp - chỉ lưu data, không hiển thị */}
+                                    <div style={{ display: 'none' }}>
                                         <Text style={{ marginBottom: 6, display: 'block', fontSize: '13px', color: '#666' }}>
                                             Khối lớp : <span style={{ color: '#ff4d4f' }}>*</span>
                                         </Text>
@@ -600,11 +598,11 @@ export function ClassManagement() {
                                         block
                                         onClick={handleCreateClass}
                                         loading={createLoading}
-                                        disabled={searchLoading || createLoading || deleteLoading || statusLoading || !newClass.name.trim() || !newClass.grade}
+                                        disabled={searchLoading || createLoading || deleteLoading || statusLoading || !newClass.name.trim()}
                                         style={{
                                             marginTop: 16,
                                             backgroundColor: '#1890ff',
-                                            opacity: (!newClass.name.trim() || !newClass.grade || createLoading) ? 0.5 : 1
+                                            opacity: (!newClass.name.trim() || createLoading) ? 0.5 : 1
                                         }}
                                     >
                                         {createLoading ? 'Đang tạo...' : 'Tạo lớp học'}

@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { UserContext } from "../context/UserContext";
+import { getNotifications } from "../api/classes";
 
 function Header({ onMenuClick, sidebarCollapsed }) {
     const navigate = useNavigate();
@@ -23,6 +24,45 @@ function Header({ onMenuClick, sidebarCollapsed }) {
     const showMenuButton = isMobile || isTablet;
 
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Load notifications for all user's classes
+    const loadNotifications = async () => {
+        if (!user) return;
+
+        try {
+            // Get all classes user is in
+            const classesResponse = await fetch('/api/classes', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const classes = await classesResponse.json();
+
+            let allNotifications = [];
+            for (const classData of classes) {
+                try {
+                    const notifs = await getNotifications(classData._id);
+                    allNotifications = [...allNotifications, ...notifs.notifications];
+                } catch (error) {
+                    // Skip classes that can't be accessed
+                    continue;
+                }
+            }
+
+            // Sort by creation date (newest first)
+            allNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            setNotifications(allNotifications.slice(0, 10)); // Show only latest 10
+
+            // Count unread notifications
+            const unread = allNotifications.filter(n => !n.isRead?.get(user._id.toString())).length;
+            setUnreadCount(unread);
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+        }
+    };
 
     // Theo dõi resize window
     useEffect(() => {
@@ -33,6 +73,13 @@ function Header({ onMenuClick, sidebarCollapsed }) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Load notifications when user changes
+    useEffect(() => {
+        if (user) {
+            loadNotifications();
+        }
+    }, [user]);
 
     const isAdmin = user?.accountType === 'admin';
     const isTeacher = user?.accountType === 'teacher';
@@ -200,6 +247,48 @@ function Header({ onMenuClick, sidebarCollapsed }) {
         setDrawerVisible(false);
     };
 
+    // Notification dropdown menu
+    const notificationMenuItems = notifications.map(notification => ({
+        key: notification._id,
+        label: (
+            <div style={{ padding: '8px 0' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{notification.title}</div>
+                <div
+                    style={{
+                        fontSize: '12px',
+                        color: '#666',
+                        maxWidth: '300px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: notification.content.replace(/<[^>]*>/g, '') }}
+                />
+            </div>
+        ),
+        onClick: () => {
+            // Mark as read and navigate to class
+            navigate(`/class/${notification.classId}`);
+        }
+    }));
+
+    if (notifications.length === 0) {
+        notificationMenuItems.push({
+            key: 'no-notifications',
+            label: 'Không có thông báo mới',
+            disabled: true
+        });
+    } else {
+        notificationMenuItems.push({
+            type: 'divider'
+        });
+        notificationMenuItems.push({
+            key: 'view-all',
+            label: 'Xem tất cả',
+            onClick: () => navigate('/notifications')
+        });
+    }
+
     // Tính toán marginLeft
     const getMarginLeft = () => {
         // Trên mobile và tablet, không cần margin left vì sidebar không hiển thị
@@ -263,19 +352,35 @@ function Header({ onMenuClick, sidebarCollapsed }) {
                     marginLeft: showMenuButton ? 0 : 'auto'
                 }}>
                     {/* Notification */}
-                    <div style={{ position: 'relative', cursor: 'pointer' }}>
-                        <BellOutlined style={{ fontSize: showMenuButton ? 18 : 20, color: 'white' }} />
-                        <div style={{
-                            position: 'absolute',
-                            top: -4,
-                            right: -4,
-                            width: 8,
-                            height: 8,
-                            backgroundColor: '#FF6B6B',
-                            borderRadius: '50%',
-                            border: '2px solid #1E293B'
-                        }} />
-                    </div>
+                    <Dropdown
+                        menu={{ items: notificationMenuItems }}
+                        trigger={['click']}
+                        placement="bottomRight"
+                    >
+                        <div style={{ position: 'relative', cursor: 'pointer' }}>
+                            <BellOutlined style={{ fontSize: showMenuButton ? 18 : 20, color: 'white' }} />
+                            {unreadCount > 0 && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: -4,
+                                    right: -4,
+                                    width: 16,
+                                    height: 16,
+                                    backgroundColor: '#FF6B6B',
+                                    borderRadius: '50%',
+                                    border: '2px solid #1E293B',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '10px',
+                                    fontWeight: 'bold',
+                                    color: 'white'
+                                }}>
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </div>
+                            )}
+                        </div>
+                    </Dropdown>
 
                     {/* Avatar & User Info */}
                     <Dropdown menu={{ items: headerMenu }} placement="bottomRight" trigger={['click']}>

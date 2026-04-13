@@ -34,6 +34,7 @@ import StudentResultTab from '../Components/StudentResultTab';
 import EbookTab from '../Components/EbookTab';
 import SubmitAssignmentModal from '../Components/SubmitAssignmentModal';
 import EditClassModal from '../Components/EditClassModal';
+import CreateNotificationModal from '../Components/CreateNotificationModal';
 import {
     AddStudentModal,
     ImportStudentModal,
@@ -55,7 +56,8 @@ import {
     createAssignment,
     deleteAssignment,
     updateAssignment,
-    updateClass
+    updateClass,
+    getNotifications
 } from '../api/classes';
 import { getUser } from '../api/users';
 import useIsMobile from '../hooks/useIsMobile';
@@ -74,6 +76,7 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
     // Sử dụng hook useIsMobile để đồng bộ với các trang khác
     const isMobile = useIsMobile(1024);
@@ -117,6 +120,10 @@ export function ClassDetail({ classData: propClassData, onBack }) {
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [selectedStudent, setSelectedStudent] = useState(null);
+
+    // Notification states
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
 
     // Form states for assignment
     const [formData, setFormData] = useState({
@@ -199,6 +206,21 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             setSubmissions([]);
         }
     }, [classData?._id, isViewingAsStudent, currentUserId]);
+
+    const loadNotifications = useCallback(async () => {
+        if (!classData?._id) return;
+        setNotificationsLoading(true);
+        try {
+            const response = await getNotifications(classData._id);
+            const notificationsData = response?.notifications || response?.data || [];
+            setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
+        } catch (err) {
+            console.error('Failed to load notifications:', err);
+            setNotifications([]);
+        } finally {
+            setNotificationsLoading(false);
+        }
+    }, [classData?._id]);
 
     const handleSaveAssignment = async () => {
         if (!canCreateAssignment) {
@@ -440,8 +462,9 @@ export function ClassDetail({ classData: propClassData, onBack }) {
         if (classData?._id) {
             loadAssignments();
             loadSubmissions();
+            loadNotifications();
         }
-    }, [classData?._id, loadAssignments, loadSubmissions]);
+    }, [classData?._id, loadAssignments, loadSubmissions, loadNotifications]);
 
     // ==================== HANDLERS ====================
     const handleCopyCode = () => {
@@ -958,10 +981,26 @@ export function ClassDetail({ classData: propClassData, onBack }) {
             key: 'thongbao',
             label: 'Thông báo',
             children: (
-                <NotificationList
-                    notifications={getNotifications()}
-                    isMobile={isMobile}
-                />
+                <div style={{ padding: isMobile ? '8px' : '16px' }}>
+                    {canManageStudents && (
+                        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+                            <Button
+                                type="primary"
+                                onClick={() => setNotificationModalVisible(true)}
+                                icon={<PlusOutlined />}
+                            >
+                                Tạo thông báo
+                            </Button>
+                        </div>
+                    )}
+                    <NotificationList
+                        notifications={notifications}
+                        loading={notificationsLoading}
+                        isMobile={isMobile}
+                        canManage={canManageStudents}
+                        onRefresh={loadNotifications}
+                    />
+                </div>
             )
         },
         {

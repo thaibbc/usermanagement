@@ -14,7 +14,7 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
         if (visible && classData) {
             form.setFieldsValue({
                 name: classData.name,
-                grade: classData.grade ? Number(classData.grade) : '',
+                grade: classData.grade ? Number(classData.grade) : 1,
                 note: classData.note || '',
                 status: classData.status === 'active' ? 'active' : 'inactive',
                 completed: classData.completed || false,
@@ -78,12 +78,12 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     <Input placeholder="Nhập tên lớp học" />
                 </Form.Item>
 
+                {/* Khối lớp - chỉ lưu data, không hiển thị */}
                 <Form.Item
                     name="grade"
-                    label="Khối lớp"
-                    rules={[{ required: true, message: 'Vui lòng chọn khối lớp' }]}
+                    style={{ display: 'none' }}
                 >
-                    <Select placeholder="Chọn khối lớp">
+                    <Select>
                         <Option value={1}>Khối 1</Option>
                         <Option value={2}>Khối 2</Option>
                         <Option value={3}>Khối 3</Option>

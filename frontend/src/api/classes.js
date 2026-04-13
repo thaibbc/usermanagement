@@ -296,6 +296,44 @@ export async function deleteAssignment(classId, assignmentId) {
     return handleResponse(res);
 }
 
+// ============ QUẢN LÝ THÔNG BÁO ============
+
+// Create notification
+export async function createNotification(classId, data) {
+    const res = await fetch(`${API_URLS.CLASSES}/${classId}/notifications`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+}
+
+// Get notifications for class
+export async function getNotifications(classId) {
+    const res = await fetch(`${API_URLS.CLASSES}/${classId}/notifications`, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+}
+
+// Mark notification as read
+export async function markNotificationAsRead(classId, notificationId) {
+    const res = await fetch(`${API_URLS.CLASSES}/${classId}/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+}
+
+// Delete notification
+export async function deleteNotification(notificationId) {
+    const res = await fetch(`${API_URLS.CLASSES}/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+}
+
 // Get assignment by ID
 export async function getAssignmentById(classId, assignmentId) {
     const res = await fetch(`${API_URLS.CLASSES}/${classId}/assignments/${assignmentId}`, {

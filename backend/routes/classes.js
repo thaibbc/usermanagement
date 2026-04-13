@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Classroom = require('../models/Classroom');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const ActionLog = require('../models/ActionLog');
 const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
@@ -658,6 +659,19 @@ router.post('/:id/assignments', async (req, res) => {
             details: `Created assignment "${title}" in class ${classroom.name}`
         });
 
+        // Create notification for selected students
+        if (selectedStudents && selectedStudents.length > 0) {
+            await Notification.create({
+                title: `Bài tập mới: ${title}`,
+                content: `Bạn đã được giao bài tập "${title}". ${requirements ? `Yêu cầu: ${requirements}` : ''}`,
+                classId: req.params.id,
+                senderId: req.user._id,
+                type: 'assignment',
+                assignmentId: assignment._id,
+                recipients: selectedStudents
+            });
+        }
+
         res.status(201).json(assignment);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -1014,6 +1028,133 @@ router.patch('/:id/status', async (req, res) => {
         res.json(classroom);
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// ==================== NOTIFICATION ROUTES ====================
+
+// GET notifications for a class
+router.get('/:id/notifications', auth, async (req, res) => {
+    try {
+        const classroom = await Classroom.findById(req.params.id);
+        if (!classroom) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        // Check if user has access to this class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        const isStudent = classroom.students.some(s => String(s) === String(req.user._id));
+        if (!isAdmin && !isTeacherOwner && !isStudent) {
+            return res.status(403).json({ message: 'Không có quyền truy cập lớp học này' });
+        }
+
+        const notifications = await Notification.find({
+            classId: req.params.id,
+            recipients: req.user._id
+        })
+        .populate('senderId', 'name email')
+        .sort({ createdAt: -1 });
+
+        res.json({ notifications });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// CREATE notification
+router.post('/:id/notifications', auth, async (req, res) => {
+    try {
+        const classroom = await Classroom.findById(req.params.id);
+        if (!classroom) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền tạo thông báo' });
+        }
+
+        const { title, content, type = 'general', assignmentId } = req.body;
+        if (!title || !content) {
+            return res.status(400).json({ message: 'Title and content are required' });
+        }
+
+        // Get all students in the class
+        const recipients = classroom.students;
+
+        const notification = await Notification.create({
+            title,
+            content,
+            classId: req.params.id,
+            senderId: req.user._id,
+            type,
+            assignmentId: assignmentId || null,
+            recipients
+        });
+
+        await ActionLog.create({
+            action: 'create-notification',
+            details: `Created notification "${title}" for class ${classroom.name}`
+        });
+
+        const populatedNotification = await Notification.findById(notification._id)
+            .populate('senderId', 'name email');
+
+        res.status(201).json(populatedNotification);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// MARK notification as read
+router.patch('/:id/notifications/:notificationId/read', auth, async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.notificationId);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        if (!notification.recipients.includes(req.user._id)) {
+            return res.status(403).json({ message: 'Không có quyền truy cập thông báo này' });
+        }
+
+        notification.isRead.set(req.user._id.toString(), true);
+        await notification.save();
+
+        res.json({ message: 'Notification marked as read' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// DELETE notification
+router.delete('/notifications/:notificationId', auth, async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.notificationId);
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        // Check if user is the sender or admin
+        if (notification.senderId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Không có quyền xóa thông báo này' });
+        }
+
+        await Notification.findByIdAndDelete(req.params.notificationId);
+
+        // Log action
+        await ActionLog.create({
+            userId: req.user._id,
+            action: 'delete-notification',
+            details: `Deleted notification "${notification.title}"`
+        });
+
+        res.json({ message: 'Notification deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
