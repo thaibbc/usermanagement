@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const classroomSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    grade: { type: Number, default: null }, // Khối lớp (1-12)
     teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     teacherName: { type: String, default: '' },
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

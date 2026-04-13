@@ -73,9 +73,16 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE class
-router.post('/', async (req, res) => {
-    const { code, name, teacherId, teacherName, note } = req.body;
+router.post('/', auth, async (req, res) => {
+    const { code, name, grade, teacherId, teacherName, note } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
+
+    // Check permissions: admin or teacher
+    const isAdmin = req.user.accountType === 'admin';
+    const isTeacher = req.user.accountType === 'teacher';
+    if (!isAdmin && !isTeacher) {
+        return res.status(403).json({ message: 'Chỉ giáo viên hoặc admin mới có thể tạo lớp học' });
+    }
 
     try {
         const classCode = code || generateCode('CL-');
@@ -87,8 +94,9 @@ router.post('/', async (req, res) => {
         const classroom = await Classroom.create({
             code: classCode,
             name,
-            teacherId: teacherId || null,
-            teacherName: teacherName || '',
+            grade: grade ? Number(grade) : null,
+            teacherId: teacherId || (isTeacher ? req.user._id : null),
+            teacherName: teacherName || (isTeacher ? req.user.name : ''),
             note: note || '',
             status: teacherId ? 'active' : 'pending'
         });
@@ -101,27 +109,45 @@ router.post('/', async (req, res) => {
 });
 
 // UPDATE class
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
     try {
-        const classroom = await Classroom.findByIdAndUpdate(
+        const classroom = await Classroom.findById(req.params.id);
+        if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền chỉnh sửa lớp học' });
+        }
+
+        const updatedClassroom = await Classroom.findByIdAndUpdate(
             req.params.id,
             req.body,
             { new: true, runValidators: true }
         ).populate('teacherId', 'name email phone');
 
-        if (!classroom) return res.status(404).json({ message: 'Class not found' });
-        await ActionLog.create({ action: 'update-class', details: `Updated class ${classroom.name}` });
-        res.json(classroom);
+        await ActionLog.create({ action: 'update-class', details: `Updated class ${updatedClassroom.name}` });
+        res.json(updatedClassroom);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
 // DELETE class
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
-        const classroom = await Classroom.findByIdAndDelete(req.params.id);
+        const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền xóa lớp học' });
+        }
+
+        await Classroom.findByIdAndDelete(req.params.id);
 
         // Delete all assignments for this class
         await Assignment.deleteMany({ classId: req.params.id });
@@ -136,9 +162,8 @@ router.delete('/:id', async (req, res) => {
 // ==================== STUDENT MANAGEMENT ====================
 
 // REQUEST to join class (pending approval)
-router.post('/:id/join', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: 'userId is required' });
+router.post('/:id/join', auth, async (req, res) => {
+    const userId = req.user._id; // Use authenticated user
 
     try {
         const classroom = await Classroom.findById(req.params.id);
@@ -174,10 +199,17 @@ router.post('/:id/join', async (req, res) => {
 });
 
 // APPROVE student request
-router.post('/:id/approve/:userId', async (req, res) => {
+router.post('/:id/approve/:userId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền duyệt học sinh' });
+        }
 
         const { userId } = req.params;
 
@@ -214,10 +246,17 @@ router.post('/:id/approve/:userId', async (req, res) => {
 });
 
 // REJECT student request
-router.post('/:id/reject/:userId', async (req, res) => {
+router.post('/:id/reject/:userId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền từ chối học sinh' });
+        }
 
         const { userId } = req.params;
 
@@ -246,7 +285,7 @@ router.post('/:id/reject/:userId', async (req, res) => {
 });
 
 // BULK APPROVE pending requests
-router.post('/:id/approve/bulk', async (req, res) => {
+router.post('/:id/approve/bulk', auth, async (req, res) => {
     const { userIds } = req.body;
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ message: 'userIds array is required' });
@@ -255,6 +294,13 @@ router.post('/:id/approve/bulk', async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền duyệt học sinh' });
+        }
 
         let approvedCount = 0;
         userIds.forEach(userId => {
@@ -293,7 +339,7 @@ router.post('/:id/approve/bulk', async (req, res) => {
 });
 
 // BULK REJECT pending requests
-router.post('/:id/reject/bulk', async (req, res) => {
+router.post('/:id/reject/bulk', auth, async (req, res) => {
     const { userIds } = req.body;
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ message: 'userIds array is required' });
@@ -302,6 +348,13 @@ router.post('/:id/reject/bulk', async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền từ chối học sinh' });
+        }
 
         let rejectedCount = 0;
         userIds.forEach(userId => {
@@ -333,13 +386,20 @@ router.post('/:id/reject/bulk', async (req, res) => {
 });
 
 // LEAVE class
-router.post('/:id/leave', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: 'userId is required' });
+router.post('/:id/leave', auth, async (req, res) => {
+    const { userId: bodyUserId } = req.body;
 
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        let userId = req.user._id; // Default to self
+        // Allow teachers/admins to remove other students
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if ((isAdmin || isTeacherOwner) && bodyUserId) {
+            userId = bodyUserId;
+        }
 
         const studentIndex = classroom.students.findIndex(s => s.toString() === userId);
         const pendingIndex = classroom.pendingStudents.findIndex(s => s.toString() === userId);
@@ -376,10 +436,17 @@ router.post('/:id/leave', async (req, res) => {
 });
 
 // REMOVE student from class (teacher/admin)
-router.delete('/:id/students/:studentId', async (req, res) => {
+router.delete('/:id/students/:studentId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền xóa học sinh' });
+        }
 
         const { studentId } = req.params;
 
@@ -406,13 +473,20 @@ router.delete('/:id/students/:studentId', async (req, res) => {
 });
 
 // ADD student to class (teacher/admin)
-router.post('/:id/students', async (req, res) => {
+router.post('/:id/students', auth, async (req, res) => {
     const { email, name, phone, note } = req.body;
     if (!email) return res.status(400).json({ message: 'email is required' });
 
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) return res.status(404).json({ message: 'Class not found' });
+
+        // Check permissions: admin or teacher who owns the class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        if (!isAdmin && !isTeacherOwner) {
+            return res.status(403).json({ message: 'Không có quyền thêm học sinh' });
+        }
 
         let user = await User.findOne({ email });
 
@@ -478,14 +552,28 @@ router.post('/:id/students/import', async (req, res) => {
 // ==================== ASSIGNMENT ROUTES ====================
 
 // GET all assignments for a class
-router.get('/:id/assignments', async (req, res) => {
+router.get('/:id/assignments', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
             return res.status(404).json({ message: 'Class not found' });
         }
 
-        const assignments = await Assignment.find({ classId: req.params.id })
+        // Check if user has access to this class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        const isStudent = classroom.students.some(s => String(s) === String(req.user._id));
+        if (!isAdmin && !isTeacherOwner && !isStudent) {
+            return res.status(403).json({ message: 'Không có quyền truy cập lớp học này' });
+        }
+
+        let query = { classId: req.params.id };
+        if (req.user.accountType === 'student') {
+            // Students only see assignments assigned to them
+            query.selectedStudents = req.user._id;
+        }
+
+        const assignments = await Assignment.find(query)
             .sort({ createdAt: -1 })
             .populate('selectedStudents', 'name email')
             .populate('questions'); // Populate all question fields
@@ -497,11 +585,19 @@ router.get('/:id/assignments', async (req, res) => {
 });
 
 // GET single assignment
-router.get('/:id/assignments/:assignmentId', async (req, res) => {
+router.get('/:id/assignments/:assignmentId', auth, async (req, res) => {
     try {
         const classroom = await Classroom.findById(req.params.id);
         if (!classroom) {
             return res.status(404).json({ message: 'Class not found' });
+        }
+
+        // Check if user has access to this class
+        const isAdmin = req.user.accountType === 'admin';
+        const isTeacherOwner = req.user.accountType === 'teacher' && String(classroom.teacherId) === String(req.user._id);
+        const isStudent = classroom.students.some(s => String(s) === String(req.user._id));
+        if (!isAdmin && !isTeacherOwner && !isStudent) {
+            return res.status(403).json({ message: 'Không có quyền truy cập lớp học này' });
         }
 
         const assignment = await Assignment.findOne({
@@ -512,6 +608,11 @@ router.get('/:id/assignments/:assignmentId', async (req, res) => {
 
         if (!assignment) {
             return res.status(404).json({ message: 'Assignment not found' });
+        }
+
+        // For students, check if they are selected
+        if (req.user.accountType === 'student' && !assignment.selectedStudents.some(s => String(s._id || s) === String(req.user._id))) {
+            return res.status(403).json({ message: 'Bạn không được giao bài tập này' });
         }
 
         res.json(assignment);

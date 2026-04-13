@@ -75,6 +75,7 @@ export function ClassManagement() {
     const [newClass, setNewClass] = useState({
         initValue: '',
         name: '',
+        grade: '',
         note: '',
     });
 
@@ -102,8 +103,19 @@ export function ClassManagement() {
         return true;
     };
 
+    const validateGrade = (grade) => {
+        if (!grade) {
+            message.error('Vui lòng chọn khối lớp');
+            return false;
+        }
+        return true;
+    };
+
     const handleCreateClass = async () => {
         if (!validateClassName(newClass.name)) {
+            return;
+        }
+        if (!validateGrade(newClass.grade)) {
             return;
         }
         if (!validateNote(newClass.note)) {
@@ -117,6 +129,7 @@ export function ClassManagement() {
             await createClass({
                 code,
                 name: newClass.name.trim(),
+                grade: newClass.grade ? Number(newClass.grade) : null,
                 note: newClass.note.trim(),
                 teacherId: user?._id || user?.id || null,
                 teacherName: user?.name || '',
@@ -126,7 +139,7 @@ export function ClassManagement() {
                 email: user?.email || ''
             });
 
-            setNewClass({ initValue: '', name: '', note: '' });
+            setNewClass({ initValue: '', name: '', grade: '', note: '' });
             await loadClasses();
 
             message.success('Tạo lớp học thành công!');
@@ -524,6 +537,32 @@ export function ClassManagement() {
 
                                     <div>
                                         <Text style={{ marginBottom: 6, display: 'block', fontSize: '13px', color: '#666' }}>
+                                            Khối lớp : <span style={{ color: '#ff4d4f' }}>*</span>
+                                        </Text>
+                                        <Select
+                                            value={newClass.grade}
+                                            onChange={(value) => setNewClass({ ...newClass, grade: value })}
+                                            placeholder="Chọn khối lớp"
+                                            style={{ width: '100%' }}
+                                            disabled={createLoading}
+                                        >
+                                            <Option value={1}>Khối 1</Option>
+                                            <Option value={2}>Khối 2</Option>
+                                            <Option value={3}>Khối 3</Option>
+                                            <Option value={4}>Khối 4</Option>
+                                            <Option value={5}>Khối 5</Option>
+                                            <Option value={6}>Khối 6</Option>
+                                            <Option value={7}>Khối 7</Option>
+                                            <Option value={8}>Khối 8</Option>
+                                            <Option value={9}>Khối 9</Option>
+                                            <Option value={10}>Khối 10</Option>
+                                            <Option value={11}>Khối 11</Option>
+                                            <Option value={12}>Khối 12</Option>
+                                        </Select>
+                                    </div>
+
+                                    <div>
+                                        <Text style={{ marginBottom: 6, display: 'block', fontSize: '13px', color: '#666' }}>
                                             Tên lớp : <span style={{ color: '#ff4d4f' }}>*</span>
                                         </Text>
                                         <Input
@@ -561,11 +600,11 @@ export function ClassManagement() {
                                         block
                                         onClick={handleCreateClass}
                                         loading={createLoading}
-                                        disabled={searchLoading || createLoading || deleteLoading || statusLoading || !newClass.name.trim()}
+                                        disabled={searchLoading || createLoading || deleteLoading || statusLoading || !newClass.name.trim() || !newClass.grade}
                                         style={{
                                             marginTop: 16,
                                             backgroundColor: '#1890ff',
-                                            opacity: (!newClass.name.trim() || createLoading) ? 0.5 : 1
+                                            opacity: (!newClass.name.trim() || !newClass.grade || createLoading) ? 0.5 : 1
                                         }}
                                     >
                                         {createLoading ? 'Đang tạo...' : 'Tạo lớp học'}

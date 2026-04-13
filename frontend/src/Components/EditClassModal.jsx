@@ -84,12 +84,18 @@ const EditClassModal = ({ visible, onCancel, classData, onSuccess }) => {
                     rules={[{ required: true, message: 'Vui lòng chọn khối lớp' }]}
                 >
                     <Select placeholder="Chọn khối lớp">
-                        <Option value={11}>Khối 1</Option>
+                        <Option value={1}>Khối 1</Option>
                         <Option value={2}>Khối 2</Option>
                         <Option value={3}>Khối 3</Option>
                         <Option value={4}>Khối 4</Option>
                         <Option value={5}>Khối 5</Option>
-
+                        <Option value={6}>Khối 6</Option>
+                        <Option value={7}>Khối 7</Option>
+                        <Option value={8}>Khối 8</Option>
+                        <Option value={9}>Khối 9</Option>
+                        <Option value={10}>Khối 10</Option>
+                        <Option value={11}>Khối 11</Option>
+                        <Option value={12}>Khối 12</Option>
                     </Select>
                 </Form.Item>
 
